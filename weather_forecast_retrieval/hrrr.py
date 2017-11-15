@@ -26,6 +26,7 @@ class HRRR():
     date_url = 'hrrr.%Y%m%d'
     file_name = 'hrrr.t*z.wrfsfcf{:02d}.grib2'
     output_dir = '/data/snowpack/forecasts/hrrr'
+    log_file = os.path.join(output_dir, 'hrrr.log')
     forecast_hours = [0, 1]
     
     def __init__(self):
@@ -42,17 +43,17 @@ class HRRR():
         # setup the logging
 #         logfile = None
 #         if 'log_file' in self.config['logging']:
-#             logfile = self.config['logging']['log_file']
+        logfile = self.config['logging']['log_file']
 
         fmt = '%(levelname)s:%(message)s'
 #         if logfile is not None:
-#             logging.basicConfig(filename=logfile,
-#                                 filemode='w',
-#                                 level=numeric_level,
-#                                 format=fmt)
+        logging.basicConfig(filename=self.log_file,
+                            filemode='w',
+                            level=numeric_level,
+                            format=fmt)
 #         else:
         logging.basicConfig(level=numeric_level)
-        coloredlogs.install(level=numeric_level, fmt=fmt)
+#         coloredlogs.install(level=numeric_level, fmt=fmt)
 
         self._loglevel = numeric_level
 
