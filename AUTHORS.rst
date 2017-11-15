@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* Audrey Roy Greenfeld <Scott Havens: scott.havens@ars.usda.gov>
+* Scott Havens <scott.havens@ars.usda.gov>
 
 Contributors
 ------------
