@@ -2,11 +2,8 @@
 Connect to the RAP Thredds Data Server site and download the data
 """
 
-
-import siphon
 from siphon.catalog import TDSCatalog
-
-import fnmatch
+from urllib.request import urlretrieve 
 import os
 import logging
 import coloredlogs
@@ -27,13 +24,14 @@ class RAP():
     forecast hour.
     """
     
-    tds_url = 'https://www.ncei.noaa.gov/thredds/catalog/'
+    tds_url = 'https://www.ncei.noaa.gov/thredds/catalog'
+    opendap_url = 'https://www.ncei.noaa.gov/thredds/fileServer'
     archive_path = 'rap130anl'
     forecast_path = 'rap130'
     date_format = '%Y%m%d'
     
     file_name = 'hrrr.t*z.wrfsfcf{:02d}.grib2'
-    output_dir = '/data/snowpack/forecasts/hrrr'
+    output_dir = '/data/snowpack/forecasts'
     log_file = os.path.join(output_dir, 'rap.log')
     forecast_hours = [0, 1]
     
@@ -51,90 +49,68 @@ class RAP():
         # setup the logging
 #         logfile = None
 #         if 'log_file' in self.config['logging']:
-        logfile = self.config['logging']['log_file']
+#         logfile = self.config['logging']['log_file']
 
         fmt = '%(levelname)s:%(message)s'
 #         if logfile is not None:
-        logging.basicConfig(filename=self.log_file,
-                            filemode='w',
-                            level=numeric_level,
-                            format=fmt)
+#         logging.basicConfig(filename=self.log_file,
+#                             filemode='w',
+#                             level=numeric_level,
+#                             format=fmt)
 #         else:
-        logging.basicConfig(level=numeric_level)
-#         coloredlogs.install(level=numeric_level, fmt=fmt)
+#         logging.basicConfig(level=numeric_level)
+        coloredlogs.install(level=numeric_level, fmt=fmt)
 
         self._loglevel = numeric_level
 
         self._logger = logging.getLogger(__name__)
-        self._logger.info('Initialized HRRR')
+        self._logger.info('Initialized RAP')
       
     def retrieve_tds(self):
         """
-        Retrieve data from the TDS catalog
+        Retrieve data from the TDS catalog. There are two levels, one
+        for the year month and the other for the day in the month. Follow
+        the same format as the TDS and look for the data that is not
+        in the local directory.
         """  
         
-        cat = TDSCatalog()
+        self._logger.info('Starting retrieval from RAP arhcive TDS')
+        base_url = '{0}/{1}'.format(self.tds_url, self.archive_path)
+        opendap_url = '{0}/{1}'.format(self.opendap_url, self.archive_path)
+        cat = TDSCatalog('{}/catalog.xml'.format(base_url))
         
-#     def retrieve_ftp(self):
-#         """
-#         Retrieve the data from the ftp site. First read the ftp_url and
-#         determine what dates are available. Then use that to download
-#         the required data.
-#         """
-#         
-#         self._logger.info('Retrieving data from the ftp site')
-#         ftp = FTP(self.ftp_url)
-#         
-#         ftp.connect()
-#         self._logger.debug('Connected to FTP')
-#         
-#         ftp.login()
-#         self._logger.debug('Logged into FTP')
-#         
-#         ftp.cwd(self.ftp_dir)
-#         self._logger.debug('Changed directory to {}'.format(self.ftp_dir))
-#         
-#         # get directory listing on server
-#         dir_list = ftp.nlst()
-#         
-#         # go through the directory list and see if we need to add
-#         # any new data files
-#         for d in dir_list:
-#             ftp_dir = os.path.join(self.ftp_dir, d)
-#             self._logger.info('Changing directory to {}'.format(ftp_dir))
-#             
-#             # get the files in the new directory
-#             ftp.cwd(ftp_dir)
-#             ftp_files = ftp.nlst()
-#             
-#             # check if d exists in output_dir
-#             out_path = os.path.join(self.output_dir, d)
-#             if not os.path.isdir(out_path):
-#                 os.mkdir(out_path)
-#                 self._logger.info('mkdir {}'.format(out_path))
-#             
-#             for fhr in self.forecast_hours:
-#             
-#                 wanted_files = fnmatch.filter(ftp_files, self.file_name.format(fhr))
-#                 
-#                 self._logger.debug('Found {} files matching pattern'.format(len(wanted_files)))
-# 
-#                 # go through each file and see if it exists, retrieve if not
-#                 for f in wanted_files:
-#                     out_file = os.path.join(out_path, f)
-#                     ftp_file = os.path.join(ftp_dir, f)
-#                     if not os.path.exists(out_file):
-#                         self._logger.debug('Retrieving {}'.format(ftp_file))
-#                         h = open(out_file, 'wb')
-#                         ftp.retrbinary('RETR {}'.format(ftp_file), h.write)
-#                         h.close()
-#                     
-#                     
-#             
-#             
-#         ftp.close()
+        for lvl in cat.catalog_refs:
+            self._logger.debug('Looking in {}'.format(lvl))
+            
+            # get the listing
+            c1 = TDSCatalog('{}/{}/catalog.xml'.format(base_url, lvl))
+            
+            # check if the path exists
+            out_path_lvl = os.path.join(self.output_dir, self.archive_path, lvl)
+            self.check_dir(out_path_lvl)
+            
+            for lvl2 in c1.catalog_refs:
+                # get the listing
+                c2 = TDSCatalog('{}/{}/{}/catalog.xml'.format(base_url, lvl, lvl2))
                 
-        
+                # check if the path exists
+                out_path_lvl2 = os.path.join(self.output_dir, self.archive_path, lvl, lvl2)
+                self.check_dir(out_path_lvl2)
+                
+                for file_name in c2.datasets:
+                    # construct the file name locally
+                    file_local = os.path.join(out_path_lvl2, file_name)
+                    file_remote = '{}/{}/{}/{}'.format(opendap_url, lvl, lvl2, file_name)
+                    
+                    # get the file if it doesn't exist
+                    if not os.path.exists(file_local):
+                        self._logger.info('Downloading {}'.format(file_name))
+                        u = urlretrieve(file_remote, file_local)
+            
+    def check_dir(self, p):
+        if not os.path.isdir(p):
+            os.mkdir(p)
+            self._logger.info('mkdir {}'.format(p))        
         
 if __name__ == '__main__':
     RAP().retrieve_tds()
