@@ -53,13 +53,13 @@ class RAP():
 
         fmt = '%(levelname)s:%(message)s'
 #         if logfile is not None:
-#         logging.basicConfig(filename=self.log_file,
-#                             filemode='w',
-#                             level=numeric_level,
-#                             format=fmt)
+        logging.basicConfig(filename=self.log_file,
+                            filemode='w',
+                            level=numeric_level,
+                            format=fmt)
 #         else:
 #         logging.basicConfig(level=numeric_level)
-        coloredlogs.install(level=numeric_level, fmt=fmt)
+#         coloredlogs.install(level=numeric_level, fmt=fmt)
 
         self._loglevel = numeric_level
 
