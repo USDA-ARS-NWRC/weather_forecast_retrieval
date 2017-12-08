@@ -43,7 +43,7 @@ class HRRR():
         # setup the logging
 #         logfile = None
 #         if 'log_file' in self.config['logging']:
-        logfile = self.config['logging']['log_file']
+#        logfile = self.config['logging']['log_file']
 
         fmt = '%(levelname)s:%(message)s'
 #         if logfile is not None:
