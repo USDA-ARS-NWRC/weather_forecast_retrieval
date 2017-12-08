@@ -3,7 +3,9 @@ Connect to the RAP Thredds Data Server site and download the data
 """
 
 from siphon.catalog import TDSCatalog
-from urllib.request import urlretrieve 
+from urllib.request import urlretrieve
+import threading
+import grequests
 import os
 import logging
 import coloredlogs
@@ -28,9 +30,9 @@ class RAP():
     opendap_url = 'https://www.ncei.noaa.gov/thredds/fileServer'
     archive_path = 'rap130anl'
     forecast_path = 'rap130'
-    date_format = '%Y%m%d'
+#     date_format = '%Y%m%d'
     
-    file_name = 'hrrr.t*z.wrfsfcf{:02d}.grib2'
+#     file_name = 'hrrr.t*z.wrfsfcf{:02d}.grib2'
     output_dir = '/data/snowpack/forecasts'
     log_file = os.path.join(output_dir, 'rap.log')
     forecast_hours = [0, 1]
@@ -97,6 +99,8 @@ class RAP():
                 out_path_lvl2 = os.path.join(self.output_dir, self.archive_path, lvl, lvl2)
                 self.check_dir(out_path_lvl2)
                 
+                req = []
+                threads = []
                 for file_name in c2.datasets:
                     # construct the file name locally
                     file_local = os.path.join(out_path_lvl2, file_name)
@@ -104,8 +108,16 @@ class RAP():
                     
                     # get the file if it doesn't exist
                     if not os.path.exists(file_local):
-                        self._logger.info('Downloading {}'.format(file_name))
-                        u = urlretrieve(file_remote, file_local)
+                        self._logger.info('Adding {}'.format(file_name))
+                        t = threading.Thread(target=urlretrieve, args=(file_remote, file_local))
+                        t.start()
+                        threads.append(t)
+#                         u = urlretrieve(file_remote, file_local)
+
+                for t in threads:
+                    t.join()
+
+
             
     def check_dir(self, p):
         if not os.path.isdir(p):
