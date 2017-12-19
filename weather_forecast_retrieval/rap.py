@@ -5,7 +5,6 @@ Connect to the RAP Thredds Data Server site and download the data
 from siphon.catalog import TDSCatalog
 from urllib.request import urlretrieve
 import threading
-import grequests
 import os
 import logging
 import coloredlogs
