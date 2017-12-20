@@ -12,6 +12,9 @@ import coloredlogs
 import pygrib
 from datetime import datetime, timedelta
 import glob
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 
 try:
     #python2
@@ -62,6 +65,36 @@ class HRRR():
     
     num_threads = 20
     
+    var_map = {
+        'air_temp': {
+            'level': 2,
+            'parameterName': 'Temperature'
+            },
+        'relative_humidity': {
+            'level': 2,
+            'parameterName': 'Relative humidity'
+            },
+        'wind_u': {
+            'level': 10,
+            'parameterName': 'u-component of wind'
+            },
+        'wind_v': {
+            'level': 10,
+            'parameterName': 'v-component of wind'
+            },
+        'precip_int': {
+            'level': 0,
+            'parameterName': 'Total Precipitation'
+            },
+        'cloud_factor': {
+            'parameterName': 'Low cloud cover'
+            },
+        'elevation': {
+            'typeOfLevel': 'surface',
+            'parameterName': 'Geopotential height'
+            }
+        }
+    
     def __init__(self):
 #         # start logging
 #         if 'log_level' in self.config['logging']:
@@ -80,10 +113,10 @@ class HRRR():
 
         fmt = '%(levelname)s:%(message)s'
 #         if logfile is not None:
-        logging.basicConfig(filename=self.log_file,
-                            filemode='w',
-                            level=numeric_level,
-                            format=fmt)
+#         logging.basicConfig(filename=self.log_file,
+#                             filemode='w',
+#                             level=numeric_level,
+#                             format=fmt)
 #         else:
         logging.basicConfig(level=numeric_level)
 #         coloredlogs.install(level=numeric_level, fmt=fmt)
@@ -166,8 +199,6 @@ class HRRR():
         self._logger.info('Done retrieving files')
         
         
-        
-        
     def retrieve_ftp(self):
         """
         Retrieve the data from the ftp site. First read the ftp_url and
@@ -222,9 +253,6 @@ class HRRR():
                         ftp.retrbinary('RETR {}'.format(ftp_file), h.write)
                         h.close()
                     
-                    
-            
-            
         ftp.close()
                 
                 
@@ -270,22 +298,30 @@ class HRRR():
             d += delta
         
         # load in the data for the given files and bounding box
+        lat = None
+        lon = None
+        elev = None
+        df = pd.DataFrame()
         for f in fmatch:
             gr = pygrib.open(f)
             
-#             for g in gr:
-#                 if g.name 
-        
-        
+            for vm,params in self.var_map.items():
+                g = gr.select(**params)
+                
+                if len(g) > 1:
+                    raise Exception('variable map returned more than one message for {}'.format(vm))
+                
+                g
+            
         
         
 if __name__ == '__main__':
-    HRRR().retrieve_grib_filter()
+#     HRRR().retrieve_grib_filter()
 
-#     start_date = datetime(2017, 12, 1, 10, 0, 0)
-#     end_date = datetime(2017, 12, 10, 5, 0, 0)
-#     bbox =  [-120.13, 37.63, -119.06, 38.3]
-#     HRRR().get_saved_data(start_date, end_date, bbox)
+    start_date = datetime(2017, 12, 1, 10, 0, 0)
+    end_date = datetime(2017, 12, 10, 5, 0, 0)
+    bbox =  [-120.13, 37.63, -119.06, 38.3]
+    HRRR().get_saved_data(start_date, end_date, bbox)
     
     
     
