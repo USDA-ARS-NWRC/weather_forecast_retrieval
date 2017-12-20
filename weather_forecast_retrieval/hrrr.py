@@ -13,6 +13,7 @@ import pygrib
 from datetime import datetime, timedelta
 import glob
 import pandas as pd
+import utm
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -84,15 +85,16 @@ class HRRR():
             },
         'precip_int': {
             'level': 0,
-            'parameterName': 'Total Precipitation'
+            'name': 'Total Precipitation'
             },
         'cloud_factor': {
             'parameterName': 'Low cloud cover'
             },
-        'elevation': {
-            'typeOfLevel': 'surface',
-            'parameterName': 'Geopotential height'
-            }
+        }
+    
+    var_elevation = {
+        'typeOfLevel': 'surface',
+        'parameterName': 'Geopotential height'
         }
     
     def __init__(self):
@@ -256,7 +258,7 @@ class HRRR():
         ftp.close()
                 
                 
-    def get_saved_data(self, start_date, end_date, bbox, var_map=None, forecast=[0]):
+    def get_saved_data(self, start_date, end_date, bbox, var_map=None, forecast=[0], force_zone_number=None):
         """
         Get the saved data from above for a particular time and a particular
         bounding box.
@@ -279,11 +281,13 @@ class HRRR():
         if var_map is None:
             self._logger.warn('var_map not specified, will return all data!')
         
+        self.force_zone_number = force_zone_number
+        
         # find all the data in between the two dates
-        d = start_date
+        d = start_date.date()
         delta = timedelta(days=1)
         fmatch = []
-        while d <= end_date:
+        while d <= end_date.date():
             # get the path for the upper level directory
             p = d.strftime(self.date_url)
             self._logger.debug('Found directory {}'.format(p))
@@ -298,30 +302,101 @@ class HRRR():
             d += delta
         
         # load in the data for the given files and bounding box
-        lat = None
-        lon = None
-        elev = None
-        df = pd.DataFrame()
+        idx = None
+        df = {}
         for f in fmatch:
+            self._logger.debug('Reading {}'.format(f))
             gr = pygrib.open(f)
             
-            for vm,params in self.var_map.items():
+            # if this is the first run, then find out a few things about the grid
+            if idx is None:
+                metadata, idx = self.get_metadata(gr, bbox)
+                
+                # create all of the dataframes for each mapped variable
+                for k in self.var_map.keys():
+                    df[k] = pd.DataFrame(columns=metadata.index)
+            
+            for key,params in self.var_map.items():
                 g = gr.select(**params)
                 
                 if len(g) > 1:
-                    raise Exception('variable map returned more than one message for {}'.format(vm))
-                
-                g
+                    raise Exception('variable map returned more than one message for {}'.format(key))
+                g = g[0]
+             
+                # get the data, ensuring that the right location is grabbed
+                dt = g.validDate
+                if dt >= start_date and dt <= end_date:
+                    df[key].loc[dt,:] = g.values[idx]
+          
+        
+        for key in df.keys():
+            df[key].sort_index(axis=0, inplace=True)
+            if key == 'air_temp':
+                df['air_temp'] -= 273.15
+                    
+        return metadata, df
+             
+    def get_metadata(self, gr, bbox):
+        """
+        Generate a metadata dataframe from the elevation data
+        
+        Args:
+            gr: pygrib.open() object
+            bbox: list of the bounding box
             
+        Returns:
+            dataframe for the metadata
+        """
+        
+        elev, lat, lon = gr.select(**self.var_elevation)[0].data()
+                
+        # subset the data
+        idx = (lon >= bbox[0]) & (lon <= bbox[2]) & (lat >= bbox[1]) & (lat <= bbox[3])
+        lat = lat[idx]
+        lon = lon[idx]
+        elev = elev[idx]
+        a = np.argwhere(idx)
+        primary_id = ['grid_y%i_x%i' % (i[0], i[1]) for i in a]
+        self._logger.info('Found {} grid cells within bbox'.format(len(a)))
+        
+        if len(a) == 0:
+            raise ValueError('Did not find any grid cells within bbox')
+        
+        metadata = pd.DataFrame(index=primary_id,
+                                columns=('X', 'Y', 'latitude',
+                                         'longitude', 'elevation'))
+        metadata['latitude'] = lat.flatten()
+        metadata['longitude'] = lon.flatten()
+        metadata['elevation'] = elev.flatten()
+        metadata = metadata.apply(apply_utm,
+                                  args=(self.force_zone_number,),
+                                  axis=1)  
+        
+        return metadata, idx
+                
+def apply_utm(s, force_zone_number):
+    """
+    Calculate the utm from lat/lon for a series
+    Args:
+        s: pandas series with fields latitude and longitude
+        force_zone_number: default None, zone number to force to
+    Returns:
+        s: pandas series with fields 'X' and 'Y' filled
+    """
+    p = utm.from_latlon(s.latitude, s.longitude,
+                        force_zone_number=force_zone_number)
+    s['X'] = p[0]
+    s['Y'] = p[1]
+    return s          
         
         
 if __name__ == '__main__':
 #     HRRR().retrieve_grib_filter()
 
     start_date = datetime(2017, 12, 1, 10, 0, 0)
-    end_date = datetime(2017, 12, 10, 5, 0, 0)
+    end_date = datetime(2017, 12, 2, 5, 0, 0)
     bbox =  [-120.13, 37.63, -119.06, 38.3]
-    HRRR().get_saved_data(start_date, end_date, bbox)
+    HRRR().get_saved_data(start_date, end_date, bbox, force_zone_number=11)
     
     
     
