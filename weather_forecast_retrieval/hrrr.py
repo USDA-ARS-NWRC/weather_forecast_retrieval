@@ -43,8 +43,8 @@ class HRRR():
     date_url = 'hrrr.%Y%m%d'
     file_name = 'hrrr.t*z.wrfsfcf{:02d}.grib2'
     file_filter = 'hrrr.t*z.wrfsfcf*.grib2'
-    output_dir = '/data/snowpack/forecasts/hrrr'
-    log_file = os.path.join(output_dir, 'hrrr.log')
+#     output_dir = '/data/snowpack/forecasts/hrrr'
+#     log_file = os.path.join(output_dir, 'hrrr.log')
     forecast_hours = [0, 1]
     
     # the grib filter page with some of the default parameters
@@ -141,6 +141,12 @@ class HRRR():
             self._logger = logging.getLogger(__name__)
         else:
             self._logger = external_logger
+            
+        # parse the rest of the config file
+        self.output_dir = self.config['output']['output_dir']
+        self.grib_params.update(self.config['grib_parameters'])
+        self.grib_subregion.update(self.config['grib_subregion'])
+        
         
         self._logger.info('Initialized HRRR')
     
@@ -407,12 +413,13 @@ def apply_utm(s, force_zone_number):
         
         
 if __name__ == '__main__':
+    pass
 #     HRRR().retrieve_grib_filter()
 
-    start_date = datetime(2017, 12, 1, 10, 0, 0)
-    end_date = datetime(2017, 12, 2, 5, 0, 0)
-    bbox =  [-120.13, 37.63, -119.06, 38.3]
-    HRRR().get_saved_data(start_date, end_date, bbox, force_zone_number=11)
+#     start_date = datetime(2017, 12, 1, 10, 0, 0)
+#     end_date = datetime(2017, 12, 2, 5, 0, 0)
+#     bbox =  [-120.13, 37.63, -119.06, 38.3]
+#     HRRR().get_saved_data(start_date, end_date, bbox, force_zone_number=11)
     
     
     
