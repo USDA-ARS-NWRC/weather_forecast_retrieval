@@ -1,12 +1,11 @@
 """
-Connect to the HRRR ftp site and download the data
+Connect to the HRRR site and download the data
 """
-
 
 from ftplib import FTP
 from urllib.request import urlretrieve
 import threading
-import os, fnmatch
+import os, sys, fnmatch
 import logging
 import coloredlogs
 import pygrib
@@ -14,15 +13,18 @@ from datetime import datetime, timedelta
 import glob
 import pandas as pd
 import utm
-import matplotlib.pyplot as plt
 import numpy as np
 
-try:
-    #python2
-    from urllib import urlencode
-except ImportError:
-    #python3
+from . import utils
+
+PY3 = sys.version_info[0] >= 3
+if PY3:  # pragma: no cover
+    from configparser import SafeConfigParser
     from urllib.parse import urlencode
+else:  # pragma: no cover
+    from ConfigParser import SafeConfigParser
+    from urllib import urlencode
+   
 
 class HRRR():
     """
@@ -97,35 +99,49 @@ class HRRR():
         'parameterName': 'Geopotential height'
         }
     
-    def __init__(self):
-#         # start logging
-#         if 'log_level' in self.config['logging']:
-#             loglevel = self.config['logging']['log_level'].upper()
-#         else:
-        loglevel = 'DEBUG'
+    def __init__(self, configFile, external_logger=None):
+        """
+        Args:
+            configFile (str):  path to configuration file.
+            external_logger: logger instance if using in part of larger program
+        """
+        
+        self.config = utils.read_config(configFile)
+        
+        
+        # start logging
+        if external_logger == None:
 
-        numeric_level = getattr(logging, loglevel, None)
-        if not isinstance(numeric_level, int):
-            raise ValueError('Invalid log level: %s' % loglevel)
+            if 'log_level' in self.config['logging']:
+                loglevel = self.config['logging']['log_level'].upper()
+            else:
+                loglevel = 'INFO'
 
-        # setup the logging
-#         logfile = None
-#         if 'log_file' in self.config['logging']:
-#        logfile = self.config['logging']['log_file']
+            numeric_level = getattr(logging, loglevel, None)
+            if not isinstance(numeric_level, int):
+                raise ValueError('Invalid log level: %s' % loglevel)
 
-        fmt = '%(levelname)s:%(message)s'
-#         if logfile is not None:
-#         logging.basicConfig(filename=self.log_file,
-#                             filemode='w',
-#                             level=numeric_level,
-#                             format=fmt)
-#         else:
-        logging.basicConfig(level=numeric_level)
-#         coloredlogs.install(level=numeric_level, fmt=fmt)
+            # setup the logging
+            logfile = None
+            if 'log_file' in self.config['logging']:
+                logfile = self.config['logging']['log_file']
 
-        self._loglevel = numeric_level
+            fmt = '%(levelname)s:%(name)s:%(message)s'
+            if logfile is not None:
+                logging.basicConfig(filename=logfile,
+                                    filemode='w',
+                                    level=numeric_level,
+                                    format=fmt)
+            else:
+                logging.basicConfig(level=numeric_level)
+                coloredlogs.install(level=numeric_level, fmt=fmt)
 
-        self._logger = logging.getLogger(__name__)
+            self._loglevel = numeric_level
+
+            self._logger = logging.getLogger(__name__)
+        else:
+            self._logger = external_logger
+        
         self._logger.info('Initialized HRRR')
     
     def retrieve_grib_filter(self):
