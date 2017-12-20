@@ -34,7 +34,7 @@ setup(
     packages=find_packages(include=['weather_forecast_retrieval']),
     include_package_data=True,
     install_requires=requirements,
-    license="MIT license",
+    license="GPL-3.0",
     zip_safe=False,
     keywords='weather_forecast_retrieval',
     classifiers=[
