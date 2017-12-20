@@ -257,7 +257,7 @@ class HRRR():
                     
         ftp.close()
                 
-                
+              
     def get_saved_data(self, start_date, end_date, bbox, var_map=None, forecast=[0], force_zone_number=None):
         """
         Get the saved data from above for a particular time and a particular
