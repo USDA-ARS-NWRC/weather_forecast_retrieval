@@ -99,14 +99,20 @@ class HRRR():
         'parameterName': 'Geopotential height'
         }
     
-    def __init__(self, configFile, external_logger=None):
+    def __init__(self, configFile=None, external_logger=None):
         """
         Args:
             configFile (str):  path to configuration file.
             external_logger: logger instance if using in part of larger program
         """
         
-        self.config = utils.read_config(configFile)
+        if configFile is not None:
+            self.config = utils.read_config(configFile)
+            
+            # parse the rest of the config file
+            self.output_dir = self.config['output']['output_dir']
+            self.grib_params.update(self.config['grib_parameters'])
+            self.grib_subregion.update(self.config['grib_subregion'])
         
         
         # start logging
@@ -140,13 +146,7 @@ class HRRR():
 
             self._logger = logging.getLogger(__name__)
         else:
-            self._logger = external_logger
-            
-        # parse the rest of the config file
-        self.output_dir = self.config['output']['output_dir']
-        self.grib_params.update(self.config['grib_parameters'])
-        self.grib_subregion.update(self.config['grib_subregion'])
-        
+            self._logger = external_logger       
         
         self._logger.info('Initialized HRRR')
     
@@ -280,7 +280,7 @@ class HRRR():
         ftp.close()
                 
               
-    def get_saved_data(self, start_date, end_date, bbox, var_map=None, forecast=[0], force_zone_number=None):
+    def get_saved_data(self, start_date, end_date, bbox, output_dir=None, var_map=None, forecast=[0], force_zone_number=None):
         """
         Get the saved data from above for a particular time and a particular
         bounding box.
@@ -301,9 +301,11 @@ class HRRR():
         
         self._logger.info('getting saved data')
         if var_map is None:
-            self._logger.warn('var_map not specified, will return all data!')
+            self._logger.warn('var_map not specified, will return default outputs!')
         
         self.force_zone_number = force_zone_number
+        if output_dir is not None:
+            self.output_dir = output_dir
         
         # find all the data in between the two dates
         d = start_date.date()
@@ -355,6 +357,8 @@ class HRRR():
             df[key].sort_index(axis=0, inplace=True)
             if key == 'air_temp':
                 df['air_temp'] -= 273.15
+            if key == 'cloud_factor':
+                df['cloud_factor'] = 1 - df['cloud_factor']
                     
         return metadata, df
              
@@ -385,7 +389,7 @@ class HRRR():
             raise ValueError('Did not find any grid cells within bbox')
         
         metadata = pd.DataFrame(index=primary_id,
-                                columns=('X', 'Y', 'latitude',
+                                columns=('utm_x', 'utm_y', 'latitude',
                                          'longitude', 'elevation'))
         metadata['latitude'] = lat.flatten()
         metadata['longitude'] = lon.flatten()
@@ -407,8 +411,8 @@ def apply_utm(s, force_zone_number):
     """
     p = utm.from_latlon(s.latitude, s.longitude,
                         force_zone_number=force_zone_number)
-    s['X'] = p[0]
-    s['Y'] = p[1]
+    s['utm_x'] = p[0]
+    s['utm_y'] = p[1]
     return s          
         
         
