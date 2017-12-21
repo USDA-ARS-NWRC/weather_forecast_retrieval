@@ -25,7 +25,7 @@ test_requirements = [
 
 setup(
     name='weather_forecast_retrieval',
-    version='0.3.1',
+    version='0.3.2',
     description="Weather forecast retrieval gathers relavant gridded weather forecasts to ingest into physically based models for water supply forecasts",
     long_description=readme + '\n\n' + history,
     author="Scott Havens",
