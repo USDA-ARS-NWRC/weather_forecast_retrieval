@@ -3,11 +3,19 @@ Connect to the RAP Thredds Data Server site and download the data
 """
 
 from siphon.catalog import TDSCatalog
-from urllib.request import urlretrieve
 import threading
-import os
+import os, sys
 import logging
 import coloredlogs
+
+PY3 = sys.version_info[0] >= 3
+if PY3:  # pragma: no cover
+    from configparser import SafeConfigParser
+    from urllib.parse import urlencode
+    from urllib.request import urlretrieve
+else:  # pragma: no cover
+    from ConfigParser import SafeConfigParser
+    from urllib import urlencode, urlretrieve
 
 class RAP():
     """    

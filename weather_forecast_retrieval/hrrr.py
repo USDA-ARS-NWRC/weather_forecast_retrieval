@@ -3,7 +3,6 @@ Connect to the HRRR site and download the data
 """
 
 from ftplib import FTP
-from urllib.request import urlretrieve
 import threading
 import os, sys, fnmatch
 import logging
@@ -21,9 +20,10 @@ PY3 = sys.version_info[0] >= 3
 if PY3:  # pragma: no cover
     from configparser import SafeConfigParser
     from urllib.parse import urlencode
+    from urllib.request import urlretrieve
 else:  # pragma: no cover
     from ConfigParser import SafeConfigParser
-    from urllib import urlencode
+    from urllib import urlencode, urlretrieve
    
 
 class HRRR():

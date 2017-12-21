@@ -31,7 +31,7 @@ setup(
     author="Scott Havens",
     author_email='scott.havens@ars.usda.gov',
     url='https://github.com/USDA-ARS-NWRC/weather_forecast_retrieval',
-    packages=find_packages(include=['weather_forecast_retrieval']),
+    packages=['weather_forecast_retrieval'],
     include_package_data=True,
     install_requires=requirements,
     license="GPL-3.0",
