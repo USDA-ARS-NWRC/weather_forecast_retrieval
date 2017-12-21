@@ -358,7 +358,7 @@ class HRRR():
             if key == 'air_temp':
                 df['air_temp'] -= 273.15
             if key == 'cloud_factor':
-                df['cloud_factor'] = 1 - df['cloud_factor']
+                df['cloud_factor'] = 1 - df['cloud_factor']/100
                     
         return metadata, df
              
