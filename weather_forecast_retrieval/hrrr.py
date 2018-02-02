@@ -352,8 +352,11 @@ class HRRR():
                 g = gr.select(**params)
 
                 if len(g) > 1:
-                    raise Exception('variable map returned more than one message for {}'.format(key))
-                g = g[0]
+                    self._logger.debug('Multiple items returned from key are {}'.format(g))
+                    self._logger.warning('variable map returned more than one message for {}'.format(key))
+                    # raise Exception('variable map returned more than one message for {}'.format(key))
+                #g = g[0]
+                g = g[-1]
 
                 # get the data, ensuring that the right location is grabbed
                 dt = g.validDate
