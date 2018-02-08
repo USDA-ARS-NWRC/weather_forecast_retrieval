@@ -311,11 +311,15 @@ class HRRR():
             self.output_dir = output_dir
 
         # if we are grabbing the forecast, get all files from start time
+        self.file_name = 'hrrr.t*z.wrfsfcf01.grib2'
         if forecast_flag:
             self.file_name = 'hrrr.t{:02d}z.wrfsfcf'.format(day_hour) + \
                         '{:02d}.grib2'
 
         # find all the data in between the two dates
+        # reset the dates to account for offset of 0-1 time period
+        start_date = start_date - timedelta(hours=1)
+        end_date = end_date
         d = start_date.date()
         delta = timedelta(days=1)
         fmatch = []
@@ -325,9 +329,13 @@ class HRRR():
             self._logger.debug('Found directory {}'.format(p))
 
             # find all the files in the directory
-            for f in forecast:
-                fname = self.file_name.format(f)
-
+            if forecast_flag:
+                for f in forecast:
+                    fname = self.file_name.format(f)
+                    pth = os.path.join(self.output_dir, p, fname)
+                    fmatch += glob.glob(pth)
+            else:
+                fname = self.file_name
                 pth = os.path.join(self.output_dir, p, fname)
                 fmatch += glob.glob(pth)
 
@@ -336,6 +344,7 @@ class HRRR():
         # load in the data for the given files and bounding box
         idx = None
         df = {}
+
         for f in fmatch:
             self._logger.debug('Reading {}'.format(f))
             gr = pygrib.open(f)
@@ -355,11 +364,11 @@ class HRRR():
                     self._logger.debug('Multiple items returned from key are {}'.format(g))
                     self._logger.warning('variable map returned more than one message for {}'.format(key))
                     # raise Exception('variable map returned more than one message for {}'.format(key))
-                #g = g[0]
-                g = g[-1]
+                g = g[0]
 
                 # get the data, ensuring that the right location is grabbed
                 dt = g.validDate
+
                 if dt >= start_date and dt <= end_date:
                     df[key].loc[dt,:] = g.values[idx]
 
