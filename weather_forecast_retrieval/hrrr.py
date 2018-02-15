@@ -358,19 +358,38 @@ class HRRR():
                     df[k] = pd.DataFrame(columns=metadata.index)
 
             for key,params in self.var_map.items():
-                g = gr.select(**params)
+                # it appears we do not always have cloud factor, so pass ones
+                # if there is no cloud factor
+                if key == 'cloud_factor':
+                    try:
+                        g = gr.select(**params)
+                        g = g[0]
+                        passvals = g.values[idx]
+                    except:
+                        # get the first key and use it to shape the
+                        # array of ones we will pass
+                        params = self.var_map[self.var_map.keys()[0]]
+                        g = gr.select(**params)
+                        g = g[0]
+                        passvals = np.ones_like(g.values[idx])
+                        self._logger.warning('No cloud factor, passing ones instead')
 
-                if len(g) > 1:
-                    self._logger.debug('Multiple items returned from key are {}'.format(g))
-                    self._logger.warning('variable map returned more than one message for {}'.format(key))
-                    # raise Exception('variable map returned more than one message for {}'.format(key))
-                g = g[0]
+                # normal case
+                else:
+                    g = gr.select(**params)
+
+                    if len(g) > 1:
+                        self._logger.debug('Multiple items returned from key are {}'.format(g))
+                        self._logger.warning('variable map returned more than one message for {}'.format(key))
+                        # raise Exception('variable map returned more than one message for {}'.format(key))
+                    g = g[0]
+                    passvals = g.values[idx]
 
                 # get the data, ensuring that the right location is grabbed
                 dt = g.validDate
 
                 if dt >= start_date and dt <= end_date:
-                    df[key].loc[dt,:] = g.values[idx]
+                    df[key].loc[dt,:] = passvals
 
 
         for key in df.keys():
