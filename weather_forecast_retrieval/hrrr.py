@@ -13,6 +13,7 @@ import glob
 import pandas as pd
 import utm
 import numpy as np
+import copy
 
 from . import utils
 
@@ -283,7 +284,7 @@ class HRRR():
 
     def get_saved_data(self, start_date, end_date, bbox, output_dir=None,
                        var_map=None, forecast=[0], force_zone_number=None,
-                       forecast_flag=False, day_hour=0):
+                       forecast_flag=False, day_hour=0, var_keys=None):
         """
         Get the saved data from above for a particular time and a particular
         bounding box.
@@ -293,7 +294,10 @@ class HRRR():
             end_date: datetime for the end
             bbox: list of  [lonmin,latmin,lonmax,latmax]
             var_map: dictionary to map the desired variables into {new_variable: hrrr_variable}
-            forecast: true or false, whether or not to grab the forecat for the start_date
+            forecast: list of forecast hours to grab
+            forecast_flag: weather or not to get forecast hours
+            day_hour: which hour in the day to grab for forecast scenario
+            var_keys: which keys to grab from smrf variables, default is var_map
 
         Returns:
             List containing dataframe for the metadata for each node point for the desired variables
@@ -357,7 +361,13 @@ class HRRR():
                 for k in self.var_map.keys():
                     df[k] = pd.DataFrame(columns=metadata.index)
 
-            for key,params in self.var_map.items():
+            # filter to desired keys if specified
+            if var_keys is not None:
+                new_var_map = { key: old_dict[key] for key in var_keys}
+            else:
+                new_var_map = copy.deepcopy(self.var_map)
+
+            for key,params in new_var_map.items():
                 # it appears we do not always have cloud factor, so pass ones
                 # if there is no cloud factor
                 if key == 'cloud_factor':
@@ -371,7 +381,7 @@ class HRRR():
                         params = self.var_map[self.var_map.keys()[0]]
                         g = gr.select(**params)
                         g = g[0]
-                        passvals = np.ones_like(g.values[idx])
+                        passvals = np.zeros_like(g.values[idx])
                         self._logger.warning('No cloud factor, passing ones instead')
 
                 # normal case
