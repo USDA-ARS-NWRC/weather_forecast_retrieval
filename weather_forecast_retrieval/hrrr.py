@@ -363,7 +363,7 @@ class HRRR():
 
             # filter to desired keys if specified
             if var_keys is not None:
-                new_var_map = { key: old_dict[key] for key in var_keys}
+                new_var_map = { key: self.var_map[key] for key in var_keys}
             else:
                 new_var_map = copy.deepcopy(self.var_map)
 
