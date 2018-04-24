@@ -370,30 +370,38 @@ class HRRR():
             for key,params in new_var_map.items():
                 # it appears we do not always have cloud factor, so pass ones
                 # if there is no cloud factor
-                if key == 'cloud_factor':
-                    try:
-                        g = gr.select(**params)
-                        g = g[0]
-                        passvals = g.values[idx]
-                    except:
-                        # get the first key and use it to shape the
-                        # array of ones we will pass
-                        params = self.var_map[self.var_map.keys()[0]]
-                        g = gr.select(**params)
-                        g = g[0]
-                        passvals = np.zeros_like(g.values[idx])
-                        self._logger.warning('No cloud factor, passing ones instead')
+                # if key == 'cloud_factor':
+                #     try:
+                #         g = gr.select(**params)
+                #         g = g[0]
+                #         passvals = g.values[idx]
+                #     except:
+                #         # get the first key and use it to shape the
+                #         # array of ones we will pass
+                #         params = self.var_map[self.var_map.keys()[0]]
+                #         g = gr.select(**params)
+                #         g = g[0]
+                #         passvals = np.zeros_like(g.values[idx])
+                #         self._logger.warning('No cloud factor, passing ones instead')
 
                 # normal case
-                else:
+                # else:
+                try:
+                    g = gr.select(**params)
+                except:
+                    broken_path = os.path.basename(f)[:8]+'z.wrfsfcf02.grib2'
+                    fixed_path = os.path.join(os.path.dirname(f),broken_path)
+                    self._logger.warning('Using {}'.format(fixed_path))
+                    gr = pygrib.open(fixed_path)
                     g = gr.select(**params)
 
-                    if len(g) > 1:
-                        self._logger.debug('Multiple items returned from key are {}'.format(g))
-                        self._logger.warning('variable map returned more than one message for {}'.format(key))
-                        # raise Exception('variable map returned more than one message for {}'.format(key))
-                    g = g[0]
-                    passvals = g.values[idx]
+                if len(g) > 1:
+                    self._logger.debug('Multiple items returned from key are {}'.format(g))
+                    self._logger.warning('variable map returned more than one message for {}'.format(key))
+                    # raise Exception('variable map returned more than one message for {}'.format(key))
+                g = g[0]
+                passvals = g.values[idx]
+                # this is the end of that else
 
                 # get the data, ensuring that the right location is grabbed
                 dt = g.validDate
