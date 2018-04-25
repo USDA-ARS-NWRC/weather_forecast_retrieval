@@ -388,7 +388,6 @@ class HRRR():
                         passvals = np.zeros_like(g.values[idx])
                         self._logger.warning('No {}, passing empty instead'.format(key))
                         dt = g.validDate
-                        print('found1', dt)
 
                     except:
                         broken_path = os.path.basename(f)[:8]+'z.wrfsfcf02.grib2'
@@ -406,23 +405,24 @@ class HRRR():
                         dt = g[0].validDate #- pd.to_timedelta(1, unit='h')
                         g = g[0]
                         passvals = g.values[idx]
-                        print('found2', dt)
 
-                test_hr = int(os.path.basename(f)[6:8])
+                test_hr = str(os.path.basename(f)[6:8])
                 test_date = f.split('hrrr.')[1]
                 test_yr = test_date[:4]
                 test_mo = test_date[4:6]
-                test_day = test_date[7:9]
+                test_day = test_date[6:8]
                 # ugly way to do this, but file dates are inconsistent
-                dt = pd.to_datetime('{}-{}-{} {}:00:00'.format(test_yr,
-                                                               test_mo,
-                                                               test_day,
-                                                               test_hr))
-                dt = dt + pd.to_timedelta(1, unit='h')
+                try:
+                    dt = pd.to_datetime('{}-{}-{} {}:00:00'.format(test_yr,
+                                                                   test_mo,
+                                                                   test_day,
+                                                                   test_hr))
+                    dt = dt + pd.to_timedelta(1, unit='h')
+                except:
+                    print('Failed with ', test_hr, test_yr, test_mo, test_day)
+                    dt = g.validDate
 
                 if dt >= start_date and dt <= end_date:
-                    print('put', dt)
-                    print(f)
                     df[key].loc[dt,:] = passvals
 
         for key in df.keys():
