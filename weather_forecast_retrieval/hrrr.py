@@ -371,44 +371,53 @@ class HRRR():
                 # it appears we do not always have cloud factor, so pass ones
                 # if there is no cloud factor
                 # if key == 'cloud_factor':
-                #     try:
-                #         g = gr.select(**params)
-                #         g = g[0]
-                #         passvals = g.values[idx]
-                #     except:
-                #         # get the first key and use it to shape the
-                #         # array of ones we will pass
-                #         params = self.var_map[self.var_map.keys()[0]]
-                #         g = gr.select(**params)
-                #         g = g[0]
-                #         passvals = np.zeros_like(g.values[idx])
-                #         self._logger.warning('No cloud factor, passing ones instead')
-
-                # normal case
-                # else:
                 try:
                     g = gr.select(**params)
+                    g = g[0]
+                    passvals = g.values[idx]
+                    dt = g.validDate
                 except:
-                    broken_path = os.path.basename(f)[:8]+'z.wrfsfcf02.grib2'
-                    fixed_path = os.path.join(os.path.dirname(f),broken_path)
-                    self._logger.warning('Using {}'.format(fixed_path))
-                    gr = pygrib.open(fixed_path)
-                    g = gr.select(**params)
+                    try:
+                        # get the first key and use it to shape the
+                        # array of ones we will pass
+                        # 'wind_u'
+                        #params = self.var_map['air_temp']
+                        params = new_var_map['air_temp']
+                        g = gr.select(**params)
+                        g = g[0]
+                        passvals = np.zeros_like(g.values[idx])
+                        self._logger.warning('No {}, passing empty instead'.format(key))
+                        dt = g.validDate
 
-                if len(g) > 1:
-                    self._logger.debug('Multiple items returned from key are {}'.format(g))
-                    self._logger.warning('variable map returned more than one message for {}'.format(key))
-                    # raise Exception('variable map returned more than one message for {}'.format(key))
-                g = g[0]
-                passvals = g.values[idx]
-                # this is the end of that else
+                    except:
+                        if key == 'cloud_factor':
+                            # get the first key and use it to shape the
+                            # array of ones we will pass
+                            params = self.var_map[self.var_map.keys()[0]]
+                            g = gr.select(**params)
+                            g = g[0]
+                            passvals = np.zeros_like(g.values[idx])
+                            self._logger.warning('No {}, passing empty instead'.format(key))
+                            dt = g.validDate
+                        else:
+                            broken_path = os.path.basename(f)[:8]+'z.wrfsfcf02.grib2'
+                            fixed_path = os.path.join(os.path.dirname(f),broken_path)
+                            self._logger.warning('Using {}'.format(fixed_path))
+                            gr = pygrib.open(fixed_path)
+                            g = gr.select(**params)
 
-                # get the data, ensuring that the right location is grabbed
-                dt = g.validDate
+                            if len(g) > 1:
+                                self._logger.debug('Multiple items returned from key are {}'.format(g))
+                                self._logger.warning('variable map returned more than one message for {}'.format(key))
+                                # raise Exception('variable map returned more than one message for {}'.format(key))
+
+                            #metadata2, idx2 = self.get_metadata(gr, bbox)
+                            dt = g[0].validDate # - pd.to_timedelta(1, unit='h')
+                            g = g[0]
+                            passvals = g.values[idx]
 
                 if dt >= start_date and dt <= end_date:
                     df[key].loc[dt,:] = passvals
-
 
         for key in df.keys():
             df[key].sort_index(axis=0, inplace=True)
