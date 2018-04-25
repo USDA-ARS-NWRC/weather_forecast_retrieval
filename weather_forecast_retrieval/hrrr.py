@@ -388,35 +388,41 @@ class HRRR():
                         passvals = np.zeros_like(g.values[idx])
                         self._logger.warning('No {}, passing empty instead'.format(key))
                         dt = g.validDate
+                        print('found1', dt)
 
                     except:
-                        if key == 'cloud_factor':
-                            # get the first key and use it to shape the
-                            # array of ones we will pass
-                            params = self.var_map[self.var_map.keys()[0]]
-                            g = gr.select(**params)
-                            g = g[0]
-                            passvals = np.zeros_like(g.values[idx])
-                            self._logger.warning('No {}, passing empty instead'.format(key))
-                            dt = g.validDate
-                        else:
-                            broken_path = os.path.basename(f)[:8]+'z.wrfsfcf02.grib2'
-                            fixed_path = os.path.join(os.path.dirname(f),broken_path)
-                            self._logger.warning('Using {}'.format(fixed_path))
-                            gr = pygrib.open(fixed_path)
-                            g = gr.select(**params)
+                        broken_path = os.path.basename(f)[:8]+'z.wrfsfcf02.grib2'
+                        fixed_path = os.path.join(os.path.dirname(f),broken_path)
+                        self._logger.warning('Using {}'.format(fixed_path))
+                        gr = pygrib.open(fixed_path)
+                        g = gr.select(**params)
 
-                            if len(g) > 1:
-                                self._logger.debug('Multiple items returned from key are {}'.format(g))
-                                self._logger.warning('variable map returned more than one message for {}'.format(key))
-                                # raise Exception('variable map returned more than one message for {}'.format(key))
+                        if len(g) > 1:
+                            self._logger.debug('Multiple items returned from key are {}'.format(g))
+                            self._logger.warning('variable map returned more than one message for {}'.format(key))
+                            # raise Exception('variable map returned more than one message for {}'.format(key))
 
-                            #metadata2, idx2 = self.get_metadata(gr, bbox)
-                            dt = g[0].validDate # - pd.to_timedelta(1, unit='h')
-                            g = g[0]
-                            passvals = g.values[idx]
+                        #metadata2, idx2 = self.get_metadata(gr, bbox)
+                        dt = g[0].validDate #- pd.to_timedelta(1, unit='h')
+                        g = g[0]
+                        passvals = g.values[idx]
+                        print('found2', dt)
+
+                test_hr = int(os.path.basename(f)[6:8])
+                test_date = f.split('hrrr.')[1]
+                test_yr = test_date[:4]
+                test_mo = test_date[4:6]
+                test_day = test_date[7:9]
+                # ugly way to do this, but file dates are inconsistent
+                dt = pd.to_datetime('{}-{}-{} {}:00:00'.format(test_yr,
+                                                               test_mo,
+                                                               test_day,
+                                                               test_hr))
+                dt = dt + pd.to_timedelta(1, unit='h')
 
                 if dt >= start_date and dt <= end_date:
+                    print('put', dt)
+                    print(f)
                     df[key].loc[dt,:] = passvals
 
         for key in df.keys():
