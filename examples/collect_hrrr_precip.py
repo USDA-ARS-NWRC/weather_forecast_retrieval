@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import pandas as pd
 import numpy as np
 import mysql.connector
@@ -11,6 +13,8 @@ except:
 
 import matplotlib.pyplot as plt
 import scipy.spatial
+import argparse
+import datetime
 
 sql_user={'user': 'micahsandusky',
           'password': 'B3rj3r+572',
@@ -118,15 +122,41 @@ def collect_station_precip():
     Args:
     Returns:
     """
-    ### This should be config stuff ###
+    ### get config ###
+    parser = argparse.ArgumentParser(description='Run the data retrieval for HRRR model')
+    parser.add_argument('config_file', metavar='F', type=str,
+                        help='Path to config file')
 
-    # get dates (will read in full day)
-    start_date = pd.to_datetime('2018-02-19 01:00')
-    end_date = pd.to_datetime('2018-02-19 12:00')
-    client = 'TUOL_2017'
-    var_keys = ['precip_int']
-    dx = 3000  # m
-    dy = 3000  # m
+    args = parser.parse_args()
+
+    if os.path.isfile(args.config_file):
+        my_hrrr = hrrr.HRRR(args.config_file)
+
+    else:
+        raise IOError('File does not exist.')
+
+    cfg = my_hrrr.config
+    client = str(cfg['resample']['client'])
+    # size of grid cell from gridded hrrr data (3000x3000m)
+    grid = int(cfg['resample']['grid'])
+    var_in = str(cfg['resample']['var_in'])
+    var_tbl = str(cfg['resample']['var_tbl'])
+    date_input = str(cfg['resample']['date'])
+    if date_input == 'daily':
+        now = pd.to_datetime(datetime.datetime.now())
+        # end date is midnight just before now
+        end_date = pd.to_datetime('{}-{}-{}'.format(now.year, now.month, now.day))
+        # start date is 24 hr prior
+        start_date = end_date - pd.to_timedelta(23, 'h')
+    elif date_input == 'dates':
+        start_date = pd.to_datetime(str(cfg['resample']['start_date']))
+        end_date = pd.to_datetime(str(cfg['resample']['end_date']))
+    else:
+        raise IOError('Incorrect date option input (either <daily> or <dates>)')
+
+    var_keys = [var_in]
+    dx = grid  # m
+    dy = grid  # m
     # max distance through a cell
     dxy = np.sqrt(dx*dx + dy*dy)
 
@@ -136,13 +166,35 @@ def collect_station_precip():
 
     # get station meta data
     df_meta = get_station_meta(client)
+    #print(df_meta)
     utm_x = df_meta['utm_x'].values
+
+
+    # get rid of nans
+    nanloc = np.isnan(utm_x)
+    df_meta = df_meta.loc[~nanloc]
+    #print(df_meta)
+    utm_x = utm_x[~nanloc]
     utm_y = df_meta['utm_y'].values
     sid = df_meta.index.values
-    utm_zone = df_meta['utm_zone'].values.astype(int)
+    utm_zone = df_meta['utm_zone'].values.astype(str)
+
+    try:
+        #print(utm_zone)
+        # Filter out extra letters
+        utm_zone = [ut.replace('T', '') for ut in utm_zone]
+        utm_zone = np.array([int(ut.replace('S', '')) for ut in utm_zone])
+    except:
+        utm_zone = np.ones(len(utm_zone))
+        #print(utm_zone)
+        utm_zone = 11*utm_zone
+
+    #print(utm_x)
     id_max = np.where(utm_x == np.max(utm_x))[0][0]
     id_min = np.where(utm_x == np.min(utm_x))[0][0]
-
+    #print(utm_zone)
+    if np.any(utm_zone > 13) or np.any(utm_zone < 10):
+        raise ValueError('UTM zone not in correct area')
     ur = np.array(utm.to_latlon(np.max(utm_x), np.max(utm_y), utm_zone[id_max], 'N'))
     ll = np.array(utm.to_latlon(np.min(utm_x), np.min(utm_y), utm_zone[id_min], 'N'))
 
@@ -152,10 +204,10 @@ def collect_station_precip():
     bbox = np.append(np.flipud(ll), np.flipud(ur))
 
     # make new df
-    df_meta_new = df_meta.filter(items=['primary_id'])
+    df_meta_new = df_meta.filter(items=['primary_id', 'utm_x', 'utm_y'])
 
     # read grib files for keys
-    metadata, data = hrrr.HRRR(configFile='../scripts/hrrr.ini').get_saved_data(
+    metadata, data = my_hrrr.get_saved_data(
                                             start_date,
                                             end_date,
                                             bbox,
@@ -166,7 +218,6 @@ def collect_station_precip():
     # find idx, idy based on first grib timestep
     hrrr_code = []
     min_dist_lst = []
-
     for ii, (x,y,st_id) in enumerate(zip(utm_x,utm_y,sid)):
     	# Find index
     	ady =  np.abs(metadata['utm_y'].values.astype(float)-y)
@@ -186,6 +237,7 @@ def collect_station_precip():
     df_meta_new['hrrr_code'] = hrrr_code
     df_meta_new['dist_from_grid'] = min_dist_lst
     #print(df_meta_new)
+    df_meta_new.to_csv('/home/micahsandusky/{}_minimum_station_dist.csv'.format(client))
 
     # create dataframe to store precip data
     df_new = pd.DataFrame(columns=['date_time', 'station_id'])
@@ -193,7 +245,7 @@ def collect_station_precip():
     prim_id = []
     date_time_final = []
     ppt_final = []
-    hrrr_time = data['precip_int'].index.values
+    hrrr_time = data[var_in].index.values
 
     # loop through stations to put into new dataframe
     for ht, st in zip(df_meta_new['hrrr_code'].values, df_meta_new.index.values):
@@ -203,18 +255,17 @@ def collect_station_precip():
             tfmt = pd.to_datetime(t).strftime('%Y-%m-%d %H:%M')
             date_time_final.append(tfmt)
             # get precip at time
-            ppt_final.append(float(data['precip_int'][ht][t]))
+            ppt_final.append(float(data[var_in][ht][t]))
             prim_id.append(st)
 
     # store data in datafram that will be sent to sql database
     df_new['date_time'] = date_time_final
     df_new['station_id'] = prim_id
-    df_new['precip_accum'] = ppt_final
-    #df_new.set_index('date_time', inplace=True)
-    print(df_new)
+    df_new[var_tbl] = ppt_final
+    #print(df_new)
 
     # put df on database
-    put_hrrr_station(df_new, description)
+    #put_hrrr_station(df_new, description)
 
     print('\n\n-----Done-----\n\n')
 

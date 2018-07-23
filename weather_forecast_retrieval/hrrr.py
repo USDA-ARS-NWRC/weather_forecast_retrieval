@@ -180,7 +180,7 @@ class HRRR():
         # go through the directory list and see if we need to add
         # any new data files
         for d in dir_list:
-            ftp_dir = os.path.join(self.ftp_dir, d)
+            ftp_dir = os.path.join(self.ftp_dir, d, 'conus')
             self._logger.info('Changing directory to {}'.format(ftp_dir))
 
             # get the files in the new directory
@@ -206,7 +206,9 @@ class HRRR():
                 self.grib_params['file'] = f
                 p = urlencode(self.grib_params)
 
-                remote_url = '{}?{}&subregion=&{}'.format(self.grib_filter_url, p, urlencode(self.grib_subregion))
+                remote_url = '{}?{}&subregion=&{}'.format(self.grib_filter_url,
+                                                          os.path.join(p,'conus'),
+                                                          urlencode(self.grib_subregion))
 
                 # get the file if it doesn't exist
                 if not os.path.exists(file_local):
