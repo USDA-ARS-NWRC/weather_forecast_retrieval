@@ -252,7 +252,7 @@ class HRRR():
         # go through the directory list and see if we need to add
         # any new data files
         for d in dir_list:
-            ftp_dir = os.path.join(self.ftp_dir, d)
+            ftp_dir = os.path.join(self.ftp_dir, d, 'conus')
             self._logger.info('Changing directory to {}'.format(ftp_dir))
 
             # get the files in the new directory
@@ -265,7 +265,8 @@ class HRRR():
                 os.mkdir(out_path)
                 self._logger.info('mkdir {}'.format(out_path))
 
-            for fhr in self.forecast_hours:
+            forecast_hours = range(24)
+            for fhr in forecast_hours:
 
                 wanted_files = fnmatch.filter(ftp_files, self.file_name.format(fhr))
 
