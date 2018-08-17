@@ -91,8 +91,9 @@ class HRRR():
             'level': 0,
             'name': 'Total Precipitation'
             },
-        'cloud_factor': {
-            'parameterName': 'Low cloud cover'
+        'short_wave': {
+            'level': 0,
+            'parameterName': 'Downward short-wave radiation flux'
             },
         }
 
