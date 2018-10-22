@@ -1,6 +1,8 @@
 
 import os, sys
 from collections import Sequence
+import datetime
+import pandas as pd
 
 PY3 = sys.version_info[0] >= 3
 
@@ -12,7 +14,7 @@ else:  # pragma: no cover
     from ConfigParser import SafeConfigParser
     basestring = basestring
     unicode_type = unicode
-    
+
 try:
     from cyordereddict import OrderedDict
 except ImportError:  # pragma: no cover
@@ -84,7 +86,7 @@ def config_type(value):
         return ret_list
     else:
         return ret_list[0]
-    
+
 
 def isbool(x):
     '''Test if str is an bolean'''
@@ -128,3 +130,30 @@ def isscalar(x):
         return False
     else:
         return True
+
+
+def get_hrrr_file_date(fp, fx=False):
+    '''
+    Get the date from a hrrr file name. Assuming the directory structure
+    used in the rest of this code.
+    
+    Args:
+        fp: file path to hrrr grib2 file within normal hrrr structure
+        fx: include the forecast hour or not
+    Returns:
+        file_time: datetime object for that specific file
+
+    '''
+    # go off the base and fx hour or just the base hour
+    fn = os.path.basename(fp)
+    if fx:
+        add_hrs = int(fn[6:8]) + int(fn[17:19])
+    else:
+        add_hrs = int(fn[6:8])
+
+    # find the day from the hrrr.<day> folder
+    date_day = pd.to_datetime(os.path.dirname(fp).split('hrrr.')[1])
+    # find the actual datetime
+    file_time = pd.to_datetime(date_day + datetime.timedelta(hours=add_hrs))
+
+    return file_time

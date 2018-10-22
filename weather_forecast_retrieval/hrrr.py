@@ -331,6 +331,7 @@ class HRRR():
         end_date = end_date
         d = start_date.date()
         delta = timedelta(days=1)
+        delta_hr = timedelta(hours=1)
         fmatch = []
         while d <= end_date.date():
             # get the path for the upper level directory
@@ -346,7 +347,15 @@ class HRRR():
             else:
                 fname = self.file_name
                 pth = os.path.join(self.output_dir, p, fname)
-                fmatch += glob.glob(pth)
+
+                tmp_files = glob.glob(pth)
+                for tmp_fn in tmp_files:
+                    # only check this out if we're within timeframe
+                    # to speed things up
+                    file_date = utils.get_hrrr_file_date(tmp_fn)
+                    if file_date <= end_date + delta_hr \
+                       and file_date >= start_date - delta_hr:
+                        fmatch.append(tmp_fn)
 
             d += delta
 
@@ -418,11 +427,13 @@ class HRRR():
                 test_day = test_date[6:8]
                 # ugly way to do this, but file dates are inconsistent
                 try:
-                    dt = pd.to_datetime('{}-{}-{} {}:00:00'.format(test_yr,
-                                                                   test_mo,
-                                                                   test_day,
-                                                                   test_hr))
+                    # dt = pd.to_datetime('{}-{}-{} {}:00:00'.format(test_yr,
+                    #                                                test_mo,
+                    #                                                test_day,
+                    #                                                test_hr))
+                    dt = utils.get_hrrr_file_date(f)
                     dt = dt + pd.to_timedelta(1, unit='h')
+                    
                 except:
                     print('Failed with ', test_hr, test_yr, test_mo, test_day)
                     dt = g.validDate
