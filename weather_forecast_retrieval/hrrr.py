@@ -312,6 +312,7 @@ class HRRR():
 
         self._logger.info('getting saved data')
         if var_map is None:
+            var_map = self.var_map
             self._logger.warn('var_map not specified, will return default outputs!')
 
         self.force_zone_number = force_zone_number
@@ -362,14 +363,14 @@ class HRRR():
                 metadata, idx = self.get_metadata(gr, bbox)
 
                 # create all of the dataframes for each mapped variable
-                for k in self.var_map.keys():
+                for k in var_map.keys():
                     df[k] = pd.DataFrame(columns=metadata.index)
 
             # filter to desired keys if specified
             if var_keys is not None:
-                new_var_map = { key: self.var_map[key] for key in var_keys}
+                new_var_map = { key: var_map[key] for key in var_keys}
             else:
-                new_var_map = copy.deepcopy(self.var_map)
+                new_var_map = copy.deepcopy(var_map)
 
             for key,params in new_var_map.items():
                 # it appears we do not always have cloud factor, so pass ones
@@ -458,6 +459,7 @@ class HRRR():
         lon = lon[idx]
         elev = elev[idx]
         a = np.argwhere(idx)
+
         primary_id = ['grid_y%i_x%i' % (i[0], i[1]) for i in a]
         self._logger.info('Found {} grid cells within bbox'.format(len(a)))
 
