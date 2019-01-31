@@ -313,134 +313,86 @@ class HRRR():
         self._logger.info('getting saved data')
         if var_map is None:
             var_map = self.var_map
-            self._logger.warn('var_map not specified, will return default outputs!')
+            self._logger.warning('var_map not specified, will return default outputs!')
 
         self.force_zone_number = force_zone_number
         if output_dir is not None:
             self.output_dir = output_dir
 
-        # if we are grabbing the forecast, get all files from start time
-        self.file_name = 'hrrr.t*z.wrfsfcf01.grib2'
-        if forecast_flag:
-            self.file_name = 'hrrr.t{:02d}z.wrfsfcf'.format(day_hour) + \
-                        '{:02d}.grib2'
-
-        # find all the data in between the two dates
-        # reset the dates to account for offset of 0-1 time period
-        start_date = start_date - timedelta(hours=1)
+        start_date = start_date
         end_date = end_date
-        d = start_date.date()
+        d = start_date
         delta = timedelta(days=1)
-        delta_hr = timedelta(hours=1)
+        # delta_hr = timedelta(hours=1)
+        delta_hr = pd.to_timedelta(1, 'h')
         fmatch = []
-        while d <= end_date.date():
-            # get the path for the upper level directory
-            p = d.strftime(self.date_url)
-            self._logger.debug('Found directory {}'.format(p))
 
-            # find all the files in the directory
-            if forecast_flag:
-                for f in forecast:
-                    fname = self.file_name.format(f)
-                    pth = os.path.join(self.output_dir, p, fname)
-                    fmatch += glob.glob(pth)
-            else:
-                fname = self.file_name
-                pth = os.path.join(self.output_dir, p, fname)
-
-                tmp_files = glob.glob(pth)
-                for tmp_fn in tmp_files:
-                    # only check this out if we're within timeframe
-                    # to speed things up
-                    file_date = utils.get_hrrr_file_date(tmp_fn)
-                    if file_date <= end_date + delta_hr \
-                       and file_date >= start_date - delta_hr:
-                        fmatch.append(tmp_fn)
-
-            d += delta
-
-        # load in the data for the given files and bounding box
+        # these will be passed to get_one_grib
         idx = None
+        metadata = None
         df = {}
 
-        for f in fmatch:
-            self._logger.debug('Reading {}'.format(f))
-            gr = pygrib.open(f)
+        # filter to desired keys if specified
+        if var_keys is not None:
+            new_var_map = { key: var_map[key] for key in var_keys}
+        else:
+            new_var_map = copy.deepcopy(var_map)
 
-            # if this is the first run, then find out a few things about the grid
-            if idx is None:
-                metadata, idx = self.get_metadata(gr, bbox)
+        ### load in the data for the given files and bounding box###
 
-                # create all of the dataframes for each mapped variable
-                for k in var_map.keys():
-                    df[k] = pd.DataFrame(columns=metadata.index)
+        # get the data for a forecast
+        if forecast_flag:
+            # loop through each forecast hour
+            for f in forecast:
+                # add forecast hour
+                file_time = d + pd.to_timedelta(f, 'h')
+                # make sure we get a working file
+                for fx_hr in range(7):
+                    fp = utils.hrrr_file_name_finder(self.output_dir,
+                                               file_time,
+                                               fx_hr)
 
-            # filter to desired keys if specified
-            if var_keys is not None:
-                new_var_map = { key: var_map[key] for key in var_keys}
-            else:
-                new_var_map = copy.deepcopy(var_map)
+                    success, df, idx, metadata = self.get_one_grib(df, idx,
+                                                                   metadata,
+                                                                   fp,
+                                                                   new_var_map,
+                                                                   file_time,
+                                                                   bbox)
+                    if success:
+                        break
+                    if fx_hr == 6:
+                        raise IOError('Not able to find good grib file for \
+                                       {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
 
-            for key,params in new_var_map.items():
-                # it appears we do not always have cloud factor, so pass ones
-                # if there is no cloud factor
-                # if key == 'cloud_factor':
-                try:
-                    g = gr.select(**params)
-                    g = g[0]
-                    passvals = g.values[idx]
-                    dt = g.validDate
-                except:
-                    try:
-                        # get the first key and use it to shape the
-                        # array of ones we will pass
-                        # 'wind_u'
-                        #params = self.var_map['air_temp']
-                        params = new_var_map['air_temp']
-                        g = gr.select(**params)
-                        g = g[0]
-                        passvals = np.zeros_like(g.values[idx])
-                        self._logger.warning('No {}, passing empty instead'.format(key))
-                        dt = g.validDate
+        # get the data for a regular run
+        else:
+            while d <= end_date:
+                # make sure we get a working file. This allows for 6 tries,
+                # accounting for the fact that we start at forecast hour 1
+                file_time = d
+                for fx_hr in range(1,8):
+                    # get the name of the file
+                    fp = utils.hrrr_file_name_finder(self.output_dir,
+                                                     file_time,
+                                                     fx_hr)
 
-                    except:
-                        broken_path = os.path.basename(f)[:8]+'z.wrfsfcf02.grib2'
-                        fixed_path = os.path.join(os.path.dirname(f),broken_path)
-                        self._logger.warning('Using {}'.format(fixed_path))
-                        gr = pygrib.open(fixed_path)
-                        g = gr.select(**params)
+                    success, df, idx, metadata = self.get_one_grib(df, idx,
+                                                                   metadata,
+                                                                   fp,
+                                                                   new_var_map,
+                                                                   file_time,
+                                                                   bbox)
+                    # check if we were succesful
+                    if success:
+                        break
+                    if fx_hr == 6:
+                        raise IOError('Not able to find good grib file for \
+                                       {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
 
-                        if len(g) > 1:
-                            self._logger.debug('Multiple items returned from key are {}'.format(g))
-                            self._logger.warning('variable map returned more than one message for {}'.format(key))
-                            # raise Exception('variable map returned more than one message for {}'.format(key))
+                d += delta_hr
 
-                        #metadata2, idx2 = self.get_metadata(gr, bbox)
-                        dt = g[0].validDate #- pd.to_timedelta(1, unit='h')
-                        g = g[0]
-                        passvals = g.values[idx]
-
-                test_hr = str(os.path.basename(f)[6:8])
-                test_date = f.split('hrrr.')[1]
-                test_yr = test_date[:4]
-                test_mo = test_date[4:6]
-                test_day = test_date[6:8]
-                # ugly way to do this, but file dates are inconsistent
-                try:
-                    # dt = pd.to_datetime('{}-{}-{} {}:00:00'.format(test_yr,
-                    #                                                test_mo,
-                    #                                                test_day,
-                    #                                                test_hr))
-                    dt = utils.get_hrrr_file_date(f)
-                    dt = dt + pd.to_timedelta(1, unit='h')
-                    
-                except:
-                    print('Failed with ', test_hr, test_yr, test_mo, test_day)
-                    dt = g.validDate
-
-                if dt >= start_date and dt <= end_date:
-                    df[key].loc[dt,:] = passvals
-
+        # manipulate data in necessary ways
+        print(df.keys())
         for key in df.keys():
             df[key].sort_index(axis=0, inplace=True)
             if key == 'air_temp':
@@ -449,6 +401,59 @@ class HRRR():
                 df['cloud_factor'] = 1 - df['cloud_factor']/100
 
         return metadata, df
+
+    def get_one_grib(self, df, idx, metadata, fp, new_var_map, dt, bbox):
+        """
+        Get valid HRRR data
+
+        Args:
+            df:             Dictionary of dataframes containing the HRRR data
+            idx:            Pixels to use from the HRRR data
+            metadata:       Metadata from the HRRR files
+            fp:             Current grib2 file to open
+            new_var_map     Var map of variables to grab
+            dt:             datetime represented by the HRRR file
+            bbox:           Bounding box to crop HRRR data
+
+        Returns:
+            success:         Boolean representing if the file could be read
+            df:              The modified input dictionary of pandas dataframes
+            idx:             Pixels to use from the HRRR data
+            metadata:        Metadata from the HRRR files
+
+        """
+
+        self._logger.debug('Reading {}'.format(fp))
+        print('Reading {}'.format(fp))
+        gr = pygrib.open(fp)
+
+        # if this is the first run, then find out a few things about the grid
+        if idx is None:
+            metadata, idx = self.get_metadata(gr, bbox)
+
+            # create all of the dataframes for each mapped variable
+            for k in new_var_map.keys():
+                df[k] = pd.DataFrame(columns=metadata.index)
+
+        for key,params in new_var_map.items():
+
+            try:
+                g = gr.select(**params)
+                g = g[0]
+                passvals = g.values[idx]
+                # dt = g.validDate
+                success = True
+
+                df[key].loc[dt,:] = passvals
+
+            except Exception as e:
+                self._logger.debug(e)
+                self._logger.debug('Moving to next forecast hour')
+                success = False
+
+                return success, df, idx, metadata
+
+        return success, df, idx, metadata
 
     def get_metadata(self, gr, bbox):
         """

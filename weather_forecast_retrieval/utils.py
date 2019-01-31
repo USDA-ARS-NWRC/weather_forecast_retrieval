@@ -136,7 +136,7 @@ def get_hrrr_file_date(fp, fx=False):
     '''
     Get the date from a hrrr file name. Assuming the directory structure
     used in the rest of this code.
-    
+
     Args:
         fp: file path to hrrr grib2 file within normal hrrr structure
         fx: include the forecast hour or not
@@ -157,3 +157,37 @@ def get_hrrr_file_date(fp, fx=False):
     file_time = pd.to_datetime(date_day + datetime.timedelta(hours=add_hrs))
 
     return file_time
+
+
+def hrrr_file_name_finder(base_path, date, fx_hr = 0):
+    """
+    Find the file pointer for a hrrr file with a specific forecast hour
+
+    Args:
+        base_path:  The base HRRR directory. For ./data/forecasts/hrrr/hrrr.20180203/...
+                    the base_path is ./forecasts/hrrr/
+        date:       datetime that the file is used for
+        fx_hr:      forecast hour
+    Returns:
+        fp:         string of absolute path to the file
+
+    """
+    fmt_day ='%Y%m%d'
+    base_path = os.path.abspath(base_path)
+    date = pd.to_datetime(date)
+    fx_hr = int(fx_hr)
+
+    day = date.date()
+    hr = int(date.hour)
+
+    new_hr = hr - fx_hr
+
+    # if we've dropped back a day, fix logic to reflect that
+    if new_hr < 0:
+        day = day - pd.to_timedelta('1 day')
+        new_hr = new_hr + 24
+
+    fp = os.path.join(base_path, 'hrrr.{}'.format(day.strftime(fmt_day)),
+                      'hrrr.t{:02d}z.wrfsfcf{:02d}.grib2'.format(new_hr, fx_hr))
+
+    return fp
