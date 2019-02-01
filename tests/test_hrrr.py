@@ -35,7 +35,7 @@ def compare_csv(v_name,gold_dir,test_dir):
     return  result
 
 
-class TestWeather_forecast_retrieval(unittest.TestCase):
+class TestHRRR(unittest.TestCase):
     """Tests for `weather_forecast_retrieval` package."""
 
     def setUp(self):
@@ -46,13 +46,13 @@ class TestWeather_forecast_retrieval(unittest.TestCase):
 
         # Find the right path to tests
         # check whether or not this is being ran as a single test or part of the suite
-        check_file = 'test_weather_forecast_retrieval.py'
+        check_file = 'test_hrrr.py'
         if os.path.isfile(check_file):
             self.test_dir = ''
         elif os.path.isfile(os.path.join('tests', check_file)):
             self.test_dir = 'tests'
         else:
-            raise Exception('Configuration file not found for testing')
+            raise Exception('tests directory not found for testing')
 
         self.test_dir = os.path.abspath(self.test_dir)
         ### configurations for testing HRRR.get_saved_data
@@ -68,16 +68,14 @@ class TestWeather_forecast_retrieval(unittest.TestCase):
         self.gold = os.path.join(self.test_dir,'RME','gold','hrrr')
 
         # read and write the hrrr data
-        self.readNormalHRRR()
+        # self.readNormalHRRR()
 
-    def readNormalHRRR(self):
-        """Test something."""
         fcast = [0]
         self.forecast_flag = False
-        print(self.hrrr_directory)
 
+        self.hrrr = hrrr.HRRR()
         # get the data
-        metadata, data = hrrr.HRRR().get_saved_data(
+        metadata, data = self.hrrr.get_saved_data(
                                         self.start_date,
                                         self.end_date,
                                         self.bbox,
@@ -91,8 +89,6 @@ class TestWeather_forecast_retrieval(unittest.TestCase):
         for k, v in data.items():
             data_path = os.path.join(self.output_path, '{}_data.csv'.format(k))
             v.to_csv(data_path, index_label='date_time')
-
-        return True
 
     def testAirTemp(self):
         """
