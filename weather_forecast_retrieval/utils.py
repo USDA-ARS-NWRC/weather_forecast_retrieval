@@ -180,13 +180,14 @@ def hrrr_file_name_finder(base_path, date, fx_hr = 0):
     day = date.date()
     hr = int(date.hour)
 
+    # find the new base hour given the date and forecast hour
     new_hr = hr - fx_hr
 
     # if we've dropped back a day, fix logic to reflect that
     if new_hr < 0:
         day = day - pd.to_timedelta('1 day')
         new_hr = new_hr + 24
-
+    # create new path
     fp = os.path.join(base_path, 'hrrr.{}'.format(day.strftime(fmt_day)),
                       'hrrr.t{:02d}z.wrfsfcf{:02d}.grib2'.format(new_hr, fx_hr))
 
