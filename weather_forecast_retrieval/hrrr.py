@@ -121,19 +121,25 @@ class HRRR():
         # start logging
         if external_logger == None:
 
-            if 'log_level' in self.config['logging']:
-                loglevel = self.config['logging']['log_level'].upper()
+            # setup the logging
+            if configFile is not None:
+                logfile = None
+                if 'log_file' in self.config['logging']:
+                    logfile = self.config['logging']['log_file']
+
+                if 'log_level' in self.config['logging']:
+                    loglevel = self.config['logging']['log_level'].upper()
+                else:
+                    loglevel = 'INFO'
+            # if no config file use some defaults
             else:
+                logfile = None
                 loglevel = 'INFO'
 
             numeric_level = getattr(logging, loglevel, None)
             if not isinstance(numeric_level, int):
                 raise ValueError('Invalid log level: %s' % loglevel)
 
-            # setup the logging
-            logfile = None
-            if 'log_file' in self.config['logging']:
-                logfile = self.config['logging']['log_file']
 
             fmt = '%(levelname)s:%(name)s:%(message)s'
             if logfile is not None:
@@ -433,7 +439,7 @@ class HRRR():
                     #                                                test_hr))
                     dt = utils.get_hrrr_file_date(f)
                     dt = dt + pd.to_timedelta(1, unit='h')
-                    
+
                 except:
                     print('Failed with ', test_hr, test_yr, test_mo, test_day)
                     dt = g.validDate
