@@ -3,7 +3,8 @@
 
 """The setup script."""
 
-from setuptools import setup, find_packages
+# from setuptools import setup, find_packages
+from setuptools import setup, Extension
 
 with open('README.md') as readme_file:
     readme = readme_file.read()

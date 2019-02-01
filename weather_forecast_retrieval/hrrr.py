@@ -121,19 +121,25 @@ class HRRR():
         # start logging
         if external_logger == None:
 
-            if 'log_level' in self.config['logging']:
-                loglevel = self.config['logging']['log_level'].upper()
+            # setup the logging
+            if configFile is not None:
+                logfile = None
+                if 'log_file' in self.config['logging']:
+                    logfile = self.config['logging']['log_file']
+
+                if 'log_level' in self.config['logging']:
+                    loglevel = self.config['logging']['log_level'].upper()
+                else:
+                    loglevel = 'INFO'
+            # if no config file use some defaults
             else:
+                logfile = None
                 loglevel = 'INFO'
 
             numeric_level = getattr(logging, loglevel, None)
             if not isinstance(numeric_level, int):
                 raise ValueError('Invalid log level: %s' % loglevel)
 
-            # setup the logging
-            logfile = None
-            if 'log_file' in self.config['logging']:
-                logfile = self.config['logging']['log_file']
 
             fmt = '%(levelname)s:%(name)s:%(message)s'
             if logfile is not None:
@@ -424,7 +430,6 @@ class HRRR():
         """
 
         self._logger.debug('Reading {}'.format(fp))
-        print('Reading {}'.format(fp))
         gr = pygrib.open(fp)
 
         # if this is the first run, then find out a few things about the grid
