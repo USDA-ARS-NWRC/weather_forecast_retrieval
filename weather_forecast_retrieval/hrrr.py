@@ -430,7 +430,11 @@ class HRRR():
         """
 
         self._logger.debug('Reading {}'.format(fp))
-        gr = pygrib.open(fp)
+        # make sure we can open the file
+        try:
+            gr = pygrib.open(fp)
+        except:
+            return False, df, idx, metadata
 
         # if this is the first run, then find out a few things about the grid
         if idx is None:
