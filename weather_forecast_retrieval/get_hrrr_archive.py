@@ -16,12 +16,11 @@ http://hrrr.chpc.utah.edu/
 
 """
 
-import urllib
 from datetime import date, datetime, timedelta
 import time
 import os
-# from tzlocal import get_localzone
 import pytz
+import requests
 
 # times when downloading should stop as recomended by U of U
 tzmdt = pytz.timezone('America/Denver')
@@ -85,7 +84,7 @@ def check_before_download():
             time.sleep(100)
 
 
-def download_url(fname, OUTDIR, logger):
+def download_url(fname, OUTDIR, logger, file_day, model='hrrr', field='sfc'):
     """
     Construct full URL and download file
 
@@ -93,30 +92,36 @@ def download_url(fname, OUTDIR, logger):
         fname:      HRRR file name
         OUTDIR:     Location to put HRRR file
         logger:     Logger instance
+        file_day:        datetime date correspondig to the hrrr file (i.e hrrr.{date}/hrrr...)
 
     Returns:
         success:    boolean of weather or not we were succesful
 
     """
+
     URL = "https://pando-rgw01.chpc.utah.edu/%s/%s/%s/%s" \
-           % (model, field, DATE.strftime('%Y%m%d'), fname)
+           % (model, field, file_day.strftime('%Y%m%d'), fname)
 
     # 2) Rename file with date preceeding original filename
     #    i.e. hrrr.20170105/hrrr.t00z.wrfsfcf00.grib2
     rename = "hrrr.%s/%s" \
-             % (DATE.strftime('%Y%m%d'), fname)
+             % (file_day.strftime('%Y%m%d'), fname)
 
     # create directory if not there
-    redir = os.path.join(OUTDIR, 'hrrr.%s' % (DATE.strftime('%Y%m%d')))
+    redir = os.path.join(OUTDIR, 'hrrr.%s' % (file_day.strftime('%Y%m%d')))
     if not os.path.exists(redir):
         os.makedirs(redir)
     # 3) Download the file via https
     # Check the file size, make it's big enough to exist.
-    check_this = urllib.urlopen(URL)
-    file_size = int(check_this.info()['content-length'])
+    check_this = requests.head(URL)
+    file_size = int(check_this.headers['content-length'])
+
     if file_size > 10000:
         print("Downloading:", URL)
-        urllib.urlretrieve(URL, OUTDIR+rename, reporthook)
+        # urllib.urlretrieve(URL, OUTDIR+rename, reporthook)
+        new_file = os.path.join(OUTDIR,rename)
+        r = requests.get(URL, allow_redirects=True)
+        open(new_file, 'wb').write(r.content)
         print("\n")
         success = True
     else:
@@ -163,10 +168,12 @@ def download_HRRR(DATE, logger, model='hrrr', field='sfc', hour=range(0, 24),
 
             fname = "%s.t%02dz.wrf%sf%02d.grib2" % (model, h, field, f)
 
-            success = download_url(fname, OUTDIR, logger)
+            success = download_url(fname, OUTDIR, logger,
+                                   DATE, model=model, field=field)
 
             if not success:
-                logger.error('Failed to download {}'.format(fname))
+                logger.error('Failed to download {} for {}'.format(fname,
+                                                                   DATE))
 
 
 def HRRR_from_UofU(start_date, end_date, save_dir, logger,
