@@ -14,6 +14,7 @@ import pandas as pd
 import utm
 import numpy as np
 import copy
+from drhawkeye import health_check
 
 from . import utils
 
@@ -501,6 +502,85 @@ class HRRR():
                                   axis=1)
 
         return metadata, idx
+
+    def check_file_health(self, output_dir, start_date, end_date,
+                          hours=range(23), forecasts=range(18)):
+        """
+        Check the health of the downloaded hrrr files so that we can download
+        bad files from U of U archive if something has gone wrong.
+
+        Args:
+            output_dir:     Location of HRRR files
+            start_date:     date to start checking files
+            end_date:       date to stop checking files
+            hours:          hours within the day to check
+            forecasts:      forecast hours within the day to check
+
+        Returns:
+            files:          list of file names that failed the tests
+        """
+        fmt_day = '%Y%m%d'
+        sd = start_date.date()
+        ed = end_date.date()
+        # base pattern template
+        dir_pattern = os.path.join(output_dir,'hrrr.{}')
+        file_pattern = 'hrrr.t{}z.wrfsfcf{}.grib2'
+
+        # get a date range
+        num_days = (ed-sd).days
+        d_range = [timedelta(days=d) + sd for d in range(num_day)]
+
+        # empty list for storing bad files
+        small_hrrr = []
+        missing_hrrr = []
+
+        for dt in d_range():
+            # check for files that are too small first
+            dir_key = pattern.format(dt.strftime(fmt_day))
+            file_key = file_pattern.format('*', '*')
+            too_small = health_check.check_min_file_size(dir_key, file_key)
+            # add bad files to list
+            small_hrrr += too_small
+            # check same dirs for missing files
+            for hr in hours:
+                for fx in forecasts:
+                    file_key = file_pattern.format(hr, fx)
+                    missing = health_check.checking_missing_file(dir_key, file_key)
+                    missing_hrrr += missing
+
+        # get rid of duplicates
+        small_hrrr = list(set(small_hrrr))
+        missing_hrrr = list(set(missing_hrrr)
+
+        return small_hrrr, missing_hrrr
+
+    def fix_bad_files(self, start_date, end_date, out_dir):
+        """
+        Routine for checking the downloaded file health for some files in the
+        past and attempting to fix the bad file
+
+        Args:
+            start_date:     start date datetime object for checking the files
+            end_date:       end date datetime object for checking the files
+            out_dir:        base directory where the HRRR files are stored
+
+        """
+        # get the bad files
+        small_hrrr, missing_hrrr = self.check_file_health(start_date,
+                                                          end_date,
+                                                          out_dir)
+
+        if len(missing_hrrr) > 0:
+            print('going to fix missing hrrr')
+            for fp_mh in missing_hrrr:
+                print(fp_mh)
+                
+        # run through the files and try to fix them
+        if len(small_hrrr) > 0:
+            print('going to fix small hrrr')
+            for fp_sh in small_hrrr:
+                print(fp_sh)
+
 
 def apply_utm(s, force_zone_number):
     """
