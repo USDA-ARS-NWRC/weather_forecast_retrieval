@@ -140,7 +140,6 @@ class HRRR():
             if not isinstance(numeric_level, int):
                 raise ValueError('Invalid log level: %s' % loglevel)
 
-
             fmt = '%(levelname)s:%(name)s:%(message)s'
             if logfile is not None:
                 logging.basicConfig(filename=logfile,

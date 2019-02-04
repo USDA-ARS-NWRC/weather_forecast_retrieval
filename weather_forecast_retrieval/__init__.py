@@ -9,3 +9,4 @@ __version__ = '0.4.1'
 from . import hrrr
 from . import rap
 from . import utils
+from . import get_hrrr_archive

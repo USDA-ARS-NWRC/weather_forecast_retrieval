@@ -2,6 +2,8 @@
 Code retrieved from Brian Baylock at University of Utah.
 This code allows for downloading of historical HRRR data.
 
+Code modified by Micah Sandusky at USDA ARS NWRC.
+
 Documentation from the code:
 Download archived HRRR files from MesoWest Pando S3 archive system.
 
@@ -12,31 +14,26 @@ For info on the University of Utah HRRR archive and to see what dates are
 available, look here:
 http://hrrr.chpc.utah.edu/
 
-Contact:
-brian.blaylock@utah.edu
 """
 
 import urllib
 from datetime import date, datetime, timedelta
-from datetime import time as time2
 import time
 import os
-from tzlocal import get_localzone
+# from tzlocal import get_localzone
 import pytz
 
-# times when downloading should stop
-#st_time_interval = timedelta(seconds=1800)
+# times when downloading should stop as recomended by U of U
 tzmdt = pytz.timezone('America/Denver')
 no_hours = [0, 3, 6, 9, 12, 15, 18, 21]
-#no_hours = [time2(hour=h) for h in no_hours]
-print(no_hours)
+
 
 def reporthook(a, b, c):
     """
     Report download progress in megabytes
     """
     # ',' at the end of the line is important!i
-    print "% 3.1f%% of %.2f MB\r" % (min(100, float(a * b) / c * 100), c/1000000.),
+    print("% 3.1f%% of %.2f MB\r" % (min(100, float(a * b) / c * 100), c/1000000.))
 
 
 def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965):
@@ -57,7 +54,7 @@ def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965):
     xidx = x[0]
     yidx = y[0]
 
-    print 'x:%s, y:%s' % (xidx, yidx)
+    print('x:%s, y:%s' % (xidx, yidx))
 
     subset = {'lat': H['lat'][xidx-half_box:xidx+half_box, yidx-half_box:yidx+half_box],
               'lon': H['lon'][xidx-half_box:xidx+half_box, yidx-half_box:yidx+half_box],
@@ -66,16 +63,80 @@ def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965):
     return subset
 
 
-def download_HRRR(DATE,
-                  model='hrrr',
-                  field='sfc',
-                  hour=range(0, 24),
-                  fxx=range(0, 1),
-                  OUTDIR='./'):
+def check_before_download():
+    """
+    See if it is an okay time to download from U of U based on the times
+    that they are pulling data.
+    """
+    this_hour = nowtime_mdt.time().hour
+    this_min = nowtime_mdt.time().minute
+
+    # make sure we are not initiating download at an inconvenient time
+    if this_hour in no_hours:
+        while this_hour in no_hours and this_min > 30:
+            # nowtime = datetime.now()
+            nowutc = datetime.utcfromtimestamp(time.time())
+            nowtime_mdt = nowutc.replace(tzinfo=pytz.utc).astimezone(tzmdt)
+            #print(nowtime_mdt)
+            print('Sleeping {}'.format(nowtime_mdt))
+            this_hour = nowtime_mdt.time().hour
+            this_min = nowtime_mdt.time().minute
+            #print(this_hour, this_min)
+            time.sleep(100)
+
+
+def download_url(fname, OUTDIR, logger):
+    """
+    Construct full URL and download file
+
+    Args:
+        fname:      HRRR file name
+        OUTDIR:     Location to put HRRR file
+        logger:     Logger instance
+
+    Returns:
+        success:    boolean of weather or not we were succesful
+
+    """
+    URL = "https://pando-rgw01.chpc.utah.edu/%s/%s/%s/%s" \
+           % (model, field, DATE.strftime('%Y%m%d'), fname)
+
+    # 2) Rename file with date preceeding original filename
+    #    i.e. hrrr.20170105/hrrr.t00z.wrfsfcf00.grib2
+    rename = "hrrr.%s/%s" \
+             % (DATE.strftime('%Y%m%d'), fname)
+
+    # create directory if not there
+    redir = os.path.join(OUTDIR, 'hrrr.%s' % (DATE.strftime('%Y%m%d')))
+    if not os.path.exists(redir):
+        os.makedirs(redir)
+    # 3) Download the file via https
+    # Check the file size, make it's big enough to exist.
+    check_this = urllib.urlopen(URL)
+    file_size = int(check_this.info()['content-length'])
+    if file_size > 10000:
+        print("Downloading:", URL)
+        urllib.urlretrieve(URL, OUTDIR+rename, reporthook)
+        print("\n")
+        success = True
+    else:
+        # URL returns an "Key does not exist" message
+        logger.error("ERROR:", URL, "Does Not Exist")
+        success = False
+
+    # 4) Sleep five seconds, as a courtesy for using the archive.
+    time.sleep(5)
+
+    return success
+
+
+def download_HRRR(DATE, logger, model='hrrr', field='sfc', hour=range(0, 24),
+                  fxx=range(0, 1), OUTDIR='./'):
     """
     Downloads from the University of Utah MesoWest HRRR archive
     Input:
         DATE   - A date object for the model run you are downloading from.
+        logger - logger instance
         model  - The model type you want to download. Default is 'hrrr'
                  Model Options are ['hrrr', 'hrrrX','hrrrak']
         field  - Variable fields you wish to download. Default is sfc, surface.
@@ -93,62 +154,20 @@ def download_HRRR(DATE,
     for h in hour:
         for f in fxx:
             # check current time to see if we can run
-            # nowtime = datetime.now()
-            # localtz = get_localzone()
             # replace utc local with MDT
             nowutc = datetime.utcfromtimestamp(time.time())
             tzmdt = pytz.timezone('America/Denver')
             nowtime_mdt = nowutc.replace(tzinfo=pytz.utc).astimezone(tzmdt)
-            #print(nowtime_mdt.time().hour)
-            #print(type(nowtime_mdt.time()))
-            #nowtime_mdt = nowtime.astimezone(pytz.timezone('America/Denver'))
-            this_hour = nowtime_mdt.time().hour
-            this_min = nowtime_mdt.time().minute
-            # wait until not in a bad time
-            #print(this_hour in no_hours)
-            if this_hour in no_hours:
-                while this_hour in no_hours and this_min > 30:
-                    # nowtime = datetime.now()
-                    nowutc = datetime.utcfromtimestamp(time.time())
-                    nowtime_mdt = nowutc.replace(tzinfo=pytz.utc).astimezone(tzmdt)
-                    #print(nowtime_mdt)
-                    print('Sleeping {}'.format(nowtime_mdt))
-                    this_hour = nowtime_mdt.time().hour
-                    this_min = nowtime_mdt.time().minute
-                    #print(this_hour, this_min)
-                    time.sleep(100)
 
-            # 1) Build the URL string we want to download.
-            #    fname is the file name in the format
-            #    [model].t[hh]z.wrf[field]f[xx].grib2
-            #    i.e. hrrr.t00z.wrfsfcf00.grib2
+            check_before_download()
+
             fname = "%s.t%02dz.wrf%sf%02d.grib2" % (model, h, field, f)
-            URL = "https://pando-rgw01.chpc.utah.edu/%s/%s/%s/%s" \
-                   % (model, field, DATE.strftime('%Y%m%d'), fname)
 
-            # 2) Rename file with date preceeding original filename
-            #    i.e. 20170105_hrrr.t00z.wrfsfcf00.grib2
-            rename = "hrrr.%s/%s" \
-                     % (DATE.strftime('%Y%m%d'), fname)
+            success = download_url(fname, OUTDIR, logger)
 
-            # create directory if not there
-            redir = os.path.join(OUTDIR, 'hrrr.%s' % (DATE.strftime('%Y%m%d')))
-            if not os.path.exists(redir):
-                os.makedirs(redir)
-            # 3) Download the file via https
-            # Check the file size, make it's big enough to exist.
-            check_this = urllib.urlopen(URL)
-            file_size = int(check_this.info()['content-length'])
-            if file_size > 10000:
-                print "Downloading:", URL
-                urllib.urlretrieve(URL, OUTDIR+rename, reporthook)
-                print "\n"
-            else:
-                # URL returns an "Key does not exist" message
-                print "ERROR:", URL, "Does Not Exist"
+            if not success:
+                logger.error('Failed to download {}'.format(fname))
 
-            # 4) Sleep five seconds, as a courtesy for using the archive.
-            time.sleep(5)
 
 def HRRR_from_UofU(start_date, end_date, save_dir, logger,
                    hours=range(24), forecasts=range(3)):
@@ -167,24 +186,11 @@ def HRRR_from_UofU(start_date, end_date, save_dir, logger,
 
     """
 
-    # Example downloads all analysis hours for a single day.
-
-    # -------------------------------------------------------------------------
-    # --- Settings: Check online documentation for available dates and hours --
-    # -------------------------------------------------------------------------
-
-    # start_day = date(2019, 1, 2)
-    # end_day = date(2019, 1, 3)
     start_day = start_date.date()
     end_day = start_date.date()
 
-    SAVEDIR = '/data/snowpack/forecasts/hrrr/'
+    # SAVEDIR = '/data/snowpack/forecasts/hrrr/'
     SAVEDIR = save_dir
-    # SAVEDIR = '/mnt/HRRR/'
-
-    # need a logging module here
-    fpl = open(logfile, 'w')
-
 
     drange = end_day - start_day
     num_day = drange.days
@@ -192,10 +198,9 @@ def HRRR_from_UofU(start_date, end_date, save_dir, logger,
     dr = [timedelta(days=d) + start_day for d in range(num_day+1)]
     logger.info('Collecting hrrr data for {} through {}'.format(start_day, end_day))
     logger.info('Writing to {}'.format(SAVEDIR))
-    
+
     for dd in dr:
         # Start and End Date
-        # get_this_date = date(2017, 10, 1)
         get_this_date = dd
         # Model Type: options include 'hrrr', 'hrrrX', 'hrrrak'
         model_type = 'hrrr'
@@ -206,12 +211,9 @@ def HRRR_from_UofU(start_date, end_date, save_dir, logger,
         # Make SAVEDIR path if it doesn't exist.
         if not os.path.exists(SAVEDIR):
             raise IOError('SAVEDIR {} does not exist'.format(SAVEDIR))
-            os.makedirs(SAVEDIR)
 
-        # Call the function to download after checking dates
-        nowdate = datetime.now()
         # get the data
-        download_HRRR(get_this_date, model=model_type, field=var_type,
+        download_HRRR(get_this_date, logger, model=model_type, field=var_type,
                       hour=hours, fxx=forecasts, OUTDIR=SAVEDIR)
 
         logger.info('Wrote files for {} day for {} hours\n'.format(dd, hours))
