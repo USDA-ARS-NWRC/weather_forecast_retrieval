@@ -14,7 +14,10 @@ import pandas as pd
 import utm
 import numpy as np
 import copy
-from drhawkeye import health_check
+try:
+    from drhawkeye import health_check
+except:
+    print('drhawkeye package not installed')
 
 from . import utils
 
@@ -398,7 +401,7 @@ class HRRR():
                 d += delta_hr
 
         # manipulate data in necessary ways
-        print(df.keys())
+        # print(df.keys())
         for key in df.keys():
             df[key].sort_index(axis=0, inplace=True)
             if key == 'air_temp':
@@ -550,7 +553,7 @@ class HRRR():
 
         # get rid of duplicates
         small_hrrr = list(set(small_hrrr))
-        missing_hrrr = list(set(missing_hrrr)
+        missing_hrrr = list(set(missing_hrrr))
 
         return small_hrrr, missing_hrrr
 
@@ -574,7 +577,7 @@ class HRRR():
             print('going to fix missing hrrr')
             for fp_mh in missing_hrrr:
                 print(fp_mh)
-                
+
         # run through the files and try to fix them
         if len(small_hrrr) > 0:
             print('going to fix small hrrr')
