@@ -14,3 +14,4 @@ pygrib==2.0.2
 utm==0.4.0
 pytz
 requests
+drhawkeye==0.2.4
