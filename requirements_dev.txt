@@ -12,3 +12,6 @@ siphon==0.6.1
 pyproj==1.9.5.1
 pygrib==2.0.2
 utm==0.4.0
+pytz
+requests
+drhawkeye==0.2.4
