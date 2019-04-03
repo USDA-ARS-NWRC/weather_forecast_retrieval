@@ -123,6 +123,12 @@ class HRRR():
             self.grib_params.update(self.config['grib_parameters'])
             self.grib_subregion.update(self.config['grib_subregion'])
 
+            if 'fx_hours' in self.config['filters']:
+                self.fx_hours = self.config['filters']['fx_hours']
+                if not isinstance(self.fx_hours, list):
+                    self.fx_hours = [self.fx_hours]
+            else:
+                self.fx_hours = None
 
         # start logging
         if external_logger == None:
@@ -205,39 +211,59 @@ class HRRR():
                 os.mkdir(out_path)
                 self._logger.info('mkdir {}'.format(out_path))
 
-            # get all the files that match the file filter
-            wanted_files = fnmatch.filter(ftp_files, self.file_filter)
+            # if we want to filter on forecast hours, only grab the ones we want
+            if self.fx_hours is not None:
+                for fxh in self.fx_hours:
+                    file_filter = 'hrrr.t*z.wrfsfcf{:02d}.grib2'.format(fxh)
+                    self.use_ftp_filter(ftp, file_filter, ftp_files,
+                                        out_path, d)
+            else:
+                self.use_ftp_filter(ftp, self.file_filter, ftp_files,
+                                    out_path, d)
 
-            # go through each file, see if it exists, and retrieve if not
-            threads = []
-            for f in wanted_files:
-                file_local = os.path.join(out_path, f)
-#                 remote_file = os.path.join(ftp_dir, f)
-
-                self.grib_params['dir'] = '/{}'.format(d)
-                self.grib_params['file'] = f
-                p = urlencode(self.grib_params)
-
-                remote_url = '{}?{}&subregion=&{}'.format(self.grib_filter_url,
-                                                          os.path.join(p,'conus'),
-                                                          urlencode(self.grib_subregion))
-
-                # get the file if it doesn't exist
-                if not os.path.exists(file_local):
-                    self._logger.info('Adding {}'.format(f))
-                    t = threading.Thread(target=urlretrieve, args=(remote_url, file_local))
-                    t.start()
-                    threads.append(t)
-
-                if len(threads) == self.num_threads:
-                    self._logger.info('Getting {} files'.format(self.num_threads))
-                    for t in threads:
-                        t.join()
-                    threads = []
 
         ftp.close()
         self._logger.info('Done retrieving files')
 
+    def use_ftp_filter(self, ftp, file_filter, ftp_files, out_path, d):
+        """
+        Use the ftp to grab grib files using a filter
+
+        Args:
+            ftp:            ftp connection
+            file_filter:    the files names we want with wild car
+            ftp_files:      files found through ftp
+            out_path:       output location
+            d:              dir on ftp
+
+        """
+        # get all the files that match the file filter
+        wanted_files = fnmatch.filter(ftp_files, file_filter)
+        # go through each file, see if it exists, and retrieve if not
+        threads = []
+        for idf, f in enumerate(wanted_files):
+            file_local = os.path.join(out_path, f)
+#                 remote_file = os.path.join(ftp_dir, f)
+
+            self.grib_params['dir'] = '/{}'.format(os.path.join(d, 'conus'))
+            self.grib_params['file'] = f
+            p = urlencode(self.grib_params)
+            remote_url = '{}?{}&subregion=&{}'.format(self.grib_filter_url,
+                                                      p,
+                                                      urlencode(self.grib_subregion))
+
+            # get the file if it doesn't exist
+            if not os.path.exists(file_local):
+                self._logger.info('Adding {}'.format(f))
+                t = threading.Thread(target=urlretrieve, args=(remote_url, file_local))
+                t.start()
+                threads.append(t)
+
+            if len(threads) == self.num_threads or (idf == len(wanted_files)-1):
+                self._logger.info('Getting {} files'.format(len(threads)))
+                for t in threads:
+                    t.join()
+                threads = []
 
     def retrieve_ftp(self):
         """
