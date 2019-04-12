@@ -119,7 +119,7 @@ class HRRR():
             self.config = utils.read_config(configFile)
 
             # parse the rest of the config file
-            self.output_dir = self.config['output']['output_dir']
+            self.location = self.config['output']['output_dir']
             self.grib_params.update(self.config['grib_parameters'])
             self.grib_subregion.update(self.config['grib_subregion'])
 
@@ -206,7 +206,7 @@ class HRRR():
             ftp_files = ftp.nlst()
 
             # check if d exists in output_dir
-            out_path = os.path.join(self.output_dir, d)
+            out_path = os.path.join(self.location, d)
             if not os.path.isdir(out_path):
                 os.mkdir(out_path)
                 self._logger.info('mkdir {}'.format(out_path))
@@ -298,7 +298,7 @@ class HRRR():
             ftp_files = ftp.nlst()
 
             # check if d exists in output_dir
-            out_path = os.path.join(self.output_dir, d)
+            out_path = os.path.join(self.location, d)
             if not os.path.isdir(out_path):
                 os.mkdir(out_path)
                 self._logger.info('mkdir {}'.format(out_path))
@@ -323,22 +323,26 @@ class HRRR():
         ftp.close()
 
 
-    def get_saved_data(self, start_date, end_date, bbox, output_dir=None,
+    def get_saved_data(self, start_date, end_date, bbox, location=None,
                        var_map=None, forecast=[0], force_zone_number=None,
-                       forecast_flag=False, day_hour=0, var_keys=None):
+                       forecast_flag=False, day_hour=0, var_keys=None,
+                       tmpdir=None, storage_type='file'):
         """
         Get the saved data from above for a particular time and a particular
         bounding box.
 
         Args:
-            start_date: datetime for the start
-            end_date: datetime for the end
-            bbox: list of  [lonmin,latmin,lonmax,latmax]
-            var_map: dictionary to map the desired variables into {new_variable: hrrr_variable}
-            forecast: list of forecast hours to grab
-            forecast_flag: weather or not to get forecast hours
-            day_hour: which hour in the day to grab for forecast scenario
-            var_keys: which keys to grab from smrf variables, default is var_map
+            start_date:     datetime for the start
+            end_date:       datetime for the end
+            bbox:           list of  [lonmin,latmin,lonmax,latmax]
+            location:       either base file location or container on object storage
+            var_map:        dictionary to map the desired variables into {new_variable: hrrr_variable}
+            forecast:       list of forecast hours to grab
+            forecast_flag:  weather or not to get forecast hours
+            day_hour:       which hour in the day to grab for forecast scenario
+            var_keys:       which keys to grab from smrf variables, default is var_map
+            tmp_dir:        temporary directory for storing downloaded objects
+            sorage_type:    the way the files are stored, either 'file' or 'object'
 
         Returns:
             List containing dataframe for the metadata for each node point for the desired variables
@@ -353,8 +357,11 @@ class HRRR():
             self._logger.warning('var_map not specified, will return default outputs!')
 
         self.force_zone_number = force_zone_number
-        if output_dir is not None:
-            self.output_dir = output_dir
+        if location is not None:
+            self.location = location
+
+        # initialize class for hrrr files
+        manage_files = HRRRStorage(location, storage_type, tmpdir)
 
         start_date = start_date
         end_date = end_date
@@ -362,7 +369,6 @@ class HRRR():
         delta = timedelta(days=1)
         # delta_hr = timedelta(hours=1)
         delta_hr = pd.to_timedelta(1, 'h')
-        fmatch = []
 
         # these will be passed to get_one_grib
         idx = None
@@ -385,9 +391,7 @@ class HRRR():
                 file_time = d + pd.to_timedelta(f, 'h')
                 # make sure we get a working file
                 for fx_hr in range(7):
-                    fp = utils.hrrr_file_name_finder(self.output_dir,
-                                               file_time,
-                                               fx_hr)
+                    fp = manage_files.hrrr_name_finder(file_time,fx_hr)
 
                     success, df, idx, metadata = self.get_one_grib(df, idx,
                                                                    metadata,
@@ -409,7 +413,7 @@ class HRRR():
                 file_time = d
                 for fx_hr in range(1,8):
                     # get the name of the file
-                    fp = utils.hrrr_file_name_finder(self.output_dir,
+                    fp = utils.hrrr_file_finder(self.location,
                                                      file_time,
                                                      fx_hr)
 
@@ -534,14 +538,14 @@ class HRRR():
 
         return metadata, idx
 
-    def check_file_health(self, output_dir, start_date, end_date,
+    def check_file_health(self, location, start_date, end_date,
                           hours=range(23), forecasts=range(18), min_size=100):
         """
         Check the health of the downloaded hrrr files so that we can download
         bad files from U of U archive if something has gone wrong.
 
         Args:
-            output_dir:     Location of HRRR files
+            location:     Location of HRRR files
             start_date:     date to start checking files
             end_date:       date to stop checking files
             hours:          hours within the day to check
@@ -554,7 +558,7 @@ class HRRR():
         sd = start_date.date()
         ed = end_date.date()
         # base pattern template
-        dir_pattern = os.path.join(output_dir,'hrrr.{}')
+        dir_pattern = os.path.join(location,'hrrr.{}')
         file_pattern_all = 'hrrr.t*z.wrfsfcf*.grib2'
         file_pattern = 'hrrr.t{:02d}z.wrfsfcf{:02d}.grib2'
         # get a date range
