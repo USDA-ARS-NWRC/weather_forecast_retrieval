@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+# from weather_forecast_retrieval import hrrr
+from weather_forecast_retrieval.file_storage import HRRRStorage
+import os
+import argparse
+import pandas as pd
+
+def run():
+    """
+    Take a date range and upload all desired HRRR data in that range to the object store
+    """
+
+    parser = argparse.ArgumentParser(description='Upload local HRRR files to openstack object storage')
+    parser.add_argument('-sd', '--start_date', type=str, dest='start_date', required=True,
+                        help='start_date for files to upload')
+    parser.add_argument('-ed', '--end_date', type=str, dest='end_date', required=True,
+                        help='end_date for files to upload')
+    parser.add_argument('--fxhrs', '-fx', type=int, nargs="+",
+                        dest='fxhrs', required=False, default=[0],
+                        help='forecast hours that will be uploaded')
+    parser.add_argument('--dir', '-d', type=str, required=True, dest='dir',
+                        help='directory where HRRR files are stored')
+    parser.add_argument('--container', '-c', type=str,
+                        required=True, dest='container',
+                        help='Object store container')
+
+    args = parser.parse_args()
+
+    start_date = pd.to_datetime(args.start_date)
+    end_date = pd.to_datetime(args.end_date)
+
+    fx_hrs = args.fxhrs
+    if not isinstance(fx_hrs, list):
+        fx_hrs = [fx_hrs]
+
+    if not os.path.isdir(args.dir):
+        raise Exception('{} is not a directory'.format(args.dir))
+    else:
+        dir = os.path.abspath(args.dir)
+
+    container = args.container
+
+    # file storage
+    file_storage = HRRRStorage()
+    # loop through the range of dates
+    fmt_day ='%Y%m%d'
+    date_change = end_date - start_date
+    hours_change = date_change.days*24 + date_change.seconds // 3600
+
+    # loop through each hour
+    for hr in range(hours_change):
+
+        dt = start_date + pd.to_timedelta(hr, 'h')
+        day_hr = dt.hour
+
+        for fx in fx_hrs:
+            # create correct object name
+            object_name = os.path.join('hrrr.{}'.format(dt.strftime(fmt_day)),
+                                'hrrr.t{:02d}z.wrfsfcf{:02d}.grib2'.format(day_hr, fx))
+            fp = os.path.join(dir, object_name)
+
+            if not os.path.isfile():
+                raise Exception('{} does not exist'.format(fp))
+            # upload to object storage
+            file_storage.upload_hrrr_file(conatiner, object_name, fp)
+
+if __name__ == '__main__':
+    run()

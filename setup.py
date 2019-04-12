@@ -54,5 +54,5 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     setup_requires=setup_requirements,
-    scripts=['scripts/run_hrrr_retrieval']
+    scripts=['scripts/run_hrrr_retrieval', 'scripts/store_hrrr_objects']
 )
