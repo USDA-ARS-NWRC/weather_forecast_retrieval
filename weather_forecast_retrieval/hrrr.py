@@ -390,7 +390,7 @@ class HRRR():
                 # add forecast hour
                 file_time = d + pd.to_timedelta(f, 'h')
                 # make sure we get a working file
-                for fx_hr in range(7):
+                for fx_hr in range(f, f + 7):
                     fp = manage_files.hrrr_name_finder(file_time,fx_hr)
 
                     success, df, idx, metadata = self.get_one_grib(df, idx,
@@ -401,7 +401,7 @@ class HRRR():
                                                                    bbox)
                     if success:
                         break
-                    if fx_hr == 6:
+                    if fx_hr == f+6 or fx_hr >= 18:
                         raise IOError('Not able to find good grib file for \
                                        {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
 
