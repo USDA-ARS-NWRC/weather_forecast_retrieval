@@ -14,6 +14,7 @@ import pandas as pd
 import utm
 import numpy as np
 import copy
+from weather_forecast_retrieval.file_storage import HRRRStorage
 
 try:
     from drhawkeye import health_check
@@ -413,9 +414,7 @@ class HRRR():
                 file_time = d
                 for fx_hr in range(1,8):
                     # get the name of the file
-                    fp = utils.hrrr_file_finder(self.location,
-                                                     file_time,
-                                                     fx_hr)
+                    fp = manage_files.hrrr_name_finder(file_time, fx_hr)
 
                     success, df, idx, metadata = self.get_one_grib(df, idx,
                                                                    metadata,

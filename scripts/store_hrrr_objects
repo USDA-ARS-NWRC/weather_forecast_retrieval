@@ -42,7 +42,7 @@ def run():
     container = args.container
 
     # file storage
-    file_storage = HRRRStorage()
+    file_storage = HRRRStorage(container,'object')
     # loop through the range of dates
     fmt_day ='%Y%m%d'
     date_change = end_date - start_date
@@ -60,10 +60,11 @@ def run():
                                 'hrrr.t{:02d}z.wrfsfcf{:02d}.grib2'.format(day_hr, fx))
             fp = os.path.join(dir, object_name)
 
-            if not os.path.isfile():
-                raise Exception('{} does not exist'.format(fp))
-            # upload to object storage
-            file_storage.upload_hrrr_file(conatiner, object_name, fp)
+            if not os.path.isfile(fp):
+                print('{} does not exist'.format(fp))
+            else:
+                # upload to object storage
+                file_storage.upload_hrrr_file(container, object_name, fp)
 
 if __name__ == '__main__':
     run()

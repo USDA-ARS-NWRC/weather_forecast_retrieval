@@ -61,7 +61,7 @@ class HRRRStorage():
 
         return file_time
 
-    def hrrr_name_finder(date, fx_hr = 0):
+    def hrrr_name_finder(self, date, fx_hr = 0):
         """
         Find the file pointer for a hrrr file with a specific forecast hour
 
@@ -93,6 +93,8 @@ class HRRRStorage():
             return self.hrrr_file_name_finder(new_hr, fx_hr, day)
         elif self.storage_type == 'object':
             return self.hrrr_object_name_finer(new_hr, fx_hr, day)
+        else:
+            raise Exception('Storage type must be "file" or "object"')
 
     def hrrr_file_name_finder(self, new_hr, fx_hr, day):
         """
@@ -138,18 +140,23 @@ class HRRRStorage():
         # make sure the object is in the container
         container_objs = self.conn.object_store.objects(container)
         c_obj_names = [cobj.name for cobj in container_objs]
+        # Return False if we can't find the file
+        # Returning False will make us look for a new file
         if object_name not in c_obj_names:
-            raise Exception('Cannot find object {} in container {}'.format(object_name,
-                                                                           conatiner))
+            print('Cannot find object {} in container {}'.format(object_name,
+                                                                 container))
+            print('Will try another file')
+            return False
+
         # get the object data and store it in a file
         tmp_file = os.path.join(self.tmpdir, 'tmp.grib2')
         data = self.conn.object_store.download_object(object_name, container=container)
-        with open('tmp.grib2', 'wb') as fp:
+        with open(tmp_file, 'wb') as fp:
             fp.write(data)
 
         return tmp_file
 
-    def upload_hrrr_file(self, conatiner, object_name, fp):
+    def upload_hrrr_file(self, container, object_name, fp):
         """
         Take a local HRRR grib2 file and upload it to an openstack container store
 
