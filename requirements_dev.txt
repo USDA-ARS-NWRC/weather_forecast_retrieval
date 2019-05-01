@@ -1,4 +1,5 @@
-pip==8.1.2
+pip==19.0.3
+numpy==1.16.3
 bumpversion==0.5.3
 wheel==0.29.0
 watchdog==0.8.3
@@ -10,8 +11,7 @@ pyyaml==4.2b1
 coloredlogs == 6.1
 siphon==0.6.1
 pyproj==1.9.5.1
-pygrib==2.0.2
 utm==0.4.0
 pytz
-requests
+requests==2.21.0
 drhawkeye==0.2.4

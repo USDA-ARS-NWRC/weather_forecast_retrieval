@@ -26,21 +26,21 @@ sudo apt install python3-dev python3-pip python3-tk
 sudo apt install libgrib-api-tools libgrib-api-dev
 ```
 
-Get packages from github
+Get package from github and install
 
 ```
 curl -L https://github.com/USDA-ARS-NWRC/weather_forecast_retrieval/archive/v0.5.2.tar.gz | tar xz
 
-python3 -m pip install pyproj==1.9.5.1
-python3 -m pip install numpy==1.16.3
-```
+python3 -m pip install pygrib==2.0.2
 
-Install packages
-
-```
-cd ../weather_forecast_retrieval-0.5.2/
+cd weather_forecast_retrieval-0.5.2/
 python3 -m pip install -r requirements_dev.txt
 python3 setup.py install
+```
+
+Check install
+```
+python3 setup.py test
 ```
 
 ### Ubuntu 18.04
@@ -72,6 +72,4 @@ python3 setup.py install
 cd ../weather_forecast_retrieval-0.5.2/
 python3 -m pip install -r requirements_dev.txt
 python3 setup.py install
-
-rm -r /root/.cache/pip
 ```
