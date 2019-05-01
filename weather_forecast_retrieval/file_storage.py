@@ -35,6 +35,9 @@ class HRRRStorage():
             if os.path.isfile(tmp_file):
                 os.remove(tmp_file)
 
+    def cleanup(self):
+        self.__exit__()
+
     def get_hrrr_file_date(self, fp, fx=False):
         '''
         Get the date from a hrrr file name. Assuming the directory structure

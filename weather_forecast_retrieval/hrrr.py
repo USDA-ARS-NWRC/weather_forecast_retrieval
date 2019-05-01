@@ -431,6 +431,9 @@ class HRRR():
 
                 d += delta_hr
 
+        # cleanup downloaded files
+        manage_files.cleanup()
+
         # manipulate data in necessary ways
         # print(df.keys())
         for key in df.keys():
