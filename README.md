@@ -63,9 +63,13 @@ python3 -m pip install pyproj==1.9.5.1
 ```
 
 Install packages
-
+This requires copying the ```setup.cfg``` that is filled out from weather_forecast_retrieval
+and moving it into pygrib. This file points to the installed eccodes libraries.
 ```
 cd pygrib-2.0.4rel
+
+cp ../weather_forecast_retrieval-0.5.2/setup.cfg.pygrib ./setup.cfg
+
 python3 setup.py build
 python3 setup.py install
 
