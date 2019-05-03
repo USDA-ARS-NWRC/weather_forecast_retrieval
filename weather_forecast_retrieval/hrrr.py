@@ -330,8 +330,8 @@ class HRRR():
         if output_dir is not None:
             self.output_dir = output_dir
 
-        start_date = start_date
-        end_date = end_date
+        start_date = start_date - timedelta(hours=3)
+        end_date = end_date + timedelta(hours=3)
         d = start_date
         delta = timedelta(days=1)
         # delta_hr = timedelta(hours=1)
