@@ -77,3 +77,15 @@ cd ../weather_forecast_retrieval-0.5.2/
 python3 -m pip install -r requirements_dev.txt
 python3 setup.py install
 ```
+
+### grib2nc
+
+To use the grib2nc command/function you will have to have wgrib2 installed.
+
+This is easiest done by following [NOAA instructions](https://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/compile_questions.html).
+After completing their instructions, make wgrib2 accessible by cd into the source code and
+attempt to install it under your ~/bin with:
+
+```bash
+ln wgrib2/wgrib2 ~/bin/wgrib2
+```

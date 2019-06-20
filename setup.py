@@ -33,6 +33,10 @@ setup(
     author_email='scott.havens@ars.usda.gov',
     url='https://github.com/USDA-ARS-NWRC/weather_forecast_retrieval',
     packages=['weather_forecast_retrieval'],
+    entry_points={
+        'console_scripts': [
+            'grib2nc=weather_forecast_retrieval.grib2nc:main'
+        ]},
     include_package_data=True,
     install_requires=requirements,
     license="CC0 1.0",
