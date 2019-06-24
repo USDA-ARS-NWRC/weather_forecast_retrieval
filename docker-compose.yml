@@ -1,0 +1,8 @@
+version: '2.1'
+
+services:
+  weather_forecast_retrieval:
+    image: weather_forecast_retrieval
+    build: .
+    ports:
+      - 3000:3000

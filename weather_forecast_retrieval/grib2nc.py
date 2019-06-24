@@ -56,6 +56,9 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 	        'short_wave': {
 				'wgrib2 keys':['Downward Short-Wave Radiation Flux', ':surface']
 	            },
+			'elevation': {
+				'wgrib2 keys': ['Geopotential Height', ':surface']
+			}
 	        }
 
 	# No output file name used, use the original plus a new extension

@@ -1,0 +1,7 @@
+#!/home/scotthavens/code/weather_forecast_retrieval/.venv/bin/python3
+# EASY-INSTALL-DEV-SCRIPT: 'weather-forecast-retrieval==0.5.4','run_hrrr_retrieval'
+__requires__ = 'weather-forecast-retrieval==0.5.4'
+__import__('pkg_resources').require('weather-forecast-retrieval==0.5.4')
+__file__ = '/home/scotthavens/code/weather_forecast_retrieval/scripts/run_hrrr_retrieval'
+with open(__file__) as f:
+    exec(compile(f.read(), __file__, 'exec'))
