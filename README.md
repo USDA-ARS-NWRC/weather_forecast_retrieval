@@ -89,3 +89,17 @@ attempt to install it under your ~/bin with:
 ```bash
 ln wgrib2/wgrib2 ~/bin/wgrib2
 ```
+
+## Docker
+
+The retrival aspect of `weather_forecast_retieval` has been built into a Docker image based on the Python 3 Alpine linux image. This allows for a docker deployment to run and retrieve HRRR data and convert to netcdf if needed. To use, first build the image
+
+```
+docker build -t usdaarsnwrc/weather_forecast_retieval .
+```
+
+Grab a coffee as this has to compile `pandas` from source (10+ minutes of compile time). Once completed, modify or create a new `docker-compose.yml` and modify the volume attachments as necessary. There are 2 volumes to attach, a `data` drive mounted to `/data` and the config file folders at `/code/config`. To setup the download, the config file is passed to `docker-compose`:
+
+```
+docker-compose run weather_forecast_retrieval /code/config/hrrr.ini
+```

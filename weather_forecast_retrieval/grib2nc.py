@@ -26,10 +26,15 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 		log = logging.getLogger(__name__)
 		coloredlogs.install(logger=log, fmt=fmt)
 
+		msg = "GRIB2NC Converter Utility"
+		log.info(msg)
+		log.info("=" * len(msg))
 
-	msg = "GRIB2NC Converter Utility"
-	log.info(msg)
-	log.info("=" * len(msg))
+	else:
+		log = external_logger
+
+	log.info('Converting to netcdf: {}'.format(f_hrrr))
+	
 
 	# criteria dictionary for extracting variables, CASE MATTERS
 	criteria = {'air_temp': {
@@ -69,7 +74,7 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 	var_count = 0
 	# Cycle through all the variables and export the grib var names
 	for k,v in criteria.items():
-		log.info("Attempting to extract grib name for {} ".format(k))
+		log.debug("Attempting to extract grib name for {} ".format(k))
 
 		cmd = "wgrib2 -v {} ".format(f_hrrr)
 
@@ -93,8 +98,8 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 		# Add the grib var name to our running string/list
 		grib_vars += s
 
-	log.info("Extracting {} variables and converting to netcdf...".format(var_count))
-	log.info("Outputting to: {}".format(output))
+	log.debug("Extracting {} variables and converting to netcdf...".format(var_count))
+	log.debug("Outputting to: {}".format(output))
 
 	# Using the var names we just collected run wgrib2 for netcdf conversion
 	cmd = 'echo "{}" | wgrib2 -i {} -netcdf {}'.format(grib_vars, f_hrrr, output)

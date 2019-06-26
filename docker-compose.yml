@@ -1,8 +1,10 @@
-version: '2.1'
+version: '3'
 
 services:
   weather_forecast_retrieval:
     image: weather_forecast_retrieval
     build: .
-    ports:
-      - 3000:3000
+    user: "${CURRENT_UID}:1"
+    volumes:
+      - /data:/data
+      - /home/code/weather_forecast_retrieval/scripts:/code/config

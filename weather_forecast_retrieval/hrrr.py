@@ -6,9 +6,9 @@ from ftplib import FTP
 import threading
 import os, sys, fnmatch
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import coloredlogs
-import pygrib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import glob
 import pandas as pd
 import utm
@@ -16,21 +16,22 @@ import numpy as np
 import copy
 
 try:
+    import pygrib
+except:
+    print('pygrib not installed, will not be able to read grib2 files')
+
+try:
     from drhawkeye import health_check
 except:
     print('Cannot find drhawkeye package')
+
 from . import get_hrrr_archive
-
 from . import utils
+from .grib2nc import grib2nc
 
-PY3 = sys.version_info[0] >= 3
-if PY3:  # pragma: no cover
-    from configparser import SafeConfigParser
-    from urllib.parse import urlencode
-    from urllib.request import urlretrieve
-else:  # pragma: no cover
-    from ConfigParser import SafeConfigParser
-    from urllib import urlencode, urlretrieve
+from configparser import SafeConfigParser
+from urllib.parse import urlencode
+from urllib.request import urlretrieve
 
 
 class HRRR():
@@ -120,8 +121,15 @@ class HRRR():
 
             # parse the rest of the config file
             self.output_dir = self.config['output']['output_dir']
-            self.grib_params.update(self.config['grib_parameters'])
-            self.grib_subregion.update(self.config['grib_subregion'])
+            self.grib2nc = False
+            if 'output_nc' in self.config['output'].keys():
+                self.output_nc = self.config['output']['output_nc']
+                self.grib2nc = True
+
+            if 'grib_parameters' in self.config.keys():
+                self.grib_params.update(self.config['grib_parameters'])
+            if 'grib_subregion' in self.config.keys():
+                self.grib_subregion.update(self.config['grib_subregion'])
 
 
         # start logging
@@ -147,22 +155,36 @@ class HRRR():
                 raise ValueError('Invalid log level: %s' % loglevel)
 
             fmt = '%(levelname)s:%(name)s:%(message)s'
+            log = logging.getLogger(__name__)
             if logfile is not None:
-                logging.basicConfig(filename=logfile,
-                                    filemode='w',
-                                    level=numeric_level,
-                                    format=fmt)
+                # logging.basicConfig(filename=logfile,
+                #                     filemode='a',
+                #                     level=numeric_level,
+                #                     format=fmt)
+                
+                handler = TimedRotatingFileHandler(logfile,
+                                                   when='D',
+                                                   interval=1,
+                                                   utc=True,
+                                                   atTime=time(),
+                                                   backupCount=30)
+                log.setLevel(numeric_level)
+                formatter = logging.Formatter(fmt)
+                handler.setFormatter(formatter)
+                log.addHandler(handler)
             else:
                 logging.basicConfig(level=numeric_level)
                 coloredlogs.install(level=numeric_level, fmt=fmt)
 
             self._loglevel = numeric_level
 
-            self._logger = logging.getLogger(__name__)
+            self._logger = log
         else:
             self._logger = external_logger
 
-        self._logger.info('Initialized HRRR')
+        msg = '{} -- Initialized HRRR'.format(datetime.now().isoformat())
+        self._logger.info("=" * len(msg))
+        self._logger.info(msg)
 
     def retrieve_grib_filter(self):
         """
@@ -277,6 +299,14 @@ class HRRR():
                 os.mkdir(out_path)
                 self._logger.info('mkdir {}'.format(out_path))
 
+            # if converting to netcdf, check that the directory also exists
+            out_nc_path = None
+            if self.grib2nc and (self.output_dir != self.output_nc):
+                out_nc_path = os.path.join(self.output_nc, d)
+                if not os.path.isdir(out_nc_path):
+                    os.mkdir(out_nc_path)
+                    self._logger.info('mkdir {}'.format(out_nc_path))
+
             forecast_hours = range(24)
             for fhr in forecast_hours:
 
@@ -294,7 +324,14 @@ class HRRR():
                         ftp.retrbinary('RETR {}'.format(ftp_file), h.write)
                         h.close()
 
+                        # convert to netcdf if needed
+                        if self.grib2nc:
+                            self._logger.debug('Converting to netcdf {}'.format(ftp_file))
+                            out_nc_file = os.path.join(out_nc_path, f)
+                            grib2nc(out_file, out_nc_file, self._logger)
+
         ftp.close()
+        self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
 
 
     def get_saved_data(self, start_date, end_date, bbox, output_dir=None,

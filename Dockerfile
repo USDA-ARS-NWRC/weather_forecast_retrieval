@@ -2,8 +2,6 @@
 # conversion of the HRRR grib2 files. 
 FROM python:3.6.8-alpine3.9
 
-MAINTAINER Scott Havens
-
 # Install and make wgrib2
 ENV CC=gcc
 ENV FC=gfortran
@@ -19,14 +17,19 @@ RUN apk --no-cache --virtual .build-dependencies add build-base curl gfortran &&
     wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.6.1.tar.gz && \
     make && \
     ln wgrib2/wgrib2 /usr/local/bin/wgrib2 && \
-    rm *.tar.gz && \
-    apk del .build-dependencies
+    rm *.tar.gz
+    
 
-# Add and build weather forecast retrival
-# WORKDIR /app
+# Add the weather code
 ADD . /code/weather_forecast_retrieval
 
-# Using pip:
-# RUN python3 -m pip install -r requirements_dev.txt
-# CMD ["python3", "-m", "weather_forecast_retrieval"]
+# Add and build weather forecast retrival
+RUN cd /code/weather_forecast_retrieval && \
+    chmod +x /code/weather_forecast_retrieval/docker-entrypoint.sh && \
+    python3 -m pip install --no-cache-dir -r requirements_grib2nc.txt && \
+    python3 setup.py install && \
+    apk del .build-dependencies
 
+VOLUME /data
+
+ENTRYPOINT ["/code/weather_forecast_retrieval/docker-entrypoint.sh"]
