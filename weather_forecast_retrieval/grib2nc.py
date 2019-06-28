@@ -64,6 +64,7 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 
 	grib_vars = ""
 	var_count = 0
+
 	# Cycle through all the variables and export the grib var names
 	for k,v in criteria.items():
 		log.info("Attempting to extract grib name for {} ".format(k))
@@ -77,7 +78,7 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 
 		#cmd += " -netcdf {}".format(output)
 		s = check_output(cmd, shell=True).decode('utf-8')
-
+		num_grib_var = len(s.split('\n'))
 		# Check if we only identify one variable based on line returns
 		return_count = len([True for c in s if c == '\n'])
 
@@ -94,7 +95,17 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 	log.info("Outputting to: {}".format(output))
 
 	# Using the var names we just collected run wgrib2 for netcdf conversion
-	cmd = 'echo "{}" | wgrib2 -i {} -netcdf {}'.format(grib_vars, f_hrrr, output)
+	log.debug(grib_vars)
+	log.info("Converting grib2 to netcdf4...".format(len(grib_vars), len(cmd.split('\n'))))
+	cmd = 'echo "{}" | wgrib2 -nc4 -i {} -netcdf {}'.format(grib_vars, f_hrrr, output)
+	log.debug(cmd)
+	s = check_output(cmd, shell=True)
+
+	# Recast dimensions
+	log.info("Reducing dimensional variables to type ints and floats.")
+
+	cmd = "ncap -O -s 'latitude=float(latitude);longitude=float(longitude);x=int(x);y=int(y);time=int(time)' {0} {0}".format(output)
+	log.debug(cmd)
 	s = check_output(cmd, shell=True)
 
 	log.info("Complete! Elapsed {:0.0f}s".format(time.time()-start))
