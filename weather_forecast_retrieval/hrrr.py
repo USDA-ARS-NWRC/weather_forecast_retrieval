@@ -14,6 +14,10 @@ import pandas as pd
 import utm
 import numpy as np
 import copy
+from bs4 import BeautifulSoup
+import requests
+import re
+# import grequests
 
 try:
     import pygrib
@@ -52,6 +56,7 @@ class HRRR():
     file_name = 'hrrr.t*z.wrfsfcf{:02d}.grib2'
     # need to make this hour correct for the forecast
     file_filter = 'hrrr.t*z.wrfsfcf*.grib2'
+    regexp = re.compile('hrrr\.t\d\dz\.wrfsfcf\d\d\.grib2')
 #     output_dir = '/data/snowpack/forecasts/hrrr'
 #     log_file = os.path.join(output_dir, 'hrrr.log')
     forecast_hours = [0, 1]
@@ -121,10 +126,10 @@ class HRRR():
 
             # parse the rest of the config file
             self.output_dir = self.config['output']['output_dir']
-            self.grib2nc = False
-            if 'output_nc' in self.config['output'].keys():
-                self.output_nc = self.config['output']['output_nc']
-                self.grib2nc = True
+            # self.grib2nc = False
+            # if 'output_nc' in self.config['output'].keys():
+            #     self.output_nc = self.config['output']['output_nc']
+            #     self.grib2nc = True
 
             if 'grib_parameters' in self.config.keys():
                 self.grib_params.update(self.config['grib_parameters'])
@@ -186,80 +191,6 @@ class HRRR():
         self._logger.info("=" * len(msg))
         self._logger.info(msg)
 
-    def retrieve_grib_filter(self):
-        """
-        Retrieve the data from the http with grib-filter. First read the ftp_url and
-        determine what dates are available. Then use that to download
-        the required data.
-
-        Use the ftp site to get a list of the directories to build the url's
-        """
-
-        self._logger.info('Retrieving data from the http grib-filter')
-
-        ftp = FTP(self.ftp_url)
-
-        ftp.connect()
-        self._logger.debug('Connected to FTP')
-
-        ftp.login()
-        self._logger.debug('Logged into FTP')
-
-        ftp.cwd(self.ftp_dir)
-        self._logger.debug('Changed directory to {}'.format(self.ftp_dir))
-
-        # get directory listing on server
-        dir_list = ftp.nlst()
-
-        # go through the directory list and see if we need to add
-        # any new data files
-        for d in dir_list:
-            ftp_dir = os.path.join(self.ftp_dir, d, 'conus')
-            self._logger.info('Changing directory to {}'.format(ftp_dir))
-
-            # get the files in the new directory
-            ftp.cwd(ftp_dir)
-            ftp_files = ftp.nlst()
-
-            # check if d exists in output_dir
-            out_path = os.path.join(self.output_dir, d)
-            if not os.path.isdir(out_path):
-                os.mkdir(out_path)
-                self._logger.info('mkdir {}'.format(out_path))
-
-            # get all the files that match the file filter
-            wanted_files = fnmatch.filter(ftp_files, self.file_filter)
-
-            # go through each file, see if it exists, and retrieve if not
-            threads = []
-            for f in wanted_files:
-                file_local = os.path.join(out_path, f)
-#                 remote_file = os.path.join(ftp_dir, f)
-
-                self.grib_params['dir'] = '/{}'.format(d)
-                self.grib_params['file'] = f
-                p = urlencode(self.grib_params)
-
-                remote_url = '{}?{}&subregion=&{}'.format(self.grib_filter_url,
-                                                          os.path.join(p,'conus'),
-                                                          urlencode(self.grib_subregion))
-
-                # get the file if it doesn't exist
-                if not os.path.exists(file_local):
-                    self._logger.info('Adding {}'.format(f))
-                    t = threading.Thread(target=urlretrieve, args=(remote_url, file_local))
-                    t.start()
-                    threads.append(t)
-
-                if len(threads) == self.num_threads:
-                    self._logger.info('Getting {} files'.format(self.num_threads))
-                    for t in threads:
-                        t.join()
-                    threads = []
-
-        ftp.close()
-        self._logger.info('Done retrieving files')
-
 
     def retrieve_ftp(self):
         """
@@ -299,14 +230,6 @@ class HRRR():
                 os.mkdir(out_path)
                 self._logger.info('mkdir {}'.format(out_path))
 
-            # if converting to netcdf, check that the directory also exists
-            out_nc_path = None
-            if self.grib2nc and (self.output_dir != self.output_nc):
-                out_nc_path = os.path.join(self.output_nc, d)
-                if not os.path.isdir(out_nc_path):
-                    os.mkdir(out_nc_path)
-                    self._logger.info('mkdir {}'.format(out_nc_path))
-
             forecast_hours = range(24)
             for fhr in forecast_hours:
 
@@ -324,15 +247,83 @@ class HRRR():
                         ftp.retrbinary('RETR {}'.format(ftp_file), h.write)
                         h.close()
 
-                        # convert to netcdf if needed
-                        if self.grib2nc:
-                            self._logger.debug('Converting to netcdf {}'.format(ftp_file))
-                            out_nc_file = os.path.join(out_nc_path, f)
-                            grib2nc(out_file, out_nc_file, self._logger)
-
         ftp.close()
         self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
 
+
+    def retrieve_http_by_date(self):
+        """
+        Retrieve the data from the ftp site. First read the ftp_url and
+        determine what dates are available. Then use that to download
+        the required data.
+        """
+
+        self._logger.info('Retrieving data from the http site')
+
+        start_date = datetime(2019, 7, 9, 11, 0, 0)
+        end_date = datetime(2019, 7, 9, 13, 0, 0)
+        url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.{}/conus/'
+
+        d = self.date_url.format(start_date.strftime('%Y%m%d'))
+        url_date = url.format(start_date.strftime('%Y%m%d'))
+
+        # get the html text
+        self._logger.debug('Requesting html text from {}'.format(url_date))
+        page = requests.get(url_date).text
+
+        # convert to BeautifulSoup
+        soup = BeautifulSoup(page, 'html.parser')
+
+        # parse
+        columns = ['modified', 'name', 'url', 'size']
+        df = pd.DataFrame(columns=columns)
+
+        for node in soup.find_all('a'):
+            if node.get('href').endswith('grib2'):
+                file_name = node.get('href')
+                result = self.regexp.match(file_name)
+                
+                if result:
+                    # matched a file name so get more information about it
+                    file_url = url_date + file_name
+                    data = node.next_element.next_element.strip()
+                    el = data.split(' ')
+                    modified = pd.to_datetime(el[0] + ' ' + el[1])
+                    size = el[3]
+                    df = df.append({
+                        'modified': modified,
+                        'name': file_name,
+                        'url': file_url,
+                        'size': size
+                        }, ignore_index=True)
+
+        self._logger.debug('Found {} matching files'.format(len(df)))
+
+        # parse by the date
+        # df.set_index('modified', inplace=True)
+        idx = (df['modified'] >= start_date) & (df['modified'] <= end_date)
+        df = df.loc[idx]
+        self._logger.debug('Found {} files between start and end date'.format(len(df)))
+
+        # req = []
+        # for i,row in df.iterrows():
+        #     req.append(grequests.get(row.url))
+
+        # res = qrequests.map(req, size=1)
+
+        # check if d exists in output_dir
+        out_path = os.path.join(self.output_dir, d)
+        if not os.path.isdir(out_path):
+            os.mkdir(out_path)
+            self._logger.info('mkdir {}'.format(out_path))
+        
+        for r in req:
+            out_file = os.path.join(out_path, f)
+            with open(out_file, 'wb') as f:
+                f.write(r.content)
+                f.close()
+
+        self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
 
     def get_saved_data(self, start_date, end_date, bbox, output_dir=None,
                        var_map=None, forecast=[0], force_zone_number=None,
