@@ -278,6 +278,12 @@ class HRRR():
                 end_date = pd.to_datetime(end_date)
             self.end_date = end_date
 
+        diff = datetime.utcnow() - self.start_date
+        if diff.days > 1:
+            # NOAA only keeps the last two days of data
+            return True
+
+
         # check if dates are timezone aware, if not then assume UTC
         if self.start_date.tzinfo is None or self.start_date.tzinfo.utcoffset(self.start_date):
             self.start_date = self.start_date.tz_localize(tz='UTC')
