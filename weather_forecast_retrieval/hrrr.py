@@ -2,7 +2,6 @@
 Connect to the HRRR site and download the data
 """
 
-import grequests
 from ftplib import FTP
 import os, sys, fnmatch
 import logging
@@ -16,6 +15,7 @@ import copy
 from bs4 import BeautifulSoup
 import requests
 import re
+from urllib.request import urlretrieve
 
 
 try:
@@ -61,8 +61,7 @@ class HRRR():
     forecast_hours = [0, 1]
 
     http_url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.{}/conus/'
-    num_requests = 2
-
+    
     # the grib filter page with some of the default parameters
     grib_filter_url = 'http://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl'
     grib_params = {
@@ -122,6 +121,7 @@ class HRRR():
             configFile (str):  path to configuration file.
             external_logger: logger instance if using in part of larger program
         """
+        self.num_requests = 2
 
         if configFile is not None:
             self.config = utils.read_config(configFile)
@@ -140,7 +140,6 @@ class HRRR():
                 self.grib_params.update(self.config['grib_parameters'])
             if 'grib_subregion' in self.config.keys():
                 self.grib_subregion.update(self.config['grib_subregion'])
-
 
         # start logging
         if external_logger == None:
@@ -255,7 +254,6 @@ class HRRR():
         ftp.close()
         self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
 
-
     def retrieve_http_by_date(self, start_date=None, end_date=None):
         """
         Retrieve the data from the ftp site. First read the ftp_url and
@@ -280,17 +278,23 @@ class HRRR():
 
         # check if dates are timezone aware, if not then assume UTC
         if self.start_date.tzinfo is None or self.start_date.tzinfo.utcoffset(self.start_date):
-            self.start_date.tz_localize(tz='UTC')
+            self.start_date = self.start_date.tz_localize(tz='UTC')
         else:
-            self.start_date.tz_convert(tz='UTC')
+            self.start_date = self.start_date.tz_convert(tz='UTC')
 
         if self.end_date.tzinfo is None or self.end_date.tzinfo.utcoffset(self.end_date):
-            self.end_date.tz_localize(tz='UTC')
+            self.end_date = self.end_date.tz_localize(tz='UTC')
         else:
-            self.end_date.tz_convert(tz='UTC')
+            self.end_date = self.end_date.tz_convert(tz='UTC')
 
         d = 'hrrr.{}'.format(self.start_date.strftime('%Y%m%d'))
         url_date = self.http_url.format(self.start_date.strftime('%Y%m%d'))
+
+        # check if d exists in output_dir
+        out_path = os.path.join(self.output_dir, d)
+        if not os.path.isdir(out_path):
+            os.mkdir(out_path)
+            self._logger.info('mkdir {}'.format(out_path))
 
         # get the html text
         self._logger.debug('Requesting html text from {}'.format(url_date))
@@ -317,7 +321,7 @@ class HRRR():
                     size = el[3]
                     df = df.append({
                         'modified': modified,
-                        'name': file_name,
+                        'file_name': file_name,
                         'url': file_url,
                         'size': size
                         }, ignore_index=True)
@@ -330,30 +334,33 @@ class HRRR():
         df = df.loc[idx]
         self._logger.debug('Found {} files between start and end date'.format(len(df)))
 
-        self._logger.debug('Generating requests')
-        req = []
         for i,row in df.iterrows():
-            req.append(grequests.get(row.url))
+            out_file = os.path.join(out_path, row.file_name)
+            self.fetch_file(row.url, out_file)
 
-        self._logger.debug('Sendings {} requests'.format(len(req)))
-        res = grequests.map(req, size=self.num_requests)
+        # self._logger.debug('Generating requests')
+        # req = []
+        # for i,row in df.iterrows():
+        #     req.append(grequests.get(row.url, hooks={'response': self.is_available}))
 
-        # check if d exists in output_dir
-        out_path = os.path.join(self.output_dir, d)
-        if not os.path.isdir(out_path):
-            os.mkdir(out_path)
-            self._logger.info('mkdir {}'.format(out_path))
-        
-        for r in res:
-            if r.status_code == 200:
-                f = r.url.split('/')[-1]
-                out_file = os.path.join(out_path, f)
-                with open(out_file, 'wb') as f:
-                    f.write(r.content)
-                    f.close()
-                    self._logger.debug('Saved to {}'.format(out_file))
+        # req = [req[0]]
+        # self._logger.debug('Sendings {} requests'.format(len(req)))
+        # res = grequests.map(req, size=self.num_requests)
+
+        # for r in res:
+        #     if r.status_code == 200:
+        #         f = r.url.split('/')[-1]
+        #         out_file = os.path.join(out_path, f)
+        #         with open(out_file, 'wb') as f:
+        #             f.write(r.content)
+        #             f.close()
+        #             self._logger.debug('Saved to {}'.format(out_file))
 
         self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
+
+    def fetch_file(self, url, out_file):
+        self._logger.debug('Requesting {}'.format(url))
+        urlretrieve(url, out_file)
 
     def get_saved_data(self, start_date, end_date, bbox, output_dir=None,
                        var_map=None, forecast=[0], force_zone_number=None,
