@@ -48,5 +48,8 @@ setup(
         'Programming Language :: Python :: 3',
     ],
     test_suite='tests',
-    scripts=['scripts/run_hrrr_retrieval']
+    scripts=[
+        'scripts/run_hrrr_retrieval',
+        'scripts/run_hrrr_retrieval_dates'
+        ]
 )

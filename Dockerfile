@@ -10,7 +10,7 @@ ENV USE_NETCDF4=1
 
 WORKDIR /code
 RUN apk --no-cache --virtual .build-dependencies add build-base curl gfortran && \
-    apk --no-cache add libgfortran libgomp && \
+    apk --no-cache add libgfortran libgomp libstdc++ && \
     curl ftp://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz | tar xvz && \
     cd /code/grib2 && \
     wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.4/src/hdf5-1.10.4.tar.gz && \
@@ -32,4 +32,4 @@ RUN cd /code/weather_forecast_retrieval && \
 
 VOLUME /data
 
-ENTRYPOINT ["/code/weather_forecast_retrieval/docker-entrypoint.sh"]
+# ENTRYPOINT ["/code/weather_forecast_retrieval/docker-entrypoint.sh"]

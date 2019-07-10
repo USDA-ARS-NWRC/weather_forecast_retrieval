@@ -4,13 +4,11 @@ Connect to the HRRR site and download the data
 
 import grequests
 from ftplib import FTP
-import threading
 import os, sys, fnmatch
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import coloredlogs
 from datetime import datetime, timedelta, time
-import glob
 import pandas as pd
 import utm
 import numpy as np
@@ -258,14 +256,27 @@ class HRRR():
         self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
 
 
-    def retrieve_http_by_date(self):
+    def retrieve_http_by_date(self, start_date=None, end_date=None):
         """
         Retrieve the data from the ftp site. First read the ftp_url and
         determine what dates are available. Then use that to download
         the required data.
+
+        :params:  start_date - datetime object to override config
+                  end_date - datetime object to override config
         """
 
         self._logger.info('Retrieving data from the http site')
+
+        # could be more robust
+        if start_date is not None:
+            if type(start_date) is str:
+                start_date = pd.to_datetime(start_date)
+            self.start_date = start_date
+        if end_date is not None:
+            if type(end_date) is str:
+                end_date = pd.to_datetime(end_date)
+            self.end_date = end_date
 
         d = 'hrrr.{}'.format(self.start_date.strftime('%Y%m%d'))
         url_date = self.http_url.format(self.start_date.strftime('%Y%m%d'))

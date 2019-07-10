@@ -5,6 +5,7 @@ services:
     image: weather_forecast_retrieval
     build: .
     user: "${CURRENT_UID}:1"
+    # command: run_hrrr_retrieval_dates
     volumes:
       - /data:/data
-      - /home/code/weather_forecast_retrieval/scripts:/code/config
+      - /home/scotthavens/code/weather_forecast_retrieval/scripts:/code/config
