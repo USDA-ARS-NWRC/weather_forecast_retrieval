@@ -124,6 +124,7 @@ class HRRR():
             external_logger: logger instance if using in part of larger program
         """
         self.num_requests = 2
+        self.date_folder = False
 
         if configFile is not None:
             self.config = utils.read_config(configFile)
@@ -278,12 +279,6 @@ class HRRR():
                 end_date = pd.to_datetime(end_date)
             self.end_date = end_date
 
-        diff = datetime.utcnow() - self.start_date
-        if diff.days > 1:
-            # NOAA only keeps the last two days of data
-            return True
-
-
         # check if dates are timezone aware, if not then assume UTC
         if self.start_date.tzinfo is None or self.start_date.tzinfo.utcoffset(self.start_date):
             self.start_date = self.start_date.tz_localize(tz='UTC')
@@ -295,14 +290,22 @@ class HRRR():
         else:
             self.end_date = self.end_date.tz_convert(tz='UTC')
 
-        d = 'hrrr.{}'.format(self.start_date.strftime('%Y%m%d'))
-        url_date = self.http_url.format(self.start_date.strftime('%Y%m%d'))
+        diff = datetime.utcnow() - self.start_date
+        if diff.days > 1:
+            # NOAA only keeps the last two days of data
+            return True
 
-        # check if d exists in output_dir
-        out_path = os.path.join(self.output_dir, d)
-        if not os.path.isdir(out_path):
-            os.mkdir(out_path)
-            self._logger.info('mkdir {}'.format(out_path))
+        if self.date_folder:
+            d = 'hrrr.{}'.format(self.start_date.strftime('%Y%m%d'))
+            # check if d exists in output_dir
+            out_path = os.path.join(self.output_dir, d)
+            if not os.path.isdir(out_path):
+                os.mkdir(out_path)
+                self._logger.info('mkdir {}'.format(out_path))
+        else:
+            out_path = self.output_dir
+
+        url_date = self.http_url.format(self.start_date.strftime('%Y%m%d'))
 
         # get the html text
         self._logger.debug('Requesting html text from {}'.format(url_date))
