@@ -2,6 +2,7 @@
 Connect to the HRRR site and download the data
 """
 
+import grequests
 from ftplib import FTP
 import os, sys, fnmatch
 import logging
@@ -15,7 +16,8 @@ import copy
 from bs4 import BeautifulSoup
 import requests
 import re
-from urllib.request import urlretrieve
+# from urllib.request import urlretrieve
+# import shutil
 
 
 try:
@@ -334,33 +336,40 @@ class HRRR():
         df = df.loc[idx]
         self._logger.debug('Found {} files between start and end date'.format(len(df)))
 
-        for i,row in df.iterrows():
-            out_file = os.path.join(out_path, row.file_name)
-            self.fetch_file(row.url, out_file)
-
-        # self._logger.debug('Generating requests')
-        # req = []
         # for i,row in df.iterrows():
-        #     req.append(grequests.get(row.url, hooks={'response': self.is_available}))
+        #     out_file = os.path.join(out_path, row.file_name)
+        #     self.fetch_file(row.url, out_file)
 
-        # req = [req[0]]
-        # self._logger.debug('Sendings {} requests'.format(len(req)))
-        # res = grequests.map(req, size=self.num_requests)
+        self._logger.debug('Generating requests')
+        req = []
+        for i,row in df.iterrows():
+            req.append(grequests.get(row.url, callback=self.feedback))
 
-        # for r in res:
-        #     if r.status_code == 200:
-        #         f = r.url.split('/')[-1]
-        #         out_file = os.path.join(out_path, f)
-        #         with open(out_file, 'wb') as f:
-        #             f.write(r.content)
-        #             f.close()
-        #             self._logger.debug('Saved to {}'.format(out_file))
+        self._logger.debug('Sendings {} requests'.format(len(req)))
+        res = grequests.map(req, size=self.num_requests)
+
+        for r in res:
+            if r.status_code == 200:
+                f = r.url.split('/')[-1]
+                out_file = os.path.join(out_path, f)
+                with open(out_file, 'wb') as f:
+                    f.write(r.content)
+                    f.close()
+                    self._logger.debug('Saved to {}'.format(out_file))
 
         self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
 
-    def fetch_file(self, url, out_file):
-        self._logger.debug('Requesting {}'.format(url))
-        urlretrieve(url, out_file)
+    def feedback(self, r, **kwargs):
+        self._logger.debug('Fetching {}'.format(r.url))
+
+    # def fetch_file(self, url, out_file):
+    #     self._logger.debug('Requesting {}'.format(url))
+    #     # urlretrieve(url, out_file)
+
+    #     with requests.get(url, stream=True) as r:
+    #         r.raise_for_status()
+    #         with open(out_file, 'wb') as f:
+    #             shutil.copyfileobj(r.raw, f)
 
     def get_saved_data(self, start_date, end_date, bbox, output_dir=None,
                        var_map=None, forecast=[0], force_zone_number=None,
