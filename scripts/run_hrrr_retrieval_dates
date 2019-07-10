@@ -7,7 +7,7 @@ import argparse
 def run():
 
     parser = argparse.ArgumentParser(description='Run the data retrieval for HRRR model')
-    parser.add_argument('config_file', metavar='F', type=str,
+    parser.add_argument('config_file', metavar='config_file', type=str,
                         help='Path to config file')
     
     parser.add_argument('-s', '--start', dest='start_date',

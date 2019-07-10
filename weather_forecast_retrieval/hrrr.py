@@ -278,6 +278,17 @@ class HRRR():
                 end_date = pd.to_datetime(end_date)
             self.end_date = end_date
 
+        # check if dates are timezone aware, if not then assume UTC
+        if self.start_date.tzinfo is None or self.start_date.tzinfo.utcoffset(self.start_date):
+            self.start_date.tz_localize(tz='UTC')
+        else:
+            self.start_date.tz_convert(tz='UTC')
+
+        if self.end_date.tzinfo is None or self.end_date.tzinfo.utcoffset(self.end_date):
+            self.end_date.tz_localize(tz='UTC')
+        else:
+            self.end_date.tz_convert(tz='UTC')
+
         d = 'hrrr.{}'.format(self.start_date.strftime('%Y%m%d'))
         url_date = self.http_url.format(self.start_date.strftime('%Y%m%d'))
 
@@ -302,7 +313,7 @@ class HRRR():
                     file_url = url_date + file_name
                     data = node.next_element.next_element.strip()
                     el = data.split(' ')
-                    modified = pd.to_datetime(el[0] + ' ' + el[1])
+                    modified = pd.to_datetime(el[0] + ' ' + el[1]).tz_localize(tz='UTC')
                     size = el[3]
                     df = df.append({
                         'modified': modified,
