@@ -2,6 +2,7 @@
 Connect to the HRRR site and download the data
 """
 
+import grequests
 from ftplib import FTP
 import threading
 import os, sys, fnmatch
@@ -17,7 +18,7 @@ import copy
 from bs4 import BeautifulSoup
 import requests
 import re
-# import grequests
+
 
 try:
     import pygrib
@@ -60,6 +61,9 @@ class HRRR():
 #     output_dir = '/data/snowpack/forecasts/hrrr'
 #     log_file = os.path.join(output_dir, 'hrrr.log')
     forecast_hours = [0, 1]
+
+    http_url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.{}/conus/'
+    num_requests = 2
 
     # the grib filter page with some of the default parameters
     grib_filter_url = 'http://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl'
@@ -126,10 +130,13 @@ class HRRR():
 
             # parse the rest of the config file
             self.output_dir = self.config['output']['output_dir']
-            # self.grib2nc = False
-            # if 'output_nc' in self.config['output'].keys():
-            #     self.output_nc = self.config['output']['output_nc']
-            #     self.grib2nc = True
+            
+            if 'start_date' in self.config['output'].keys():
+                self.start_date = pd.to_datetime(self.config['output']['start_date'])
+            if 'end_date' in self.config['output'].keys():
+                self.end_date = pd.to_datetime(self.config['output']['end_date'])
+            if 'num_requests' in self.config['output'].keys():
+                self.num_requests = int(self.config['output']['num_requests'])
 
             if 'grib_parameters' in self.config.keys():
                 self.grib_params.update(self.config['grib_parameters'])
@@ -260,12 +267,8 @@ class HRRR():
 
         self._logger.info('Retrieving data from the http site')
 
-        start_date = datetime(2019, 7, 9, 11, 0, 0)
-        end_date = datetime(2019, 7, 9, 13, 0, 0)
-        url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.{}/conus/'
-
-        d = self.date_url.format(start_date.strftime('%Y%m%d'))
-        url_date = url.format(start_date.strftime('%Y%m%d'))
+        d = 'hrrr.{}'.format(self.start_date.strftime('%Y%m%d'))
+        url_date = self.http_url.format(self.start_date.strftime('%Y%m%d'))
 
         # get the html text
         self._logger.debug('Requesting html text from {}'.format(url_date))
@@ -301,15 +304,17 @@ class HRRR():
 
         # parse by the date
         # df.set_index('modified', inplace=True)
-        idx = (df['modified'] >= start_date) & (df['modified'] <= end_date)
+        idx = (df['modified'] >= self.start_date) & (df['modified'] <= self.end_date)
         df = df.loc[idx]
         self._logger.debug('Found {} files between start and end date'.format(len(df)))
 
-        # req = []
-        # for i,row in df.iterrows():
-        #     req.append(grequests.get(row.url))
+        self._logger.debug('Generating requests')
+        req = []
+        for i,row in df.iterrows():
+            req.append(grequests.get(row.url))
 
-        # res = qrequests.map(req, size=1)
+        self._logger.debug('Sendings {} requests'.format(len(req)))
+        res = grequests.map(req, size=self.num_requests)
 
         # check if d exists in output_dir
         out_path = os.path.join(self.output_dir, d)
@@ -317,11 +322,14 @@ class HRRR():
             os.mkdir(out_path)
             self._logger.info('mkdir {}'.format(out_path))
         
-        for r in req:
-            out_file = os.path.join(out_path, f)
-            with open(out_file, 'wb') as f:
-                f.write(r.content)
-                f.close()
+        for r in res:
+            if r.status_code == 200:
+                f = r.url.split('/')[-1]
+                out_file = os.path.join(out_path, f)
+                with open(out_file, 'wb') as f:
+                    f.write(r.content)
+                    f.close()
+                    self._logger.debug('Saved to {}'.format(out_file))
 
         self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
 
