@@ -5,13 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "run_hrrr_retrieval_dates",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/scripts/run_hrrr_retrieval_dates",
             "console": "integratedTerminal",
             "args": [
                 "scripts/hrrr_dates.ini",
+            ],
+        },
+        {
+            "name": "convert_grib2nc",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/convert_grib2nc.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-s 2019-07-09",
+                "scripts/hrrr_dates.ini"
             ],
         }
     ]

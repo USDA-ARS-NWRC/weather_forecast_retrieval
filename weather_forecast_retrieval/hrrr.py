@@ -290,9 +290,10 @@ class HRRR():
         else:
             self.end_date = self.end_date.tz_convert(tz='UTC')
 
-        diff = datetime.utcnow() - self.start_date
+        diff = pd.Timestamp.utcnow() - self.start_date
         if diff.days > 1:
             # NOAA only keeps the last two days of data
+            self._logger.info('Requested start date not within 2 days of now')
             return True
 
         if self.date_folder:
