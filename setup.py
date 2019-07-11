@@ -50,6 +50,7 @@ setup(
     test_suite='tests',
     scripts=[
         'scripts/run_hrrr_retrieval',
-        'scripts/run_hrrr_retrieval_dates'
+        'scripts/run_hrrr_retrieval_dates',
+        'scripts/convert_grib2nc'
         ]
 )

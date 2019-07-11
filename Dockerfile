@@ -19,6 +19,9 @@ RUN apk --no-cache --virtual .build-dependencies add build-base curl gfortran &&
     ln wgrib2/wgrib2 /usr/local/bin/wgrib2 && \
     rm *.tar.gz
     
+# build the requirements first
+COPY requirements_grib2nc.txt /code
+RUN python3 -m pip install --no-cache-dir -r /code/requirements_grib2nc.txt 
 
 # Add the weather code
 ADD . /code/weather_forecast_retrieval
@@ -26,7 +29,6 @@ ADD . /code/weather_forecast_retrieval
 # Add and build weather forecast retrival
 RUN cd /code/weather_forecast_retrieval && \
     chmod +x /code/weather_forecast_retrieval/docker-entrypoint.sh && \
-    python3 -m pip install --no-cache-dir -r requirements_grib2nc.txt && \
     python3 setup.py install && \
     apk del .build-dependencies
 
