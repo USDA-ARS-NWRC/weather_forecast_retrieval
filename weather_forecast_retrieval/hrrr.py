@@ -124,7 +124,7 @@ class HRRR():
             external_logger: logger instance if using in part of larger program
         """
         self.num_requests = 2
-        self.date_folder = False
+        self.date_folder = True
 
         if configFile is not None:
             self.config = utils.read_config(configFile)
