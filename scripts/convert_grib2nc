@@ -5,8 +5,9 @@ from weather_forecast_retrieval.grib2nc import grib2nc
 import os
 import argparse
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, time
 import logging
+from logging.handlers import TimedRotatingFileHandler
 
 def run(config_file, start_date):
 
