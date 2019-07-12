@@ -52,9 +52,12 @@ def run(config_file, start_date):
         # look for all files in a directory
         files = os.listdir(grib2_path)
         for f in files:
-            grib_file = os.path.join(grib2_path, f)
-            nc_file = os.path.join(nc_path, ".".join(f.split(".")[0:-1]) + ".nc")
-            grib2nc(grib_file, nc_file, log)
+            try:
+                grib_file = os.path.join(grib2_path, f)
+                nc_file = os.path.join(nc_path, ".".join(f.split(".")[0:-1]) + ".nc")
+                grib2nc(grib_file, nc_file, log)
+            except Exception as e:
+                log.warning('Error converting {}'.format(f))
 
     else:
         raise IOError('Config file does not exist.')
