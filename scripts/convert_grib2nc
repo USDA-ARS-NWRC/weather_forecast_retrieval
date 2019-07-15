@@ -44,6 +44,11 @@ def run(config_file, start_date):
         else:
             logging.basicConfig(level=numeric_level)
 
+        msg = "GRIB2NC Converter Utility"
+		log.info(msg)
+		log.info("=" * len(msg))
+        log.info('Started {}'.format(datetime.utcnow().isoformat()))
+
         # create the hrrr grib2 output path
         grib2_path = os.path.join(output_dir, date_folder)
         nc_path = os.path.join(output_nc, date_folder)
@@ -59,6 +64,8 @@ def run(config_file, start_date):
                 grib2nc(grib_file, nc_file, log)
             except Exception as e:
                 log.warning('Error converting {}'.format(f))
+
+        log.info('Finished {}'.format(datetime.utcnow().isoformat()))
 
     else:
         raise IOError('Config file does not exist.')
