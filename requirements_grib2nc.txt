@@ -5,5 +5,4 @@ siphon==0.6.1
 utm==0.4.0
 pytz
 requests==2.21.0
-drhawkeye==0.2.4
 grequests==0.3.0

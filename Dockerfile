@@ -7,7 +7,7 @@ ENV CC gcc
 ENV FC gfortran
 
 WORKDIR /code
-RUN apk --no-cache --virtual .build-dependencies add build-base curl gfortran && \
+RUN apk --no-cache --virtual .build-dependencies add build-base curl gfortran cmake zlib-dev perl diffutils bash curl-dev m4 && \
     apk --no-cache add libgfortran libgomp libstdc++ && \
     curl ftp://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz | tar xvz && \
     cd /code/grib2 && \
@@ -20,16 +20,16 @@ RUN apk --no-cache --virtual .build-dependencies add build-base curl gfortran &&
     make deep-clean && \
     rm *.tar.gz
     
-# build the requirements first
+# build the requirements first, CCFLAGS help reduce the size of pandas and numpy
 COPY requirements_grib2nc.txt /code
-RUN python3 -m pip install --no-cache-dir -r /code/requirements_grib2nc.txt 
+RUN CFLAGS="-g0 -Wl,--strip-all" \
+    python3 -m pip install --no-cache-dir --compile --global-option=build_ext -r /code/requirements_grib2nc.txt 
 
 # Add the weather code
 ADD . /code/weather_forecast_retrieval
 
 # Add and build weather forecast retrival
 RUN cd /code/weather_forecast_retrieval && \
-    chmod +x /code/weather_forecast_retrieval/docker-entrypoint.sh && \
     python3 setup.py install && \
     apk del .build-dependencies
 
