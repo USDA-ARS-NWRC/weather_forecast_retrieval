@@ -36,7 +36,7 @@ RUN apk add openjdk8-jre-base && \
 # install NCO
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
     apk --no-cache --virtual .nco-dependencies add hdf5 hdf5-dev netcdf flex byacc && \
-    apk --no-cache netcdf-dev && \
+    apk --no-cache add netcdf-dev && \
     cd /code && \
     wget https://github.com/nco/nco/archive/4.7.2.tar.gz && \
     tar xvzf 4.7.2.tar.gz && \
