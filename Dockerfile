@@ -34,9 +34,13 @@ RUN apk add openjdk8-jre-base && \
     rm -rf /code/antlr-2.7.7
 
 # install NCO
+# There is something wrong with either a dependency or with nco as the hdf5 headers are
+# compiled with 1.10.4 but installed version is 1.10.5, go figure, just suppress the
+# warnings and hope for the best!
+ENV HDF5_DISABLE_VERSION_CHECK 2
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
-    apk --no-cache --virtual .nco-dependencies add hdf5 hdf5-dev netcdf flex byacc && \
-    apk --no-cache add netcdf-dev && \
+    apk --no-cache --virtual .nco-dependencies add flex byacc && \
+    apk --no-cache add netcdf netcdf-dev && \
     cd /code && \
     wget https://github.com/nco/nco/archive/4.7.2.tar.gz && \
     tar xvzf 4.7.2.tar.gz && \
