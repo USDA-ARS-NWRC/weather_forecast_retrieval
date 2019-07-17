@@ -112,7 +112,7 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 	# Recast dimensions
 	log.info("Reducing dimensional variables to type ints and floats.")
 
-	cmd = "ncap -O -s 'latitude=float(latitude);longitude=float(longitude);x=int(x);y=int(y);time=int(time)' {0} {0}".format(output)
+	cmd = "ncap2 -O -s 'latitude=float(latitude);longitude=float(longitude);x=int(x);y=int(y);time=int(time)' {0} {0}".format(output)
 	log.debug(cmd)
 	s = check_output(cmd, shell=True)
 
