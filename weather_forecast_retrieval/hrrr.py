@@ -359,13 +359,19 @@ class HRRR():
         res = grequests.map(req, size=self.num_requests)
 
         for r in res:
-            if r.status_code == 200:
-                f = r.url.split('/')[-1]
-                out_file = os.path.join(out_path, f)
-                with open(out_file, 'wb') as f:
-                    f.write(r.content)
-                    f.close()
-                    self._logger.debug('Saved to {}'.format(out_file))
+            try:
+                if r is not None:
+                    if r.status_code == 200:
+                        f = r.url.split('/')[-1]
+                        out_file = os.path.join(out_path, f)
+                        with open(out_file, 'wb') as f:
+                            f.write(r.content)
+                            f.close()
+                            self._logger.debug('Saved to {}'.format(out_file))
+                            
+            except Exception as e:
+                self._logger.warning('Problem processing response')
+                self._logger.warning(e)
 
         self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
 
