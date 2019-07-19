@@ -159,21 +159,24 @@ def get_hrrr_file_date(fp, fx=False):
     return file_time
 
 
-def hrrr_file_name_finder(base_path, date, fx_hr = 0):
+def hrrr_file_name_finder(date, fx_hr=0, file_extension='grib2'):
     """
     Find the file pointer for a hrrr file with a specific forecast hour
 
     Args:
-        base_path:  The base HRRR directory. For ./data/forecasts/hrrr/hrrr.20180203/...
-                    the base_path is ./forecasts/hrrr/
         date:       datetime that the file is used for
         fx_hr:      forecast hour
     Returns:
-        fp:         string of absolute path to the file
+        day_folder: they folder that the file will be in, hrrr.YYYYMMDD
+        file_name:  file name for the date requested
 
     """
+
+    if file_extension == 'netcdf':
+        file_extension = 'nc'
+
     fmt_day ='%Y%m%d'
-    base_path = os.path.abspath(base_path)
+    # base_path = os.path.abspath(base_path)
     date = pd.to_datetime(date)
     fx_hr = int(fx_hr)
 
@@ -187,8 +190,9 @@ def hrrr_file_name_finder(base_path, date, fx_hr = 0):
     if new_hr < 0:
         day = day - pd.to_timedelta('1 day')
         new_hr = new_hr + 24
-    # create new path
-    fp = os.path.join(base_path, 'hrrr.{}'.format(day.strftime(fmt_day)),
-                      'hrrr.t{:02d}z.wrfsfcf{:02d}.grib2'.format(new_hr, fx_hr))
 
-    return fp
+    # create new path
+    day_folder = 'hrrr.{}'.format(day.strftime(fmt_day))
+    file_name = 'hrrr.t{:02d}z.wrfsfcf{:02d}.{}'.format(new_hr, fx_hr, file_extension)
+
+    return day_folder, file_name

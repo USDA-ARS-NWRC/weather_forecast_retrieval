@@ -7,7 +7,6 @@ from ftplib import FTP
 import os, sys, fnmatch
 import logging
 from logging.handlers import TimedRotatingFileHandler
-import coloredlogs
 from datetime import datetime, timedelta, time
 import pandas as pd
 import utm
@@ -16,9 +15,8 @@ import copy
 from bs4 import BeautifulSoup
 import requests
 import re
-# from urllib.request import urlretrieve
-# import shutil
-
+import netCDF4 as nc
+from siphon.catalog import TDSCatalog
 
 try:
     import pygrib
@@ -85,7 +83,7 @@ class HRRR():
 
     num_threads = 20
 
-    var_map = {
+    var_map_grib = {
         'air_temp': {
             'level': 2,
             'parameterName': 'Temperature'
@@ -110,6 +108,21 @@ class HRRR():
             'level': 0,
             'parameterName': 'Downward short-wave radiation flux'
             },
+        }
+
+    # variable map to read the netcdf, the field names are those 
+    # converted from wgrib2 by default
+    var_map_netcdf = {
+        'air_temp': 'TMP_2maboveground',
+        'dew_point': 'DPT_2maboveground',
+        'relative_humidity': 'RH_2maboveground',
+        'wind_u': 'UGRD_10maboveground',
+        'wind_v': 'VGRD_10maboveground',
+        'precip_int': 'APCP_surface',
+        'short_wave': 'DSWRF_surface',
+        'elevation': 'HGT_surface',
+        # 'latitude': 'latitude',
+        # 'longitude': 'longitude'
         }
 
     var_elevation = {
@@ -186,7 +199,6 @@ class HRRR():
                 log.addHandler(handler)
             else:
                 logging.basicConfig(level=numeric_level)
-                coloredlogs.install(level=numeric_level, fmt=fmt)
 
             self._loglevel = numeric_level
 
@@ -378,16 +390,7 @@ class HRRR():
     def feedback(self, r, **kwargs):
         self._logger.debug('Fetching {}'.format(r.url))
 
-    # def fetch_file(self, url, out_file):
-    #     self._logger.debug('Requesting {}'.format(url))
-    #     # urlretrieve(url, out_file)
-
-    #     with requests.get(url, stream=True) as r:
-    #         r.raise_for_status()
-    #         with open(out_file, 'wb') as f:
-    #             shutil.copyfileobj(r.raw, f)
-
-    def get_saved_data(self, start_date, end_date, bbox, output_dir=None,
+    def get_saved_data(self, start_date, end_date, bbox, file_type='grib2', output_dir=None,
                        var_map=None, forecast=[0], force_zone_number=None,
                        forecast_flag=False, day_hour=0, var_keys=None):
         """
@@ -398,6 +401,7 @@ class HRRR():
             start_date: datetime for the start
             end_date: datetime for the end
             bbox: list of  [lonmin,latmin,lonmax,latmax]
+            file_type: 'grib' or 'netcdf', determines how to read the file
             var_map: dictionary to map the desired variables into {new_variable: hrrr_variable}
             forecast: list of forecast hours to grab
             forecast_flag: weather or not to get forecast hours
@@ -411,27 +415,37 @@ class HRRR():
         if start_date > end_date:
             raise ValueError('start_date before end_date')
 
+        self.start_date = start_date
+        self.end_date = end_date
+        self.file_type = file_type
+        self.bbox = bbox
+
+        if file_type == 'grib2':
+            self.get_func = self.get_one_grib
+        elif file_type == 'netcdf':
+            self.get_func = self.get_one_netcdf
+        else:
+            raise Exception('Unknown file type argument')
+
         self._logger.info('getting saved data')
         if var_map is None:
-            var_map = self.var_map
+            if file_type == 'grib2':
+                var_map = self.var_map_grib
+            else:
+                var_map = self.var_map_netcdf
             self._logger.warning('var_map not specified, will return default outputs!')
 
         self.force_zone_number = force_zone_number
         if output_dir is not None:
             self.output_dir = output_dir
 
-        start_date = start_date - timedelta(hours=3)
-        end_date = end_date + timedelta(hours=3)
-        d = start_date
-        delta = timedelta(days=1)
+        self.start_date = self.start_date - timedelta(hours=3)
+        self.end_date = self.end_date + timedelta(hours=3)
+        # d = start_date
+        # delta = timedelta(days=1)
         # delta_hr = timedelta(hours=1)
-        delta_hr = pd.to_timedelta(1, 'h')
-        fmatch = []
-
-        # these will be passed to get_one_grib
-        idx = None
-        metadata = None
-        df = {}
+        # delta_hr = pd.to_timedelta(1, 'h')
+        # fmatch = []
 
         # filter to desired keys if specified
         if var_keys is not None:
@@ -443,54 +457,11 @@ class HRRR():
 
         # get the data for a forecast
         if forecast_flag:
-            # loop through each forecast hour
-            for f in forecast:
-                # add forecast hour
-                file_time = d + pd.to_timedelta(f, 'h')
-                # make sure we get a working file
-                for fx_hr in range(7):
-                    fp = utils.hrrr_file_name_finder(self.output_dir,
-                                               file_time,
-                                               fx_hr)
-
-                    success, df, idx, metadata = self.get_one_grib(df, idx,
-                                                                   metadata,
-                                                                   fp,
-                                                                   new_var_map,
-                                                                   file_time,
-                                                                   bbox)
-                    if success:
-                        break
-                    if fx_hr == 6:
-                        raise IOError('Not able to find good grib file for \
-                                       {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
+            df, metadata = self.get_forecast()
 
         # get the data for a regular run
         else:
-            while d <= end_date:
-                # make sure we get a working file. This allows for 6 tries,
-                # accounting for the fact that we start at forecast hour 1
-                file_time = d
-                for fx_hr in range(1,8):
-                    # get the name of the file
-                    fp = utils.hrrr_file_name_finder(self.output_dir,
-                                                     file_time,
-                                                     fx_hr)
-
-                    success, df, idx, metadata = self.get_one_grib(df, idx,
-                                                                   metadata,
-                                                                   fp,
-                                                                   new_var_map,
-                                                                   file_time,
-                                                                   bbox)
-                    # check if we were succesful
-                    if success:
-                        break
-                    if fx_hr == 6:
-                        raise IOError('Not able to find good grib file for \
-                                       {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
-
-                d += delta_hr
+            df, metadata = self.get_data(new_var_map)
 
         # manipulate data in necessary ways
         # print(df.keys())
@@ -503,24 +474,168 @@ class HRRR():
 
         return metadata, df
 
-    def get_one_grib(self, df, idx, metadata, fp, new_var_map, dt, bbox):
+    def get_data(self, new_var_map):
+        """
+        Get the HRRR data
+
+        hours    0    1    2    3    4
+                 |----|----|----|----|
+        forecast
+        start    fx hour
+                 |----|----|----|----|
+        00       01   02   03   04   05
+        01            01   02   03   04
+        02                 01   02   03
+        03                      01   02
+        
+        """
+        self.idx = None
+        self.metadata = None
+        self.df = {}
+
+        d = self.start_date
+        while d <= self.end_date:
+            # make sure we get a working file. This allows for 6 tries,
+            # accounting for the fact that we start at forecast hour 1
+            file_time = d
+            for fx_hr in range(1,8):
+                # get the name of the file
+                day_folder, file_name = utils.hrrr_file_name_finder(file_time, fx_hr, self.file_type)
+
+                if self.file_type == 'grib2':
+                    base_path = os.path.abspath(self.output_dir)
+                    fp = os.path.join(base_path, day_folder, file_name)
+                elif self.file_type == 'netcdf':
+                    fp = [self.output_dir, day_folder, file_name]
+
+                success, df, idx, metadata = self.get_func(fp,
+                                                           new_var_map,
+                                                           file_time)
+                # check if we were succesful
+                if success:
+                    break
+                if fx_hr == 6:
+                    raise IOError('Not able to find good grib file for \
+                                    {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
+
+            d += delta_hr
+
+        return df, metadata
+
+    def get_forecast(self):
+        # loop through each forecast hour
+        for f in forecast:
+            # add forecast hour
+            file_time = d + pd.to_timedelta(f, 'h')
+            # make sure we get a working file
+            for fx_hr in range(7):
+                fp = utils.hrrr_file_name_finder(self.output_dir,
+                                            file_time,
+                                            fx_hr)
+
+                success, df, idx, metadata = self.get_one_grib(df, idx,
+                                                                metadata,
+                                                                fp,
+                                                                new_var_map,
+                                                                file_time,
+                                                                bbox)
+                if success:
+                    break
+                if fx_hr == 6:
+                    raise IOError('Not able to find good grib file for \
+                                    {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
+
+        return df, metadata
+
+    def get_one_netcdf(self, fp, new_var_map, dt):
         """
         Get valid HRRR data
 
         Args:
-            df:             Dictionary of dataframes containing the HRRR data
-            idx:            Pixels to use from the HRRR data
-            metadata:       Metadata from the HRRR files
             fp:             Current grib2 file to open
             new_var_map     Var map of variables to grab
             dt:             datetime represented by the HRRR file
-            bbox:           Bounding box to crop HRRR data
 
         Returns:
             success:         Boolean representing if the file could be read
-            df:              The modified input dictionary of pandas dataframes
-            idx:             Pixels to use from the HRRR data
-            metadata:        Metadata from the HRRR files
+
+        """
+
+        main_cat = TDSCatalog(fp[0])
+        day_cat = TDSCatalog(main_cat.catalog_refs[fp[1]].href)
+
+        if len(day_cat.datasets) == 0:
+            raise Exception('HRRR netcdf THREDDS catalog has no datasets for day {}'.format(fp[1]))
+
+        # go through and get the file reference
+        if fp[2] not in day_cat.datasets.keys():
+            raise Exception('{}/{} does not exist on THREDDS server'.format(fp[1], fp[2]))
+
+        d = day_cat.datasets[fp[2]]
+
+        data = xr.open_dataset(d.access_urls['OPENDAP'])
+        
+
+        # Use NCSS (Netcdf subset service)
+        ncss = d.subset()
+        query = ncss.query()
+        query.lonlat_box(self.bbox[0], self.bbox[2], self.bbox[1], self.bbox[3])
+
+        for key,fvar in new_var_map.items():
+            query.variables(fvar)
+        query.accept('netcdf')
+
+        data = ncss.get_data(query)
+
+        # if this is the first query, then we need to extract the metadata
+
+
+
+        # elev = ds.variables[new_var_map['elevation']][:].squeeze()
+            # lat = ds.variables[new_var_map['latitude']][:]
+            # lon = ds.variables[new_var_map['longitude']]
+
+            # if lon.units == 'degrees_east':
+            #     lon = lon[:] - 360
+            # else:
+            #     lon = lon[:]
+            
+            # self.get_metadata(lat, lon, elev)
+            
+
+            # # create all of the dataframes for each mapped variable
+            # for k in new_var_map.keys():
+            #     self.df[k] = pd.DataFrame(columns=self.metadata.index)
+                # try:
+                #     lat_inds = np.where((lat > self.bbox[1]) & (lat < self.bbox[3]))
+                #     lon_inds = np.where((lon > self.bbox[0]) & (lon < self.bbox[2]))
+                #     data = ds.variables[fvar][:, lat_inds[0], lon_inds[0]]
+                #     success = True
+
+                #     df[key].loc[dt,:] = data
+
+                # except Exception as e:
+                #     self._logger.debug(e)
+                #     self._logger.debug('Moving to next forecast hour')
+                #     success = False
+
+                #     return success, df, idx, metadata
+
+
+        return success, df, idx, metadata
+
+
+    def get_one_grib(self, fp, new_var_map, dt):
+        """
+        Get valid HRRR data
+
+        Args:
+            fp:             Current grib2 file to open
+            new_var_map     Var map of variables to grab
+            dt:             datetime represented by the HRRR file
+
+        Returns:
+            success:         Boolean representing if the file could be read
 
         """
 
@@ -559,22 +674,23 @@ class HRRR():
 
         return success, df, idx, metadata
 
-    def get_metadata(self, gr, bbox):
+    def get_metadata(self, lat, lon, elev):
         """
         Generate a metadata dataframe from the elevation data
 
         Args:
-            gr: pygrib.open() object
-            bbox: list of the bounding box
+            lat:    numpy array of latitude
+            lon:    numpy array of longitude
+            elev:   numpy array of elevation
 
         Returns:
             dataframe for the metadata
         """
 
-        elev, lat, lon = gr.select(**self.var_elevation)[0].data()
+        # elev, lat, lon = gr.select(**self.var_elevation)[0].data()
 
         # subset the data
-        idx = (lon >= bbox[0]) & (lon <= bbox[2]) & (lat >= bbox[1]) & (lat <= bbox[3])
+        idx = (lon >= self.bbox[0]) & (lon <= self.bbox[2]) & (lat >= self.bbox[1]) & (lat <= self.bbox[3])
         lat = lat[idx]
         lon = lon[idx]
         elev = elev[idx]
@@ -596,7 +712,8 @@ class HRRR():
                                   args=(self.force_zone_number,),
                                   axis=1)
 
-        return metadata, idx
+        self.idx = idx
+        self.metadata = metadata
 
     def check_file_health(self, output_dir, start_date, end_date,
                           hours=range(23), forecasts=range(18), min_size=100):
