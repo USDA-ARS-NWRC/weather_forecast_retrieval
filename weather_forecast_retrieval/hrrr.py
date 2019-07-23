@@ -17,6 +17,8 @@ import requests
 import re
 import netCDF4 as nc
 from siphon.catalog import TDSCatalog
+import xarray as xr
+import matplotlib.pyplot as plt
 
 try:
     import pygrib
@@ -173,7 +175,7 @@ class HRRR():
             # if no config file use some defaults
             else:
                 logfile = None
-                loglevel = 'INFO'
+                loglevel = 'DEBUG'
 
             numeric_level = getattr(logging, loglevel, None)
             if not isinstance(numeric_level, int):
@@ -201,7 +203,6 @@ class HRRR():
                 logging.basicConfig(level=numeric_level)
 
             self._loglevel = numeric_level
-
             self._logger = log
         else:
             self._logger = external_logger
@@ -443,7 +444,7 @@ class HRRR():
         self.end_date = self.end_date + timedelta(hours=3)
         # d = start_date
         # delta = timedelta(days=1)
-        # delta_hr = timedelta(hours=1)
+        self.delta_hr = timedelta(hours=1)
         # delta_hr = pd.to_timedelta(1, 'h')
         # fmatch = []
 
@@ -452,16 +453,21 @@ class HRRR():
             new_var_map = { key: var_map[key] for key in var_keys}
         else:
             new_var_map = copy.deepcopy(var_map)
+        self.var_map = new_var_map
 
         ### load in the data for the given files and bounding box###
 
         # get the data for a forecast
         if forecast_flag:
-            df, metadata = self.get_forecast()
+            # df, metadata = self.get_forecast()
+            raise NotImplementedError('Getting the forecast is not implemented yet')
 
         # get the data for a regular run
         else:
-            df, metadata = self.get_data(new_var_map)
+            self.get_data()
+
+        # Convert to dataframes and a metadata dataframe
+        self.convert_to_dataframes()
 
         # manipulate data in necessary ways
         # print(df.keys())
@@ -474,7 +480,7 @@ class HRRR():
 
         return metadata, df
 
-    def get_data(self, new_var_map):
+    def get_data(self):
         """
         Get the HRRR data
 
@@ -492,6 +498,7 @@ class HRRR():
         self.idx = None
         self.metadata = None
         self.df = {}
+        self.data = None
 
         d = self.start_date
         while d <= self.end_date:
@@ -508,9 +515,7 @@ class HRRR():
                 elif self.file_type == 'netcdf':
                     fp = [self.output_dir, day_folder, file_name]
 
-                success, df, idx, metadata = self.get_func(fp,
-                                                           new_var_map,
-                                                           file_time)
+                success = self.get_func(fp, self.var_map, file_time)
                 # check if we were succesful
                 if success:
                     break
@@ -518,9 +523,9 @@ class HRRR():
                     raise IOError('Not able to find good grib file for \
                                     {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
 
-            d += delta_hr
+            d += self.delta_hr
 
-        return df, metadata
+        # return df, metadata
 
     def get_forecast(self):
         # loop through each forecast hour
@@ -547,13 +552,53 @@ class HRRR():
 
         return df, metadata
 
-    def get_one_netcdf(self, fp, new_var_map, dt):
+    def convert_to_dataframes(self):
+        """
+        Convert the xarray's to dataframes to return
+        """
+
+        # self.data
+        for key,value in self.var_map.items():
+            df = self.data[value].to_dataframe()
+
+            # Get the metadata if haven't already
+            if self.metadata is not None:                
+                del df['longitude']
+                del df['latitude']
+
+            # convert from a row multiindex to a column multiindex 
+            df = df.unstack(level=[1,2])
+
+            # make new names for the columns as grid_y_x
+            cols = df.columns.to_flat_index()
+            cols = ['grid_{}_{}'.format(x[1], x[2]) for x in cols]
+            df.columns = cols
+
+            # drop any nan values
+            df.dropna(axis=1, how='all', inplace=True)
+            self.df[key] = df
+
+            if self.metadata is None:
+                metadata = pd.DataFrame(index=primary_id,
+                                columns=('utm_x', 'utm_y', 'latitude',
+                                         'longitude', 'elevation'))
+                metadata['latitude'] = lat.flatten()
+                metadata['longitude'] = lon.flatten()
+                metadata['elevation'] = elev.flatten()
+                metadata = metadata.apply(apply_utm,
+                                        args=(self.force_zone_number,),
+                                        axis=1)
+
+                self.metadata = metadata
+
+
+    def get_one_netcdf(self, fp, var_map, dt):
         """
         Get valid HRRR data
 
         Args:
             fp:             Current grib2 file to open
-            new_var_map     Var map of variables to grab
+            var_map         Var map of variables to grab
             dt:             datetime represented by the HRRR file
 
         Returns:
@@ -573,19 +618,31 @@ class HRRR():
 
         d = day_cat.datasets[fp[2]]
 
+        self._logger.debug('Reading {}'.format(fp[2]))
         data = xr.open_dataset(d.access_urls['OPENDAP'])
-        
+        # t.where(t.longitude >= self.bbox[0] & t.longitude <= self.bbox[2] & t.latitude >= self.bbox[1] & t.latitude <= self.bbox[3], drop=True)
+        # t.where((t.latitude >= self.bbox[1]) & (t.latitude <= self.bbox[3]) & (t.longitude >= self.bbox[0]+360) & (t.longitude <= self.bbox[2]+360), drop=True)
+        s = data.where((data.latitude >= self.bbox[1]) & 
+                       (data.latitude <= self.bbox[3]) & 
+                       (data.longitude >= self.bbox[0]+360) & 
+                       (data.longitude <= self.bbox[2]+360),
+                       drop=True)
 
-        # Use NCSS (Netcdf subset service)
-        ncss = d.subset()
-        query = ncss.query()
-        query.lonlat_box(self.bbox[0], self.bbox[2], self.bbox[1], self.bbox[3])
+        if self.data is None:
+            self.data = s
+        else:
+            self.data = xr.combine_by_coords([self.data, s])
 
-        for key,fvar in new_var_map.items():
-            query.variables(fvar)
-        query.accept('netcdf')
+        # # Use NCSS (Netcdf subset service)
+        # ncss = d.subset()
+        # query = ncss.query()
+        # query.lonlat_box(self.bbox[0], self.bbox[2], self.bbox[1], self.bbox[3])
 
-        data = ncss.get_data(query)
+        # for key,fvar in new_var_map.items():
+        #     query.variables(fvar)
+        # query.accept('netcdf')
+
+        # data = ncss.get_data(query)
 
         # if this is the first query, then we need to extract the metadata
 
@@ -622,7 +679,7 @@ class HRRR():
                 #     return success, df, idx, metadata
 
 
-        return success, df, idx, metadata
+        return True
 
 
     def get_one_grib(self, fp, new_var_map, dt):
