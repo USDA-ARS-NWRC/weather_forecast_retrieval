@@ -18,7 +18,8 @@ import copy
 try:
     from drhawkeye import health_check
 except:
-    print('Cannot find drhawkeye package')
+    if __name__ == '__main__':
+        print('Cannot find drhawkeye package')
 from . import get_hrrr_archive
 
 from . import utils
