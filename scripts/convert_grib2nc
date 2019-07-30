@@ -51,6 +51,11 @@ def run(config_file, start_date):
 
         # create the hrrr grib2 output path
         grib2_path = os.path.join(output_dir, date_folder)
+        if not os.path.isdir(grib2_path):
+            log.warning('Grib2 path does not exist {}'.format(grib2_path))
+            return True
+        
+        # make and check the netcdf path
         nc_path = os.path.join(output_nc, date_folder)
         if not os.path.isdir(nc_path):
             os.mkdir(nc_path)
