@@ -202,6 +202,9 @@ class HRRR():
             else:
                 logging.basicConfig(level=numeric_level)
 
+            # suppress urllib3 connection logging
+            logging.getLogger("urllib3").setLevel(logging.WARNING)
+            
             self._loglevel = numeric_level
             self._logger = log
         else:
