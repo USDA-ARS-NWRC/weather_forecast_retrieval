@@ -79,6 +79,7 @@ class TestHRRR(unittest.TestCase):
                                         self.start_date,
                                         self.end_date,
                                         self.bbox,
+                                        file_type='grib2',
                                         output_dir=self.hrrr_directory,
                                         force_zone_number=self.force_zone_number,
                                         forecast=fcast,

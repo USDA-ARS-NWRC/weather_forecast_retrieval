@@ -85,30 +85,70 @@ class HRRR():
 
     num_threads = 20
 
+    # var_map_grib = {
+    #     'air_temp': {
+    #         'level': 2,
+    #         'parameterName': 'Temperature'
+    #         },
+    #     'relative_humidity': {
+    #         'level': 2,
+    #         'parameterName': 'Relative humidity'
+    #         },
+    #     'wind_u': {
+    #         'level': 10,
+    #         'parameterName': 'u-component of wind'
+    #         },
+    #     'wind_v': {
+    #         'level': 10,
+    #         'parameterName': 'v-component of wind'
+    #         },
+    #     'precip_int': {
+    #         'level': 0,
+    #         'name': 'Total Precipitation'
+    #         },
+    #     'short_wave': {
+    #         'level': 0,
+    #         'parameterName': 'Downward short-wave radiation flux'
+    #         },
+    #     }
+
+    # dataset filter by keys arguments
     var_map_grib = {
         'air_temp': {
             'level': 2,
-            'parameterName': 'Temperature'
+            'typeOfLevel': 'heightAboveGround',
+            'cfName': 'air_temperature',
+            'cfVarName': 't2m'
             },
         'relative_humidity': {
             'level': 2,
-            'parameterName': 'Relative humidity'
+            'typeOfLevel': 'heightAboveGround',
+            # 'parameterName': 'Relative humidity',
+            'cfVarName': 'r2'
             },
         'wind_u': {
             'level': 10,
-            'parameterName': 'u-component of wind'
+            'typeOfLevel': 'heightAboveGround',
+            # 'parameterName': 'u-component of wind',
+            'cfVarName': 'u10'
             },
         'wind_v': {
             'level': 10,
-            'parameterName': 'v-component of wind'
+            'typeOfLevel': 'heightAboveGround',
+            # 'parameterName': 'v-component of wind',
+            'cfVarName': 'v10'
             },
         'precip_int': {
             'level': 0,
-            'name': 'Total Precipitation'
+            'typeOfLevel': 'surface',
+            'name': 'Total Precipitation',
+            'shortName': 'tp'
             },
         'short_wave': {
             'level': 0,
-            'parameterName': 'Downward short-wave radiation flux'
+            'typeOfLevel': 'surface',
+            'stepType': 'instant',
+            'cfVarName': 'dswrf'
             },
         }
 
@@ -203,8 +243,9 @@ class HRRR():
                 logging.basicConfig(level=numeric_level)
 
             # suppress urllib3 connection logging
-            logging.getLogger("urllib3").setLevel(logging.WARNING)
-            
+            logging.getLogger('urllib3').setLevel(logging.WARNING)
+            logging.getLogger('cfgrib').setLevel(logging.WARNING)
+
             self._loglevel = numeric_level
             self._logger = log
         else:
@@ -647,7 +688,7 @@ class HRRR():
 
     def get_one_grib(self, fp, new_var_map, dt):
         """
-        Get valid HRRR data
+        Get valid HRRR data using xarray
 
         Args:
             fp:             Current grib2 file to open
@@ -660,39 +701,119 @@ class HRRR():
         """
 
         self._logger.debug('Reading {}'.format(fp))
-        # make sure we can open the file
-        try:
-            gr = pygrib.open(fp)
-        except:
-            return False, df, idx, metadata
+        # # make sure we can open the file
+        # try:
+        #     gr = pygrib.open(fp)
+        #     gr = xr.open_dataset(fp, engine='cfgrib')
+        #     gr = xr.open_dataset(fp, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'heightAboveGround'}})
+        #     g = cfgrib.open_datasets(fp)
+        # except:
+        #     return False, df, idx, metadata
 
         # if this is the first run, then find out a few things about the grid
-        if idx is None:
-            metadata, idx = self.get_metadata(gr, bbox)
+        # if idx is None:
+        #     metadata, idx = self.get_metadata(gr, bbox)
 
-            # create all of the dataframes for each mapped variable
-            for k in new_var_map.keys():
-                df[k] = pd.DataFrame(columns=metadata.index)
+        #     # create all of the dataframes for each mapped variable
+        #     for k in new_var_map.keys():
+        #         df[k] = pd.DataFrame(columns=metadata.index)
 
         for key,params in new_var_map.items():
 
             try:
-                g = gr.select(**params)
-                g = g[0]
-                passvals = g.values[idx]
+                # open just one dataset at a time
+                data = xr.open_dataset(fp, engine='cfgrib', backend_kwargs={'filter_by_keys': params})
+
+                if len(data) > 1:
+                    raise Exception('More than one grib variable returned')
+
+                # rename the data variable
+                if 'cfVarName' in params.keys():
+                    data = data.rename({params['cfVarName']: key})
+                elif 'shortName' in params.keys():
+                    data = data.rename({params['shortName']: key})
+
+                # remove some coordinate so they can all be combined into one dataset
+                for v in ['heightAboveGround', 'surface']:
+                    if v in data.coords.keys():
+                        data = data.drop(v)
+
+                s = data.where((data.latitude >= self.bbox[1]) & 
+                       (data.latitude <= self.bbox[3]) & 
+                       (data.longitude >= self.bbox[0]+360) & 
+                       (data.longitude <= self.bbox[2]+360),
+                       drop=True)
+
+                # TODO make the time an index coordinate?
+
+                if self.data is None:
+                    self.data = s
+                else:
+                    self.data = xr.combine_by_coords([self.data, s])
+
+                # g = gr.select(**params)
+                # g = g[0]
+                # passvals = g.values[idx]
                 # dt = g.validDate
                 success = True
 
-                df[key].loc[dt,:] = passvals
+                # df[key].loc[dt,:] = passvals
 
             except Exception as e:
                 self._logger.debug(e)
                 self._logger.debug('Moving to next forecast hour')
                 success = False
 
-                return success, df, idx, metadata
+        return success
 
-        return success, df, idx, metadata
+    # def get_one_grib(self, fp, new_var_map, dt):
+    #     """
+    #     Get valid HRRR data
+
+    #     Args:
+    #         fp:             Current grib2 file to open
+    #         new_var_map     Var map of variables to grab
+    #         dt:             datetime represented by the HRRR file
+
+    #     Returns:
+    #         success:         Boolean representing if the file could be read
+
+    #     """
+
+    #     self._logger.debug('Reading {}'.format(fp))
+    #     # make sure we can open the file
+    #     try:
+    #         gr = pygrib.open(fp)
+    #     except:
+    #         return False, df, idx, metadata
+
+    #     # if this is the first run, then find out a few things about the grid
+    #     if idx is None:
+    #         metadata, idx = self.get_metadata(gr, bbox)
+
+    #         # create all of the dataframes for each mapped variable
+    #         for k in new_var_map.keys():
+    #             df[k] = pd.DataFrame(columns=metadata.index)
+
+    #     for key,params in new_var_map.items():
+
+    #         try:
+    #             g = gr.select(**params)
+    #             g = g[0]
+    #             passvals = g.values[idx]
+    #             # dt = g.validDate
+    #             success = True
+
+    #             df[key].loc[dt,:] = passvals
+
+    #         except Exception as e:
+    #             self._logger.debug(e)
+    #             self._logger.debug('Moving to next forecast hour')
+    #             success = False
+
+    #             return success, df, idx, metadata
+
+    #     return success, df, idx, metadata
 
     def get_metadata(self, lat, lon, elev):
         """
