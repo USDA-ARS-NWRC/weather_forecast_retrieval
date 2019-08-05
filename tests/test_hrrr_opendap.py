@@ -10,7 +10,7 @@ import os
 import urllib.request
 
 
-def compare_csv(v_name,gold_dir,test_dir):
+def compare_gold(v_name, gold_dir, test_df):
     """
     Compares two csv files to and determines if they are the same.
 
@@ -21,17 +21,14 @@ def compare_csv(v_name,gold_dir,test_dir):
     Returns:
         Boolean: Whether the two images were the same
     """
-    fp1 = os.path.join(gold_dir,v_name+'.csv')
-    fp2 = os.path.join(test_dir,v_name+'.csv')
 
-    dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'])
+    # read in the gold standard
+    fp1 = os.path.join(gold_dir, v_name+'.csv')
+    dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=pd.np.float32)
     dfgold.set_index('date_time', inplace=True)
 
-    dfnew = pd.read_csv(fp2, 'r', delimiter=',', parse_dates=['date_time'])
-    dfnew.set_index('date_time', inplace=True)
-
     # see if they are the same
-    result = dfgold.equals(dfnew)
+    result = dfgold.equals(test_df)
 
     return  result
 
@@ -45,7 +42,7 @@ class TestHRRROpendap(unittest.TestCase):
         like SMRF
         """
 
-        self.url_path = 'http://10.200.28.71/thredds/catalog/hrrr_netcdf/catalog.xml'
+        self.url_path = 'http://10.200.28.72/thredds/catalog/hrrr_netcdf/catalog.xml'
 
         # check if we can access the THREDDS server
         status_code = urllib.request.urlopen(self.url_path).getcode()
@@ -55,20 +52,16 @@ class TestHRRROpendap(unittest.TestCase):
         ### configurations for testing HRRR.get_saved_data
         self.bbox = [-116.85837324, 42.96134124, -116.64913327, 43.16852535]
 
-        # want to use these eventually but they are not up yet
-        self.start_date = pd.to_datetime('2018-07-22 12:00')
-        self.end_date = pd.to_datetime('2018-07-22 17:00')
-
-        # use something that is on the TDS at the moment
-        self.start_date = pd.to_datetime('2019-07-18 12:00')
-        self.end_date = pd.to_datetime('2019-07-18 17:00')
+        # start date and end date
+        self.start_date = pd.to_datetime('2018-02-08 12:00')
+        self.end_date = pd.to_datetime('2018-02-08 17:00')
 
         self.hrrr_directory = 'tests/RME/gridded/hrrr_test/'
         self.force_zone_number = 11
         self.day_hour = 0
 
-        self.output_path = os.path.join('tests','RM E','output')
-        self.gold = os.path.join('tests','RME','gold','hrrr')
+        self.output_path = os.path.join('tests','RME','output')
+        self.gold = os.path.join('tests','RME','gold','hrrr_opendap')
 
 
     def test_load_data(self):
@@ -82,58 +75,8 @@ class TestHRRROpendap(unittest.TestCase):
                                         file_type='netcdf',
                                         output_dir=self.url_path)
 
-        # write the data to csv
-        for k, v in data.items():
-            data_path = os.path.join(self.output_path, '{}_data.csv'.format(k))
-            v.to_csv(data_path, index_label='date_time')
-
-
-    # def testAirTemp(self):
-    #     """
-    #     Compare the air temp DataFrame
-    #     """
-    #     a = compare_csv('air_temp_data', self.gold, self.output_path)
-    #     assert(a)
-
-    # def testPrecip(self):
-    #     """
-    #     Compare the precip DataFrame
-    #     """
-    #     a = compare_csv('precip_int_data', self.gold, self.output_path)
-    #     assert(a)
-
-    # def testRH(self):
-    #     """
-    #     Compare the Relative Humidity DataFrame
-    #     """
-    #     a = compare_csv('relative_humidity_data', self.gold, self.output_path)
-    #     assert(a)
-
-    # def testWindU(self):
-    #     """
-    #     Compare the U Wind Speed DataFrame
-    #     """
-    #     a = compare_csv('wind_u_data', self.gold, self.output_path)
-    #     assert(a)
-
-    # def testWindV(self):
-    #     """
-    #     Compare the V Wind Speed DataFrame
-    #     """
-    #     a = compare_csv('wind_v_data', self.gold, self.output_path)
-    #     assert(a)
-
-    # def testShortWave(self):
-    #     """
-    #     Compare the Short Wave DataFrame
-    #     """
-    #     a = compare_csv('short_wave_data', self.gold, self.output_path)
-    #     assert(a)
-
-    # def test_fcast_hrrr(self):
-    #     """Test something."""
-    #     self.fcast = range(1,5)
-    #     self.forecast_flag = True
-    #
-    #     assert result
+        # compare with the gold standard
+        for k, df in data.items():
+            status = compare_gold(k, self.gold, df)
+            self.assertTrue(status)
 

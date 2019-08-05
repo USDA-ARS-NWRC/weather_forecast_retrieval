@@ -163,6 +163,16 @@ def hrrr_file_name_finder(date, fx_hr=0, file_extension='grib2'):
     """
     Find the file pointer for a hrrr file with a specific forecast hour
 
+    hours    0    1    2    3    4
+             |----|----|----|----|
+    forecast
+    start    fx hour
+             |----|----|----|----|
+    00       01   02   03   04   05
+    01            01   02   03   04
+    02                 01   02   03
+    03                      01   02
+
     Args:
         date:       datetime that the file is used for
         fx_hr:      forecast hour

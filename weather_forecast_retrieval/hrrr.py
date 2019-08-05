@@ -440,8 +440,10 @@ class HRRR():
         if output_dir is not None:
             self.output_dir = output_dir
 
-        self.start_date = self.start_date - timedelta(hours=3)
-        self.end_date = self.end_date + timedelta(hours=3)
+        # Don't remember why this was needed, but it does require lots of extra reading
+        # self.start_date = self.start_date - timedelta(hours=3)
+        # self.end_date = self.end_date + timedelta(hours=3)
+
         # d = start_date
         # delta = timedelta(days=1)
         self.delta_hr = timedelta(hours=1)
@@ -471,14 +473,14 @@ class HRRR():
 
         # manipulate data in necessary ways
         # print(df.keys())
-        for key in df.keys():
-            df[key].sort_index(axis=0, inplace=True)
+        for key in self.df.keys():
+            self.df[key].sort_index(axis=0, inplace=True)
             if key == 'air_temp':
-                df['air_temp'] -= 273.15
+                self.df['air_temp'] -= 273.15
             if key == 'cloud_factor':
-                df['cloud_factor'] = 1 - df['cloud_factor']/100
+                self.df['cloud_factor'] = 1 - self.df['cloud_factor']/100
 
-        return metadata, df
+        return self.metadata, self.df
 
     def get_data(self):
         """
@@ -561,35 +563,39 @@ class HRRR():
         for key,value in self.var_map.items():
             df = self.data[value].to_dataframe()
 
-            # Get the metadata if haven't already
-            if self.metadata is not None:                
-                del df['longitude']
-                del df['latitude']
-
             # convert from a row multiindex to a column multiindex 
             df = df.unstack(level=[1,2])
 
-            # make new names for the columns as grid_y_x
-            cols = df.columns.to_flat_index()
-            cols = ['grid_{}_{}'.format(x[1], x[2]) for x in cols]
-            df.columns = cols
+            # Get the metadata using the elevation variables
+            if key == 'elevation':
 
-            # drop any nan values
-            df.dropna(axis=1, how='all', inplace=True)
-            self.df[key] = df
+                metadata = []
+                for mm in ['latitude', 'longitude', value]:
+                    dftmp = df[mm].copy()
+                    cols = ['grid_{}_{}'.format(x[0], x[1]) for x in dftmp.columns.to_flat_index()]
+                    dftmp.columns = cols
+                    dftmp = dftmp.iloc[0]
+                    dftmp.name = mm
+                    metadata.append(dftmp)
 
-            if self.metadata is None:
-                metadata = pd.DataFrame(index=primary_id,
-                                columns=('utm_x', 'utm_y', 'latitude',
-                                         'longitude', 'elevation'))
-                metadata['latitude'] = lat.flatten()
-                metadata['longitude'] = lon.flatten()
-                metadata['elevation'] = elev.flatten()
-                metadata = metadata.apply(apply_utm,
-                                        args=(self.force_zone_number,),
-                                        axis=1)
+                self.metadata = pd.concat(metadata, axis=1)
+                self.metadata['longitude'] -= 360   # it's reporting in degrees from the east
+                self.metadata = self.metadata.apply(apply_utm, args=(self.force_zone_number,), axis=1)
+                self.metadata.rename(columns={value: key}, inplace=True)
+            
+            else:
+                # else this is just a normal variable
+                del df['longitude']
+                del df['latitude']
 
-                self.metadata = metadata
+                # make new names for the columns as grid_y_x
+                cols = ['grid_{}_{}'.format(x[1], x[2]) for x in df.columns.to_flat_index()]
+                df.columns = cols
+                df.index.rename('date_time', inplace=True)
+
+                # drop any nan values
+                df.dropna(axis=1, how='all', inplace=True)
+                self.df[key] = df
 
 
     def get_one_netcdf(self, fp, var_map, dt):
@@ -618,7 +624,7 @@ class HRRR():
 
         d = day_cat.datasets[fp[2]]
 
-        self._logger.debug('Reading {}'.format(fp[2]))
+        self._logger.info('Reading {}'.format(fp[2]))
         data = xr.open_dataset(d.access_urls['OPENDAP'])
         # t.where(t.longitude >= self.bbox[0] & t.longitude <= self.bbox[2] & t.latitude >= self.bbox[1] & t.latitude <= self.bbox[3], drop=True)
         # t.where((t.latitude >= self.bbox[1]) & (t.latitude <= self.bbox[3]) & (t.longitude >= self.bbox[0]+360) & (t.longitude <= self.bbox[2]+360), drop=True)
@@ -632,52 +638,6 @@ class HRRR():
             self.data = s
         else:
             self.data = xr.combine_by_coords([self.data, s])
-
-        # # Use NCSS (Netcdf subset service)
-        # ncss = d.subset()
-        # query = ncss.query()
-        # query.lonlat_box(self.bbox[0], self.bbox[2], self.bbox[1], self.bbox[3])
-
-        # for key,fvar in new_var_map.items():
-        #     query.variables(fvar)
-        # query.accept('netcdf')
-
-        # data = ncss.get_data(query)
-
-        # if this is the first query, then we need to extract the metadata
-
-
-
-        # elev = ds.variables[new_var_map['elevation']][:].squeeze()
-            # lat = ds.variables[new_var_map['latitude']][:]
-            # lon = ds.variables[new_var_map['longitude']]
-
-            # if lon.units == 'degrees_east':
-            #     lon = lon[:] - 360
-            # else:
-            #     lon = lon[:]
-            
-            # self.get_metadata(lat, lon, elev)
-            
-
-            # # create all of the dataframes for each mapped variable
-            # for k in new_var_map.keys():
-            #     self.df[k] = pd.DataFrame(columns=self.metadata.index)
-                # try:
-                #     lat_inds = np.where((lat > self.bbox[1]) & (lat < self.bbox[3]))
-                #     lon_inds = np.where((lon > self.bbox[0]) & (lon < self.bbox[2]))
-                #     data = ds.variables[fvar][:, lat_inds[0], lon_inds[0]]
-                #     success = True
-
-                #     df[key].loc[dt,:] = data
-
-                # except Exception as e:
-                #     self._logger.debug(e)
-                #     self._logger.debug('Moving to next forecast hour')
-                #     success = False
-
-                #     return success, df, idx, metadata
-
 
         return True
 
