@@ -150,6 +150,10 @@ class HRRR():
             'stepType': 'instant',
             'cfVarName': 'dswrf'
             },
+        'elevation': {
+            'typeOfLevel': 'surface',
+            'cfVarName': 'orog'
+            }
         }
 
     # variable map to read the netcdf, the field names are those 
@@ -605,13 +609,18 @@ class HRRR():
 
         # self.data
         for key,value in self.var_map.items():
-            df = self.data[value].to_dataframe()
+            if self.file_type == 'grib2':
+                df = self.data[key].to_dataframe()
+            else:
+                df = self.data[value].to_dataframe()
 
             # convert from a row multiindex to a column multiindex 
             df = df.unstack(level=[1,2])
 
             # Get the metadata using the elevation variables
             if key == 'elevation':
+                if self.file_type == 'grib2':
+                    value = key
 
                 metadata = []
                 for mm in ['latitude', 'longitude', value]:
@@ -717,10 +726,11 @@ class HRRR():
         #     # create all of the dataframes for each mapped variable
         #     for k in new_var_map.keys():
         #         df[k] = pd.DataFrame(columns=metadata.index)
-
+        import cfgrib
         for key,params in new_var_map.items():
 
             try:
+                
                 # open just one dataset at a time
                 data = xr.open_dataset(fp, engine='cfgrib', backend_kwargs={'filter_by_keys': params})
 
@@ -738,13 +748,23 @@ class HRRR():
                     if v in data.coords.keys():
                         data = data.drop(v)
 
+                # make the time an index coordinate
+                data = data.assign_coords(time=data['valid_time'])
+                data = data.expand_dims('time')
+
+                # have to set the x and y coordinates based on the 3000 meter cell size
+                data = data.assign_coords(x=np.arange(0, len(data['x'])) * 3000)
+                data = data.assign_coords(y=np.arange(0, len(data['y'])) * 3000)
+
+                # delete the step and valid time coordinates
+                del data['step']
+                del data['valid_time']
+
                 s = data.where((data.latitude >= self.bbox[1]) & 
                        (data.latitude <= self.bbox[3]) & 
                        (data.longitude >= self.bbox[0]+360) & 
                        (data.longitude <= self.bbox[2]+360),
                        drop=True)
-
-                # TODO make the time an index coordinate?
 
                 if self.data is None:
                     self.data = s

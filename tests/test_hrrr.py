@@ -9,7 +9,7 @@ import pandas as pd
 import os
 
 
-def compare_csv(v_name,gold_dir,test_dir):
+def compare_gold(v_name, gold_dir, test_df):
     """
     Compares two csv files to and determines if they are the same.
 
@@ -20,17 +20,14 @@ def compare_csv(v_name,gold_dir,test_dir):
     Returns:
         Boolean: Whether the two images were the same
     """
-    fp1 = os.path.join(gold_dir,v_name+'.csv')
-    fp2 = os.path.join(test_dir,v_name+'.csv')
 
-    dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'])
+    # read in the gold standard
+    fp1 = os.path.join(gold_dir, v_name+'.csv')
+    dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=pd.np.float32)
     dfgold.set_index('date_time', inplace=True)
 
-    dfnew = pd.read_csv(fp2, 'r', delimiter=',', parse_dates=['date_time'])
-    dfnew.set_index('date_time', inplace=True)
-
     # see if they are the same
-    result = dfgold.equals(dfnew)
+    result = dfgold.equals(test_df)
 
     return  result
 
@@ -70,75 +67,31 @@ class TestHRRR(unittest.TestCase):
         # read and write the hrrr data
         # self.readNormalHRRR()
 
-        fcast = [0]
+        self.fcast = [0]
         self.forecast_flag = False
 
-        self.hrrr = hrrr.HRRR()
+        
+
+    def testHRRRGribLoad(self):
+        """
+        Compare the air temp DataFrame
+        """
+
         # get the data
-        metadata, data = self.hrrr.get_saved_data(
+        metadata, data = hrrr.HRRR().get_saved_data(
                                         self.start_date,
                                         self.end_date,
                                         self.bbox,
                                         file_type='grib2',
                                         output_dir=self.hrrr_directory,
                                         force_zone_number=self.force_zone_number,
-                                        forecast=fcast,
+                                        forecast=self.fcast,
                                         forecast_flag=self.forecast_flag,
                                         day_hour=self.day_hour)
 
-        # write the data to csv
-        for k, v in data.items():
-            data_path = os.path.join(self.output_path, '{}_data.csv'.format(k))
-            v.to_csv(data_path, index_label='date_time')
+        # compare with the gold standard
+        for k, df in data.items():
+            status = compare_gold(k, self.gold, df)
+            self.assertTrue(status)
 
-    def testAirTemp(self):
-        """
-        Compare the air temp DataFrame
-        """
-        a = compare_csv('air_temp_data', self.gold, self.output_path)
-        assert(a)
-
-    def testPrecip(self):
-        """
-        Compare the precip DataFrame
-        """
-        a = compare_csv('precip_int_data', self.gold, self.output_path)
-        assert(a)
-
-    def testRH(self):
-        """
-        Compare the Relative Humidity DataFrame
-        """
-        a = compare_csv('relative_humidity_data', self.gold, self.output_path)
-        assert(a)
-
-    def testWindU(self):
-        """
-        Compare the U Wind Speed DataFrame
-        """
-        a = compare_csv('wind_u_data', self.gold, self.output_path)
-        assert(a)
-
-    def testWindV(self):
-        """
-        Compare the V Wind Speed DataFrame
-        """
-        a = compare_csv('wind_v_data', self.gold, self.output_path)
-        assert(a)
-
-    def testShortWave(self):
-        """
-        Compare the Short Wave DataFrame
-        """
-        a = compare_csv('short_wave_data', self.gold, self.output_path)
-        assert(a)
-
-    # def test_fcast_hrrr(self):
-    #     """Test something."""
-    #     self.fcast = range(1,5)
-    #     self.forecast_flag = True
-    #
-    #     assert result
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertTrue(metadata is not None)

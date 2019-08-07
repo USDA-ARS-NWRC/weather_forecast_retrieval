@@ -80,3 +80,5 @@ class TestHRRROpendap(unittest.TestCase):
             status = compare_gold(k, self.gold, df)
             self.assertTrue(status)
 
+        self.assertTrue(metadata is not None)
+
