@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""Tests for `weather_forecast_retrieval` package."""
-
 import unittest
 from weather_forecast_retrieval import hrrr
 import pandas as pd
@@ -52,6 +47,7 @@ class TestHRRR(unittest.TestCase):
             raise Exception('tests directory not found for testing')
 
         self.test_dir = os.path.abspath(self.test_dir)
+
         ### configurations for testing HRRR.get_saved_data
         self.bbox = [-116.85837324, 42.96134124, -116.64913327, 43.16852535]
         self.start_date = pd.to_datetime('2018-07-22 12:00')
@@ -59,22 +55,14 @@ class TestHRRR(unittest.TestCase):
         self.hrrr_directory = os.path.join(self.test_dir,
                                            'RME/gridded/hrrr_test/')
         self.force_zone_number = 11
-        self.day_hour = 0
 
         self.output_path = os.path.join(self.test_dir,'RME','output')
         self.gold = os.path.join(self.test_dir,'RME','gold','hrrr')
 
-        # read and write the hrrr data
-        # self.readNormalHRRR()
-
-        self.fcast = [0]
-        self.forecast_flag = False
-
-        
 
     def testHRRRGribLoad(self):
         """
-        Compare the air temp DataFrame
+        Load HRRR data from grib files
         """
 
         # get the data
@@ -84,10 +72,7 @@ class TestHRRR(unittest.TestCase):
                                         self.bbox,
                                         file_type='grib2',
                                         output_dir=self.hrrr_directory,
-                                        force_zone_number=self.force_zone_number,
-                                        forecast=self.fcast,
-                                        forecast_flag=self.forecast_flag,
-                                        day_hour=self.day_hour)
+                                        force_zone_number=self.force_zone_number)
 
         # compare with the gold standard
         for k, df in data.items():

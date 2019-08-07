@@ -1,12 +1,5 @@
-pip==19.0.3
-numpy==1.16.3
 bumpversion==0.5.3
-wheel==0.29.0
 watchdog==0.8.3
-flake8==2.6.0
-tox==2.3.1
-coverage==4.1
-Sphinx==1.4.8
 pyyaml==4.2b1
 coloredlogs == 6.1
 siphon==0.6.1
@@ -16,4 +9,6 @@ pytz
 requests==2.21.0
 drhawkeye==0.2.4
 grequests==0.3.0
-netCDF4
+netCDF4==1.5.1.2
+xarray==0.12.3
+cfgrib==0.9.7.1
