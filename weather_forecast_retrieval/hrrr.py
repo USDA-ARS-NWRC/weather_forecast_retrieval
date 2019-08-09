@@ -571,6 +571,12 @@ class HRRR():
                 df.dropna(axis=1, how='all', inplace=True)
                 self.df[key] = df
 
+        # the metadata may have more columns than the dataframes
+        c = []
+        for key in self.df.keys():
+            c.extend(list(self.df[key].columns.values))
+        
+        self.metadata = self.metadata[self.metadata.index.isin(list(set(c)))]
 
     def get_one_netcdf(self, fp, var_map, dt):
         """

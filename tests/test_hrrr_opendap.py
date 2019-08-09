@@ -42,11 +42,14 @@ class TestHRRROpendap(unittest.TestCase):
         like SMRF
         """
 
-        self.url_path = 'http://10.200.28.72/thredds/catalog/hrrr_netcdf/catalog.xml'
+        self.url_path = 'http://10.200.28.71/thredds/catalog/hrrr_netcdf/catalog.xml'
 
         # check if we can access the THREDDS server
-        status_code = urllib.request.urlopen(self.url_path).getcode()
-        if status_code != 200:
+        try:
+            status_code = urllib.request.urlopen(self.url_path).getcode()
+            if status_code != 200:
+                raise unittest.SkipTest('Unable to access THREDDS data server, skipping OpenDAP tests')
+        except:
             raise unittest.SkipTest('Unable to access THREDDS data server, skipping OpenDAP tests')
 
         ### configurations for testing HRRR.get_saved_data
