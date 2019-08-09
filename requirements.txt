@@ -1,8 +1,5 @@
-bumpversion==0.5.3
-twine
-watchdog==0.8.3
 pyyaml==4.2b1
-coloredlogs == 6.1
+coloredlogs==6.1
 siphon==0.6.1
 pyproj==1.9.5.1
 utm==0.4.0
