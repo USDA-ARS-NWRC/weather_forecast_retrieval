@@ -174,14 +174,14 @@ class HRRR():
             else:
                 logging.basicConfig(level=numeric_level)
 
-            # suppress urllib3 connection logging
-            logging.getLogger('urllib3').setLevel(logging.WARNING)
-            logging.getLogger('cfgrib').setLevel(logging.WARNING)
-
             self._loglevel = numeric_level
             self._logger = log
         else:
             self._logger = external_logger
+
+        # suppress urllib3 connection logging
+        logging.getLogger('urllib3').setLevel(logging.WARNING)
+        logging.getLogger('cfgrib').setLevel(logging.WARNING)
 
         msg = '{} -- Initialized HRRR'.format(datetime.now().isoformat())
         self._logger.info("=" * len(msg))
