@@ -35,7 +35,8 @@ setup(
     packages=['weather_forecast_retrieval'],
     entry_points={
         'console_scripts': [
-            'grib2nc=weather_forecast_retrieval.grib2nc:main'
+            'grib2nc=weather_forecast_retrieval.grib2nc:main',
+            'get_hrrr_archive=weather_forecast_retrieval.hrrr_archive:cli'
         ]},
     include_package_data=True,
     install_requires=requirements,

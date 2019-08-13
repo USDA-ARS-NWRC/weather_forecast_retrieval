@@ -17,56 +17,29 @@ http://hrrr.chpc.utah.edu/
 """
 
 from datetime import date, datetime, timedelta
+import argparse
+import logging
+import coloredlogs
 import time
 import os
 import pytz
 import requests
+import pandas as pd
 
 # times when downloading should stop as recomended by U of U
 tzmdt = pytz.timezone('America/Denver')
 no_hours = [0, 3, 6, 9, 12, 15, 18, 21]
 
 
-def reporthook(a, b, c):
-    """
-    Report download progress in megabytes
-    """
-    # ',' at the end of the line is important!i
-    print("% 3.1f%% of %.2f MB\r" % (min(100, float(a * b) / c * 100), c/1000000.))
-
-
-def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965):
-    """
-    Cut up the HRRR data based on a center point and the half box surrounding
-    the point.
-    half_box - number of gridpoints half the size the box surrounding the center point.
-    """
-    # 1) Compute the abosulte difference between the grid lat/lon and the point
-    abslat = np.abs(H['lat']-lat)
-    abslon = np.abs(H['lon']-lon)
-
-    # 2) Element-wise maxima. (Plot this with pcolormesh to see what I've done.)
-    c = np.maximum(abslon, abslat)
-
-    # 3) The index of the minimum maxima (which is the nearest lat/lon)
-    x, y = np.where(c == np.min(c))
-    xidx = x[0]
-    yidx = y[0]
-
-    print('x:%s, y:%s' % (xidx, yidx))
-
-    subset = {'lat': H['lat'][xidx-half_box:xidx+half_box, yidx-half_box:yidx+half_box],
-              'lon': H['lon'][xidx-half_box:xidx+half_box, yidx-half_box:yidx+half_box],
-              'value': H['value'][xidx-half_box:xidx+half_box, yidx-half_box:yidx+half_box]}
-
-    return subset
-
-
-def check_before_download():
+def check_before_download(logger):
     """
     See if it is an okay time to download from U of U based on the times
     that they are pulling data.
     """
+    nowutc = datetime.utcfromtimestamp(time.time())
+    tzmdt = pytz.timezone('America/Denver')
+    nowtime_mdt = nowutc.replace(tzinfo=pytz.utc).astimezone(tzmdt)
+
     this_hour = nowtime_mdt.time().hour
     this_min = nowtime_mdt.time().minute
 
@@ -77,7 +50,7 @@ def check_before_download():
             nowutc = datetime.utcfromtimestamp(time.time())
             nowtime_mdt = nowutc.replace(tzinfo=pytz.utc).astimezone(tzmdt)
             #print(nowtime_mdt)
-            print('Sleeping {}'.format(nowtime_mdt))
+            logger.info('Sleeping {}'.format(nowtime_mdt))
             this_hour = nowtime_mdt.time().hour
             this_min = nowtime_mdt.time().minute
             #print(this_hour, this_min)
@@ -111,23 +84,28 @@ def download_url(fname, OUTDIR, logger, file_day, model='hrrr', field='sfc'):
     redir = os.path.join(OUTDIR, 'hrrr.%s' % (file_day.strftime('%Y%m%d')))
     if not os.path.exists(redir):
         os.makedirs(redir)
+
     # 3) Download the file via https
     # Check the file size, make it's big enough to exist.
     check_this = requests.head(URL)
     file_size = int(check_this.headers['content-length'])
 
-    if file_size > 10000:
-        print("Downloading:", URL)
-        # urllib.urlretrieve(URL, OUTDIR+rename, reporthook)
-        new_file = os.path.join(OUTDIR,rename)
-        r = requests.get(URL, allow_redirects=True)
-        open(new_file, 'wb').write(r.content)
-        print("\n")
-        success = True
-    else:
-        # URL returns an "Key does not exist" message
-        logger.error("ERROR:", URL, "Does Not Exist")
-        success = False
+    try:
+        if file_size > 10000:
+            logger.info("Downloading: {}".format(URL))
+            new_file = os.path.join(OUTDIR, rename)
+            r = requests.get(URL, allow_redirects=True)
+            with open(new_file, 'wb') as f:
+                f.write(r.content)
+                logger.debug('Saved file to: {}'.format(new_file))
+            success = True
+        else:
+            # URL returns an "Key does not exist" message
+            logger.error("ERROR:", URL, "Does Not Exist")
+            success = False
+
+    except Exception as e:
+        logger.error('Error downloading or writing file: {}'.format(e))
 
     # 4) Sleep five seconds, as a courtesy for using the archive.
     time.sleep(5)
@@ -151,8 +129,8 @@ def download_HRRR(DATE, logger, model='hrrr', field='sfc', hour=range(0, 24),
         OUTDIR - Directory to save the files.
 
     Outcome:
-        Downloads the desired HRRR file and renames with date info preceeding
-        the original file name (i.e. 20170101_hrrr.t00z.wrfsfcf00.grib2)
+        Downloads the desired HRRR file and outputs it into the same directory
+        structure as NOMADS
     """
 
     # Loop through each hour and each forecast and download.
@@ -160,11 +138,7 @@ def download_HRRR(DATE, logger, model='hrrr', field='sfc', hour=range(0, 24),
         for f in fxx:
             # check current time to see if we can run
             # replace utc local with MDT
-            nowutc = datetime.utcfromtimestamp(time.time())
-            tzmdt = pytz.timezone('America/Denver')
-            nowtime_mdt = nowutc.replace(tzinfo=pytz.utc).astimezone(tzmdt)
-
-            check_before_download()
+            # check_before_download(logger)
 
             fname = "%s.t%02dz.wrf%sf%02d.grib2" % (model, h, field, f)
 
@@ -176,53 +150,102 @@ def download_HRRR(DATE, logger, model='hrrr', field='sfc', hour=range(0, 24),
                                                                    DATE))
 
 
-def HRRR_from_UofU(start_date, end_date, save_dir, logger,
-                   hours=range(24), forecasts=range(3)):
+def HRRR_from_UofU(start_date, end_date, save_dir, external_logger=None,
+                   forecasts=range(3), model_type='hrrr', var_type='sfc'):
     """
     Download HRRR data from the University of Utah
 
     Args:
-        start_date:     datetime object of start date
-        end_date:       datetime object of end date
-        save_dir:       base HRRR directory where data will be saved
-        logger:         logger instance
-        hours:          hours that will be downloaded each day
+        start_date:         datetime object of start date
+        end_date:           datetime object of end date
+        save_dir:           base HRRR directory where data will be saved
+        external_logger:    logger instance
         forecasts:          forecast hours to get for each hour
+        model_type:         model type to download, defaults to hrrr
+        var_type:           variable type to download, default to sfc
 
     Return:
 
     """
 
-    start_day = start_date.date()
-    end_day = start_date.date()
+    if external_logger == None:
+        fmt = "%(levelname)s: %(msg)s"
+        logger = logging.getLogger(__name__)
+        coloredlogs.install(logger=logger, fmt=fmt)
 
-    # SAVEDIR = '/data/snowpack/forecasts/hrrr/'
-    SAVEDIR = save_dir
+        msg = "hrrr_archive get data from University of Utah"
+        logger.info(msg)
+        logger.info("=" * len(msg))
 
-    drange = end_day - start_day
-    num_day = drange.days
-    # make list of days
-    dr = [timedelta(days=d) + start_day for d in range(num_day+1)]
-    logger.info('Collecting hrrr data for {} through {}'.format(start_day, end_day))
-    logger.info('Writing to {}'.format(SAVEDIR))
+    else:
+        logger = external_logger
 
-    for dd in dr:
-        # Start and End Date
-        get_this_date = dd
-        # Model Type: options include 'hrrr', 'hrrrX', 'hrrrak'
-        model_type = 'hrrr'
+    # check the start and end date
+    if start_date >= end_date:
+        logger.error('Start date is before end date')
+        raise Exception('Start date is before end date')
+    
+    if not isinstance(forecasts, range):
+        if not isinstance(forecasts, list):
+            logger.error('forecasts must be a list or range')
+            raise Exception('forecasts must be a list or range')
 
-        # Variable field: options include 'sfc' or 'prs'
-        var_type = 'sfc'
 
-        # Make SAVEDIR path if it doesn't exist.
-        if not os.path.exists(SAVEDIR):
-            raise IOError('SAVEDIR {} does not exist'.format(SAVEDIR))
+    # HRRR data is hourly so create a list of hourly values
+    dt_index = pd.date_range(start_date, end_date, freq='H')
+
+    # Make save_dir path if it doesn't exist.
+    if not os.path.exists(save_dir):
+        raise IOError('save_dir {} does not exist'.format(save_dir))
+    logger.info('Writing to {}'.format(save_dir))
+
+    logger.info('Collecting hrrr data for {} through {}'.format(start_date, end_date))
+    for dd in dt_index:
+
+        # hour needs to be a list
+        hrs = [dd.hour]
 
         # get the data
-        download_HRRR(get_this_date, logger, model=model_type, field=var_type,
-                      hour=hours, fxx=forecasts, OUTDIR=SAVEDIR)
+        download_HRRR(dd.date(), logger, model=model_type, field=var_type,
+                      hour=hrs, fxx=forecasts, OUTDIR=save_dir)
 
-        logger.info('Wrote files for {} day for {} hours\n'.format(dd, hours))
         # pause to be nice
         time.sleep(3)
+
+
+def cli():
+    """
+    Command line interface to hrrr_archive
+    """
+
+    parser = argparse.ArgumentParser(description="Command line tool for downloading"
+                                                " HRRR grib files from the University of Utah")
+
+    parser.add_argument('-s', '--start', dest='start_date',
+                        required=True, default=None,
+                        help='Datetime to start, ie 2018-07-22 12:00')
+
+    parser.add_argument('-e', '--end', dest='end_date',
+                        required=True, default=None,
+                        help='Datetime to end, ie 2018-07-22 13:00')
+
+    parser.add_argument('-o', '--output', dest='save_dir',
+                        required=True, default=None,
+                        help='Path to save the downloaded files to')
+
+    parser.add_argument('-f', '--forecasts', dest='forecasts',
+                        required=False, default=1,
+                        help='Number of forecasts to get')
+
+
+
+    # start_date, end_date, save_dir, external_logger=None,
+    # forecasts=range(3), model_type='hrrr', var_type='sfc'):
+
+    args = parser.parse_args()
+    HRRR_from_UofU(
+        args.start_date,
+        args.end_date,
+        args.save_dir,
+        forecasts=range(0, args.forecasts)
+    )

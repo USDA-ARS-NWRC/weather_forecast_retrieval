@@ -19,7 +19,7 @@ import netCDF4 as nc
 from siphon.catalog import TDSCatalog
 import xarray as xr
 
-from weather_forecast_retrieval import get_hrrr_archive
+from weather_forecast_retrieval import hrrr_archive
 from weather_forecast_retrieval import utils
 from weather_forecast_retrieval.grib2nc import grib2nc
 
@@ -774,7 +774,7 @@ class HRRR():
                 self._logger.debug(fp_mh)
                 print(os.path.basename(fp_mh))
                 file_day = pd.to_datetime(os.path.dirname(fp_mh)[-8:])
-                success = get_hrrr_archive.download_url(os.path.basename(fp_mh),
+                success = hrrr_archive.download_url(os.path.basename(fp_mh),
                                                         out_dir,
                                                         self._logger,
                                                         file_day)
@@ -789,7 +789,7 @@ class HRRR():
                 file_day = pd.to_datetime(os.path.dirname(fp_sh)[-8:])
                 # remove and redownload the file
                 os.remove(fp_sh)
-                success = get_hrrr_archive.download_url(os.path.basename(fp_sh),
+                success = hrrr_archive.download_url(os.path.basename(fp_sh),
                                                         out_dir,
                                                         self._logger,
                                                         file_day)

@@ -1,8 +1,5 @@
 # Weather Forecast Retrieval
 
-[![GitHub version](https://badge.fury.io/gh/USDA-ARS-NWRC%2Fweather_forecast_retieval.svg)](https://badge.fury.io/gh/USDA-ARS-NWRC%2Fweather_forecast_retieval)
-
-
 Weather forecast retrieval gathers relevant gridded weather forecasts to ingest into physically based models for water supply forecasts
 
 Current atmospheric models implemented:
@@ -10,77 +7,14 @@ Current atmospheric models implemented:
 * [Rapid Refresh (RAP)](https://rapidrefresh.noaa.gov/)
 
 ## Install
-Follow these command line instructions to install weather_forecast_retrieval on Ubuntu 16.04 or 18.04.
-
-Refer to the SMRF install instructions for use of a virtual environment. Virtual
-Environments are recommended for python and pip install procedures to keep system
-clean and organized. Make sure your virtual environment is sourced before proceeding.
-
-
-### Ubuntu 16.04
-Install necessary system packages
 
 ```
-sudo apt update
-sudo apt install python3-dev python3-pip python3-tk
-sudo apt install libgrib-api-tools libgrib-api-dev
+pip install weather_forecast_retrieval
 ```
 
-Get package from github and install
+## wgrib2
 
-```
-curl -L https://github.com/USDA-ARS-NWRC/weather_forecast_retrieval/archive/v0.5.2.tar.gz | tar xz
-
-python3 -m pip install pygrib==2.0.2
-
-cd weather_forecast_retrieval-0.5.2/
-python3 -m pip install -r requirements_dev.txt
-python3 setup.py install
-```
-
-Check install
-```
-python3 setup.py test
-```
-
-### Ubuntu 18.04
-
-Install necessary system packages
-
-```
-sudo apt update
-sudo apt install python3-dev python3-pip python3-tk
-
-sudo apt install libeccodes-dev libeccodes-tools
-```
-
-Get packages from github
-
-```
-curl -L https://github.com/USDA-ARS-NWRC/weather_forecast_retrieval/archive/v0.5.2.tar.gz | tar xz
-curl -L https://github.com/jswhit/pygrib/archive/v2.0.4rel.tar.gz | tar xz
-python3 -m pip install pyproj==1.9.5.1
-```
-
-Install packages
-This requires copying the ```setup.cfg``` that is filled out from weather_forecast_retrieval
-and moving it into pygrib. This file points to the installed eccodes libraries.
-```
-cd pygrib-2.0.4rel
-
-cp ../weather_forecast_retrieval-0.5.2/setup.cfg.pygrib ./setup.cfg
-
-python3 setup.py build
-python3 setup.py install
-
-cd ../weather_forecast_retrieval-0.5.2/
-python3 -m pip install -r requirements_dev.txt
-python3 setup.py install
-```
-
-### grib2nc
-
-To use the grib2nc command/function you will have to have wgrib2 installed.
+To use the `grib2nc` command/function you will have to have `wgrib2` installed on the host computer.
 
 This is easiest done by following [NOAA instructions](https://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/compile_questions.html).
 After completing their instructions, make wgrib2 accessible by cd into the source code and
@@ -103,3 +37,37 @@ Grab a coffee as this has to compile `pandas` from source (10+ minutes of compil
 ```
 docker-compose run weather_forecast_retrieval /code/config/hrrr.ini
 ```
+
+# Command line usage
+
+## get_hrrr_archive
+
+```
+usage: get_hrrr_archive [-h] -s START_DATE -e END_DATE -o SAVE_DIR
+                        [-f FORECASTS]
+
+Command line tool for downloading HRRR grib files from the University of Utah
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s START_DATE, --start START_DATE
+                        Datetime to start, ie 2018-07-22 12:00
+  -e END_DATE, --end END_DATE
+                        Datetime to end, ie 2018-07-22 13:00
+  -o SAVE_DIR, --output SAVE_DIR
+                        Path to save the downloaded files to
+  -f FORECASTS, --forecasts FORECASTS
+                        Number of forecasts to get
+
+```
+
+The following command line will download data for a single hour and output into the `~/Downloads` folder to the file `~/Downloads/hrrr.20180722/hrrr.t12z.wrfsfcf01.grib2`:
+
+```
+get_hrrr_archive -s '2018-07-22 12:00' -e '2018-07-22 12:10' -o tests/RME/output/
+```
+
+
+## convert_grib2nc
+
+## run_hrrr_retrieval
