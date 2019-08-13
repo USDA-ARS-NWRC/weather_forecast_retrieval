@@ -200,6 +200,7 @@ def HRRR_from_UofU(start_date, end_date, save_dir, external_logger=None,
     logger.info('Writing to {}'.format(save_dir))
 
     logger.info('Collecting hrrr data for {} through {}'.format(start_date, end_date))
+    logger.info('Forecast hours: {}'.format(forecasts))
     for dd in dt_index:
 
         # hour needs to be a list
@@ -234,7 +235,7 @@ def cli():
                         help='Path to save the downloaded files to')
 
     parser.add_argument('-f', '--forecasts', dest='forecasts',
-                        required=False, default=1,
+                        required=False, default=1, type=int,
                         help='Number of forecasts to get')
 
 
