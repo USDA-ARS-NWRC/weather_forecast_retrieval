@@ -12,7 +12,13 @@ Current atmospheric models implemented:
 pip install weather_forecast_retrieval
 ```
 
-## wgrib2
+## System dependencies
+
+### nccopy
+
+`nccopy` is used during the conversion in `grib2nc`. To install the `netCDF-C` libraries that are specific for your system. See the instructions from [Unidata](https://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html#sec_get_pre_built) 
+
+### wgrib2
 
 To use the `grib2nc` command/function you will have to have `wgrib2` installed on the host computer.
 

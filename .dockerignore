@@ -9,6 +9,6 @@ docker-compose*
 .venv
 */bin
 */obj
-README.md
+# README.md
 LICENSE
 .vscode
