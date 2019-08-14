@@ -7,7 +7,8 @@ import coloredlogs
 import logging
 
 
-def grib2nc(f_hrrr, output=None, external_logger=None):
+def grib2nc(f_hrrr, output=None, external_logger=None,
+			chunk_x = 45, chunk_y = 45):
 	"""
 	Converts grib files to netcdf using HRRR forecast data and the
 	variables required by the SMRF.
@@ -18,6 +19,8 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 		f_hrrr: Path to a HRRR grib file
 		output: Path to output the resulting netcdf
 		external_logger: External logger is desired
+		chunk_x: number of chunks for the x dimension
+		chunk_y: number of chunks for the y dimension
 
 	"""
 	start = time.time()
@@ -69,6 +72,7 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 	# No output file name used, use the original plus a new extension
 	if output == None:
 		output = ".".join(os.path.basename(f_hrrr).split(".")[0:-1]) + ".nc"
+	temp_output = output + '.tmp'
 
 	grib_vars = ""
 	var_count = 0
@@ -100,22 +104,31 @@ def grib2nc(f_hrrr, output=None, external_logger=None):
 		grib_vars += s
 
 	log.debug("Extracting {} variables and converting to netcdf...".format(var_count))
-	log.debug("Outputting to: {}".format(output))
+	log.debug("Outputting to: {}".format(temp_output))
 
 	# Using the var names we just collected run wgrib2 for netcdf conversion
 	log.debug(grib_vars)
 	log.info("Converting grib2 to netcdf4...".format(len(grib_vars), len(cmd.split('\n'))))
-	cmd = 'echo "{}" | wgrib2 -nc4 -i {} -netcdf {}'.format(grib_vars, f_hrrr, output)
+	cmd = 'echo "{}" | wgrib2 -nc4 -i {} -netcdf {}'.format(grib_vars, f_hrrr, temp_output)
 	log.debug(cmd)
 	s = check_output(cmd, shell=True)
 
 	# Recast dimensions
 	log.info("Reducing dimensional variables to type ints and floats.")
 
-	cmd = "ncap2 -O -s 'latitude=float(latitude);longitude=float(longitude);x=int(x);y=int(y);time=int(time)' {0} {0}".format(output)
+	cmd = "ncap2 -O -s 'latitude=float(latitude);longitude=float(longitude);x=int(x);y=int(y);time=int(time)' {0} {0}".format(temp_output)
 	log.debug(cmd)
 	s = check_output(cmd, shell=True)
 
+	# Add chunking
+	log.info("Adding chunking")
+	cmd = "nccopy -w -c time/1,x/{},y/{} {} {}".format(chunk_x, chunk_y, temp_output, output)
+	log.debug(cmd)
+	s = check_output(cmd, shell=True)
+
+	# clean up the temp file
+	os.remove(temp_output)
+	
 	log.info("Complete! Elapsed {:0.0f}s".format(time.time()-start))
 
 

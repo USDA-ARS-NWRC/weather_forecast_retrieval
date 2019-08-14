@@ -15,7 +15,7 @@ class TestGrib2nc(unittest.TestCase):
         grib_file = 'tests/RME/gridded/hrrr_test/hrrr.20180722/hrrr.t04z.wrfsfcf01.grib2'
 
         # get the data
-        grib2nc(grib_file, nc_file)
+        grib2nc(grib_file, nc_file, chunk_x=20, chunk_y=20)
 
         self.assertTrue(os.path.isfile(nc_file))
         os.remove(nc_file)
