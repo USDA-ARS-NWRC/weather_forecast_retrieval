@@ -2,7 +2,6 @@
 Connect to the HRRR site and download the data
 """
 
-import grequests
 from ftplib import FTP
 import os, sys, fnmatch
 import logging
@@ -18,6 +17,7 @@ import re
 import netCDF4 as nc
 from siphon.catalog import TDSCatalog
 import xarray as xr
+from multiprocessing.pool import ThreadPool
 
 from weather_forecast_retrieval import hrrr_archive
 from weather_forecast_retrieval import utils
@@ -260,12 +260,12 @@ class HRRR():
 
         # could be more robust
         if start_date is not None:
-            if type(start_date) is str:
-                start_date = pd.to_datetime(start_date)
+            # if type(start_date) is str:
+            start_date = pd.to_datetime(start_date)
             self.start_date = start_date
         if end_date is not None:
-            if type(end_date) is str:
-                end_date = pd.to_datetime(end_date)
+            # if type(end_date) is str:
+            end_date = pd.to_datetime(end_date)
             self.end_date = end_date
 
         # check if dates are timezone aware, if not then assume UTC
@@ -294,6 +294,7 @@ class HRRR():
                 self._logger.info('mkdir {}'.format(out_path))
         else:
             out_path = self.output_dir
+        self.out_path = out_path
 
         url_date = self.http_url.format(self.start_date.strftime('%Y%m%d'))
 
@@ -335,32 +336,47 @@ class HRRR():
         self._logger.debug('Found {} files between start and end date'.format(len(df)))
 
         self._logger.debug('Generating requests')
-        req = []
-        for i,row in df.iterrows():
-            req.append(grequests.get(row.url, callback=self.feedback))
+        pool = ThreadPool(processes=self.num_requests)
 
-        self._logger.debug('Sendings {} requests'.format(len(req)))
-        res = grequests.map(req, size=self.num_requests)
+        self._logger.debug('Sendings {} requests'.format(len(df)))
 
-        for r in res:
-            try:
-                if r is not None:
-                    if r.status_code == 200:
-                        f = r.url.split('/')[-1]
-                        out_file = os.path.join(out_path, f)
-                        with open(out_file, 'wb') as f:
-                            f.write(r.content)
-                            f.close()
-                            self._logger.debug('Saved to {}'.format(out_file))
-                            
-            except Exception as e:
-                self._logger.warning('Problem processing response')
-                self._logger.warning(e)
+        # map_async will convert the iterable to a list right away and wait
+        # for the requests to finish before continuing
+        res = pool.map(self.fetch_url, df.url.to_list())
 
         self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
+        return res
 
-    def feedback(self, r, **kwargs):
-        self._logger.debug('Fetching {}'.format(r.url))
+    def fetch_url(self, uri):
+        """
+        Fetch the file at the uri and save the file to the out_path
+
+        Args:
+            uri: url of the file
+
+        Returns:
+            False if failed or path to saved file
+        """
+
+        success = False
+        try:
+            self._logger.debug('Fetching {}'.format(uri))
+            r = requests.get(uri)
+            if r.status_code == 200:
+                f = r.url.split('/')[-1]
+                out_file = os.path.join(self.out_path, f)
+                with open(out_file, 'wb') as f:
+                    f.write(r.content)
+                    f.close()
+                    self._logger.debug('Saved to {}'.format(out_file))
+                    success = out_file
+                        
+        except Exception as e:
+            self._logger.warning('Problem processing response')
+            self._logger.warning(e)
+            
+        return success
+        
 
     def get_saved_data(self, start_date, end_date, bbox, file_type='grib2', output_dir=None,
                        var_map=None, forecast=[0], force_zone_number=None,
