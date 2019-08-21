@@ -62,7 +62,7 @@ ADD . /code/weather_forecast_retrieval
 
 # Add and build weather forecast retrival
 RUN cd /code/weather_forecast_retrieval && \
-    apk --no-cache add netcdf-utils && \
+    apk --no-cache add netcdf-utils hdf5 hdf5-dev libffi-dev && \
     python3 setup.py install && \
     apk del .build-dependencies
 
