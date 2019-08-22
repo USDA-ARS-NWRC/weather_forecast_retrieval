@@ -1,5 +1,8 @@
 # Weather Forecast Retrieval
 
+
+[![GitHub version](https://badge.fury.io/gh/USDA-ARS-NWRC%2Fweather_forecast_retrieval.svg)](https://badge.fury.io/gh/USDA-ARS-NWRC%2Fweather_forecast_retrieval)
+
 Weather forecast retrieval gathers relevant gridded weather forecasts to ingest into physically based models for water supply forecasts
 
 Current atmospheric models implemented:
