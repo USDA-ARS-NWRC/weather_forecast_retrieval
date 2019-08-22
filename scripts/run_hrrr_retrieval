@@ -14,7 +14,8 @@ def run():
 
     if os.path.isfile(args.config_file):
         #hrrr.HRRR(args.config_file).retrieve_grib_filter()
-        hrrr.HRRR(args.config_file).retrieve_ftp()
+        # hrrr.HRRR(args.config_file).retrieve_ftp()
+        hrrr.HRRR(args.config_file).retrieve_http_by_date()
 
     else:
         raise IOError('File does not exist.')

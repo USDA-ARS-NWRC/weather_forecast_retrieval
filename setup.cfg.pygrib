@@ -1,6 +1,0 @@
-[install_options]
-[directories]
-grib_api_libdir = /usr/lib
-grib_api_incdir = /usr/include
-[files]
-grib_api_libname = eccodes

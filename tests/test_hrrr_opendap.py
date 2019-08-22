@@ -1,7 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""Tests for `weather_forecast_retrieval` package."""
+
 import unittest
 from weather_forecast_retrieval import hrrr
 import pandas as pd
 import os
+import urllib.request
 
 
 def compare_gold(v_name, gold_dir, test_df):
@@ -27,8 +33,8 @@ def compare_gold(v_name, gold_dir, test_df):
     return  result
 
 
-class TestHRRR(unittest.TestCase):
-    """Tests for `weather_forecast_retrieval` package."""
+class TestHRRROpendap(unittest.TestCase):
+    """Test loading HRRR from an openDAP server"""
 
     def setUp(self):
         """
@@ -36,43 +42,41 @@ class TestHRRR(unittest.TestCase):
         like SMRF
         """
 
-        # Find the right path to tests
-        # check whether or not this is being ran as a single test or part of the suite
-        check_file = 'test_hrrr.py'
-        if os.path.isfile(check_file):
-            self.test_dir = ''
-        elif os.path.isfile(os.path.join('tests', check_file)):
-            self.test_dir = 'tests'
-        else:
-            raise Exception('tests directory not found for testing')
+        self.url_path = 'http://10.200.28.71/thredds/catalog/hrrr_netcdf/catalog.xml'
 
-        self.test_dir = os.path.abspath(self.test_dir)
+        # check if we can access the THREDDS server
+        try:
+            status_code = urllib.request.urlopen(self.url_path).getcode()
+            if status_code != 200:
+                raise unittest.SkipTest('Unable to access THREDDS data server, skipping OpenDAP tests')
+        except:
+            raise unittest.SkipTest('Unable to access THREDDS data server, skipping OpenDAP tests')
 
         ### configurations for testing HRRR.get_saved_data
         self.bbox = [-116.85837324, 42.96134124, -116.64913327, 43.16852535]
-        self.start_date = pd.to_datetime('2018-07-22 12:00')
-        self.end_date = pd.to_datetime('2018-07-22 17:00')
-        self.hrrr_directory = os.path.join(self.test_dir,
-                                           'RME/gridded/hrrr_test/')
+
+        # start date and end date
+        self.start_date = pd.to_datetime('2018-02-08 12:00')
+        self.end_date = pd.to_datetime('2018-02-08 17:00')
+
+        self.hrrr_directory = 'tests/RME/gridded/hrrr_test/'
         self.force_zone_number = 11
+        self.day_hour = 0
 
-        self.output_path = os.path.join(self.test_dir,'RME','output')
-        self.gold = os.path.join(self.test_dir,'RME','gold','hrrr')
+        self.output_path = os.path.join('tests','RME','output')
+        self.gold = os.path.join('tests','RME','gold','hrrr_opendap')
 
 
-    def testHRRRGribLoad(self):
-        """
-        Load HRRR data from grib files
-        """
+    def test_load_data(self):
+        """ Test loading the data from an OpenDAP THREDDS server """
 
         # get the data
         metadata, data = hrrr.HRRR().get_saved_data(
                                         self.start_date,
                                         self.end_date,
                                         self.bbox,
-                                        file_type='grib2',
-                                        output_dir=self.hrrr_directory,
-                                        force_zone_number=self.force_zone_number)
+                                        file_type='netcdf',
+                                        output_dir=self.url_path)
 
         # compare with the gold standard
         for k, df in data.items():
@@ -80,3 +84,4 @@ class TestHRRR(unittest.TestCase):
             self.assertTrue(status)
 
         self.assertTrue(metadata is not None)
+

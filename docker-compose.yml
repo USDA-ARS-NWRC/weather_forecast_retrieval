@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  weather_forecast_retrieval:
+    image: weather_forecast_retrieval
+    build: .
+    user: "${CURRENT_UID}:1"
+    # command: run_hrrr_retrieval_dates
+    volumes:
+      - /data:/data
+      - /home/scotthavens/code/weather_forecast_retrieval/scripts:/code/config
