@@ -611,8 +611,13 @@ class HRRR():
         # instead of opening a session every time, just reuse
         if self.main_cat is None:
             self.main_cat = TDSCatalog(fp[0])
+
+        # have to ensure to change the day catalog if the day changes
         if self.day_cat is None:
             self.day_cat = TDSCatalog(self.main_cat.catalog_refs[fp[1]].href)
+        elif self.main_cat.catalog_refs[fp[1]].href != self.day_cat.catalog_url:
+            self.day_cat = TDSCatalog(self.main_cat.catalog_refs[fp[1]].href)
+
 
         if len(self.day_cat.datasets) == 0:
             raise Exception('HRRR netcdf THREDDS catalog has no datasets for day {}'.format(fp[1]))
