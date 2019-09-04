@@ -187,6 +187,18 @@ class HRRR():
         self._logger.info("=" * len(msg))
         self._logger.info(msg)
 
+    def __del__(self):
+        """
+        Clean up the TDS catalog sessions when HRRR is done
+        """
+
+        # TDS catalog sessions
+        if self.main_cat is not None:
+            if hasattr(self.main_cat, 'session'):
+                self.main_cat.session.close()
+        if self.day_cat is not None:
+            if hasattr(self.day_cat, 'session'):
+                self.day_cat.session.close()
 
     def retrieve_ftp(self):
         """
@@ -608,41 +620,50 @@ class HRRR():
 
         """
 
-        # instead of opening a session every time, just reuse
-        if self.main_cat is None:
-            self.main_cat = TDSCatalog(fp[0])
+        try:
+            # instead of opening a session every time, just reuse
+            if self.main_cat is None:
+                self.main_cat = TDSCatalog(fp[0])
 
-        # have to ensure to change the day catalog if the day changes
-        if self.day_cat is None:
-            self.day_cat = TDSCatalog(self.main_cat.catalog_refs[fp[1]].href)
-        elif self.main_cat.catalog_refs[fp[1]].href != self.day_cat.catalog_url:
-            self.day_cat = TDSCatalog(self.main_cat.catalog_refs[fp[1]].href)
+            # have to ensure to change the day catalog if the day changes
+            if self.day_cat is None:
+                self.day_cat = TDSCatalog(self.main_cat.catalog_refs[fp[1]].href)
+            elif self.main_cat.catalog_refs[fp[1]].href != self.day_cat.catalog_url:
+                # close the old session and start a new one
+                if hasattr(self.day_cat, 'session'):
+                    self.day_cat.session.close()
+                self.day_cat = TDSCatalog(self.main_cat.catalog_refs[fp[1]].href)
 
 
-        if len(self.day_cat.datasets) == 0:
-            raise Exception('HRRR netcdf THREDDS catalog has no datasets for day {}'.format(fp[1]))
+            if len(self.day_cat.datasets) == 0:
+                raise Exception('HRRR netcdf THREDDS catalog has no datasets for day {}'.format(fp[1]))
 
-        # go through and get the file reference
-        if fp[2] not in self.day_cat.datasets.keys():
-            raise Exception('{}/{} does not exist on THREDDS server'.format(fp[1], fp[2]))
+            # go through and get the file reference
+            if fp[2] not in self.day_cat.datasets.keys():
+                raise Exception('{}/{} does not exist on THREDDS server'.format(fp[1], fp[2]))
 
-        d = self.day_cat.datasets[fp[2]]
+            d = self.day_cat.datasets[fp[2]]
 
-        self._logger.info('Reading {}'.format(fp[2]))
-        data = xr.open_dataset(d.access_urls['OPENDAP'])
+            self._logger.info('Reading {}'.format(fp[2]))
+            data = xr.open_dataset(d.access_urls['OPENDAP'])
 
-        s = data.where((data.latitude >= self.bbox[1]) & 
-                       (data.latitude <= self.bbox[3]) & 
-                       (data.longitude >= self.bbox[0]+360) & 
-                       (data.longitude <= self.bbox[2]+360),
-                       drop=True)
-        
-        if self.data is None:
-            self.data = s
-        else:
-            self.data = xr.combine_by_coords([self.data, s])
+            s = data.where((data.latitude >= self.bbox[1]) & 
+                        (data.latitude <= self.bbox[3]) & 
+                        (data.longitude >= self.bbox[0]+360) & 
+                        (data.longitude <= self.bbox[2]+360),
+                        drop=True)
+            
+            if self.data is None:
+                self.data = s
+            else:
+                self.data = xr.combine_by_coords([self.data, s])
 
-        return True
+            return True
+
+        except Exception as e:
+            self._logger.warning(e)
+
+            return False
 
 
     def get_one_grib(self, fp, new_var_map, dt):
