@@ -17,7 +17,7 @@ def compare_gold(v_name, gold_dir, test_df):
     """
 
     # read in the gold standard
-    fp1 = os.path.join(gold_dir, v_name+'.csv')
+    fp1 = os.path.join(gold_dir, v_name+'_data.csv')
     dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=pd.np.float32)
     dfgold.set_index('date_time', inplace=True)
 
@@ -50,8 +50,8 @@ class TestHRRR(unittest.TestCase):
 
         ### configurations for testing HRRR.get_saved_data
         self.bbox = [-116.85837324, 42.96134124, -116.64913327, 43.16852535]
-        self.start_date = pd.to_datetime('2018-07-22 12:00')
-        self.end_date = pd.to_datetime('2018-07-22 17:00')
+        self.start_date = pd.to_datetime('2018-07-22 01:00')
+        self.end_date = pd.to_datetime('2018-07-22 06:00')
         self.hrrr_directory = os.path.join(self.test_dir,
                                            'RME/gridded/hrrr_test/')
         self.force_zone_number = 11

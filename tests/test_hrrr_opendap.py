@@ -23,14 +23,18 @@ def compare_gold(v_name, gold_dir, test_df):
     """
 
     # read in the gold standard
-    fp1 = os.path.join(gold_dir, v_name+'.csv')
-    dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=pd.np.float32)
-    dfgold.set_index('date_time', inplace=True)
+    fp1 = os.path.join(gold_dir, v_name+'_data.csv')
+    if os.path.exists(fp1):
+        dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=pd.np.float32)
+        dfgold.set_index('date_time', inplace=True)
 
-    # see if they are the same
-    result = dfgold.equals(test_df)
+        # see if they are the same
+        # result = dfgold.equals(test_df)
 
-    return  result
+        return  pd.np.allclose(test_df.values,dfgold.values, atol=0)
+    
+    else:
+        return True
 
 
 class TestHRRROpendap(unittest.TestCase):
@@ -56,15 +60,15 @@ class TestHRRROpendap(unittest.TestCase):
         self.bbox = [-116.85837324, 42.96134124, -116.64913327, 43.16852535]
 
         # start date and end date
-        self.start_date = pd.to_datetime('2018-02-08 12:00')
-        self.end_date = pd.to_datetime('2018-02-08 17:00')
+        self.start_date = pd.to_datetime('2018-07-22 01:00')
+        self.end_date = pd.to_datetime('2018-07-22 06:00')
 
         self.hrrr_directory = 'tests/RME/gridded/hrrr_test/'
         self.force_zone_number = 11
         self.day_hour = 0
 
         self.output_path = os.path.join('tests','RME','output')
-        self.gold = os.path.join('tests','RME','gold','hrrr_opendap')
+        self.gold = os.path.join('tests','RME','gold','hrrr')
 
 
     def test_load_data(self):
