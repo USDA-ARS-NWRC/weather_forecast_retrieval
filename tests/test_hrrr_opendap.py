@@ -82,6 +82,10 @@ class TestHRRROpendap(unittest.TestCase):
                                         file_type='netcdf',
                                         output_dir=self.url_path)
 
+        df = pd.read_csv(os.path.join(self.gold, 'metadata.csv'))
+        df.set_index('grid', inplace=True)
+        self.assertTrue(pd.np.allclose(df.values, metadata[df.columns].values, atol=0))
+
         # compare with the gold standard
         for k, df in data.items():
             status = compare_gold(k, self.gold, df)

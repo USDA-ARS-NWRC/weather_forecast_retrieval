@@ -22,7 +22,8 @@ def compare_gold(v_name, gold_dir, test_df):
     dfgold.set_index('date_time', inplace=True)
 
     # see if they are the same
-    result = dfgold.equals(test_df)
+    # result = dfgold.equals(test_df)
+    result = pd.np.allclose(test_df.values,dfgold.values, atol=0)
 
     return  result
 
@@ -73,6 +74,10 @@ class TestHRRR(unittest.TestCase):
                                         file_type='grib2',
                                         output_dir=self.hrrr_directory,
                                         force_zone_number=self.force_zone_number)
+
+        df = pd.read_csv(os.path.join(self.gold, 'metadata.csv'))
+        df.set_index('grid', inplace=True)
+        self.assertTrue(pd.np.allclose(df.values, metadata[df.columns].values, atol=0))
 
         # compare with the gold standard
         for k, df in data.items():
