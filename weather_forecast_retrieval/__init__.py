@@ -4,7 +4,7 @@
 
 __author__ = """Scott Havens"""
 __email__ = 'scott.havens@ars.usda.gov'
-__version__ = '0.6.7'
+__version__ = '0.6.8'
 
 from . import hrrr
 from . import rap
