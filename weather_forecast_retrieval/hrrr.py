@@ -114,6 +114,9 @@ class HRRR():
         self.num_requests = 2
         self.date_folder = True
 
+        # number of seconds for http request timeout
+        self.request_timeout = 600
+
         # TDS catalog sessions
         self.main_cat = None
         self.day_cat = None
@@ -130,6 +133,8 @@ class HRRR():
                 self.end_date = pd.to_datetime(self.config['output']['end_date'])
             if 'num_requests' in self.config['output'].keys():
                 self.num_requests = int(self.config['output']['num_requests'])
+            if 'request_timeout' in self.config['output'].keys():
+                self.request_timeout = int(self.config['output']['request_timeout'])
 
         # start logging
         if external_logger == None:
@@ -373,7 +378,7 @@ class HRRR():
         success = False
         try:
             self._logger.debug('Fetching {}'.format(uri))
-            r = requests.get(uri)
+            r = requests.get(uri, timeout=self.request_timeout)
             if r.status_code == 200:
                 f = r.url.split('/')[-1]
                 out_file = os.path.join(self.out_path, f)
