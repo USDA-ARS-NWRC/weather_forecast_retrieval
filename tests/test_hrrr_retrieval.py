@@ -31,6 +31,3 @@ class TestHRRRRetrevial(unittest.TestCase):
             r = hrrr.HRRR(self.config_file).retrieve_http_by_date(self.start_date, self.end_date)
         except Exception as e:
             self.fail('Download failed: {}'.format(e))
-
-
-
