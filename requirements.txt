@@ -1,7 +1,7 @@
 pyyaml==4.2b1
 coloredlogs==6.1
 siphon>=0.6.1
-pyproj>=1.9.5.1
+pyproj>=1.9.5.1,<2.0
 utm==0.4.0
 pytz
 requests>=2.21.0

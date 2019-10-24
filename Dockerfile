@@ -51,11 +51,6 @@ RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/reposit
     make install && \
     apk del .nco-dependencies && \
     rm -rf /code/nco-4.7.2
-    
-# build the requirements first, CCFLAGS help reduce the size of pandas and numpy
-COPY requirements_grib2nc.txt /code
-RUN CFLAGS="-g0 -Wl,--strip-all" \
-    python3 -m pip install --no-cache-dir --compile --global-option=build_ext -r /code/requirements_grib2nc.txt 
 
 # Add the weather code
 ADD . /code/weather_forecast_retrieval
@@ -63,6 +58,8 @@ ADD . /code/weather_forecast_retrieval
 # Add and build weather forecast retrival
 RUN cd /code/weather_forecast_retrieval && \
     apk --no-cache add netcdf-utils hdf5 hdf5-dev libffi-dev && \
+    CFLAGS="-g0 -Wl,--strip-all" \
+    python3 -m pip install --no-cache-dir --compile --global-option=build_ext -r requirements.txt && \
     python3 setup.py install && \
     apk del .build-dependencies
 
