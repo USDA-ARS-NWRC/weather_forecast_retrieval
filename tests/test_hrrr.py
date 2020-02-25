@@ -10,7 +10,7 @@ def compare_gold(v_name, gold_dir, test_df):
     Args:
         v_name: Name with in the file contains
         gold_dir: Directory containing gold standard results
-        test_dir: Directory containing test results to be compared
+        test_df: Data frame containing test results to be compared
     Returns:
         Boolean: Whether the two images were the same
     """
