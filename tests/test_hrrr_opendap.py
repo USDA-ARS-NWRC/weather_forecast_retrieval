@@ -3,11 +3,14 @@
 
 """Tests for `weather_forecast_retrieval` package."""
 
-import unittest
-from weather_forecast_retrieval import hrrr
-import pandas as pd
 import os
+import unittest
 import urllib.request
+
+import numpy as np
+import pandas as pd
+
+from weather_forecast_retrieval import hrrr
 
 
 def compare_gold(v_name, gold_dir, test_df):
@@ -25,14 +28,19 @@ def compare_gold(v_name, gold_dir, test_df):
     # read in the gold standard
     fp1 = os.path.join(gold_dir, v_name+'_data.csv')
     if os.path.exists(fp1):
-        dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=pd.np.float32)
+        dfgold = pd.read_csv(
+            fp1,
+            'r',
+            delimiter=',',
+            parse_dates=['date_time'],
+            dtype=np.float32
+        )
         dfgold.set_index('date_time', inplace=True)
 
         # see if they are the same
         # result = dfgold.equals(test_df)
 
-        return  pd.np.allclose(test_df.values,dfgold.values, atol=0)
-    
+        return np.allclose(test_df.values,dfgold.values, atol=0)
     else:
         return True
 
@@ -84,7 +92,9 @@ class TestHRRROpendap(unittest.TestCase):
 
         df = pd.read_csv(os.path.join(self.gold, 'metadata.csv'))
         df.set_index('grid', inplace=True)
-        self.assertTrue(pd.np.allclose(df.values, metadata[df.columns].values, atol=0))
+        self.assertTrue(
+            np.allclose(df.values, metadata[df.columns].values, atol=0)
+        )
 
         # compare with the gold standard
         for k, df in data.items():

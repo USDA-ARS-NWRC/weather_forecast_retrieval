@@ -3,11 +3,14 @@
 
 """Tests for `weather_forecast_retrieval` package."""
 
-import unittest
-from weather_forecast_retrieval import hrrr, hrrr_archive
-import pandas as pd
 import os
 import shutil
+import unittest
+
+import numpy as np
+import pandas as pd
+
+from weather_forecast_retrieval import hrrr_archive
 
 
 def compare_gold(v_name, gold_dir, test_df):
@@ -24,13 +27,15 @@ def compare_gold(v_name, gold_dir, test_df):
 
     # read in the gold standard
     fp1 = os.path.join(gold_dir, v_name+'.csv')
-    dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=pd.np.float32)
+    dfgold = pd.read_csv(
+        fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=np.float32
+    )
     dfgold.set_index('date_time', inplace=True)
 
     # see if they are the same
     result = dfgold.equals(test_df)
 
-    return  result
+    return result
 
 
 class TestHRRRArchive(unittest.TestCase):
@@ -84,7 +89,7 @@ class TestHRRRArchive(unittest.TestCase):
             self.output_path,
             forecasts=0
         )
-            
+
     def test_download_archive(self):
         """ Test downloading the archive data from UofU, could take around 8 minutes """
 

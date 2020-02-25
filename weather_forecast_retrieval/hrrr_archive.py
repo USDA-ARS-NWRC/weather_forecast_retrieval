@@ -16,15 +16,16 @@ http://hrrr.chpc.utah.edu/
 
 """
 
-from datetime import date, datetime, timedelta
 import argparse
 import logging
-import coloredlogs
-import time
 import os
+import time
+from datetime import datetime
+
+import coloredlogs
+import pandas as pd
 import pytz
 import requests
-import pandas as pd
 
 # times when downloading should stop as recomended by U of U
 tzmdt = pytz.timezone('America/Denver')
