@@ -12,6 +12,7 @@ from ftplib import FTP
 from logging.handlers import TimedRotatingFileHandler
 from multiprocessing.pool import ThreadPool
 
+import numpy as np
 import pandas as pd
 import requests
 import utm
@@ -703,15 +704,15 @@ class HRRR:
                 # remove some coordinate so they can all be combined into one dataset
                 for v in ['heightAboveGround', 'surface']:
                     if v in data.coords.keys():
-                        data = data.drop(v)
+                        data = data.drop_vars(v)
 
                 # make the time an index coordinate
                 data = data.assign_coords(time=data['valid_time'])
                 data = data.expand_dims('time')
 
                 # have to set the x and y coordinates based on the 3000 meter cell size
-                data = data.assign_coords(x=pd.np.arange(0, len(data['x'])) * 3000)
-                data = data.assign_coords(y=pd.np.arange(0, len(data['y'])) * 3000)
+                data = data.assign_coords(x=np.arange(0, len(data['x'])) * 3000)
+                data = data.assign_coords(y=np.arange(0, len(data['y'])) * 3000)
 
                 # delete the step and valid time coordinates
                 del data['step']

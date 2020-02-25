@@ -10,3 +10,4 @@ xarray>=0.12.3
 cfgrib>=0.9.7.1
 beautifulsoup4
 pandas
+numpy
