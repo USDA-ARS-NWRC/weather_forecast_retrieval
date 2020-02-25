@@ -12,7 +12,7 @@ class TestHRRRRetrevial(unittest.TestCase):
     def setUp(self):
         self.end_date = datetime.utcnow()
         self.start_date = self.end_date - timedelta(minutes=10)
-        self.config_file = config_file = 'tests/hrrr_dates_test.ini'
+        self.config_file = 'tests/hrrr_dates_test.ini'
 
     def tearDown(self):
         """
