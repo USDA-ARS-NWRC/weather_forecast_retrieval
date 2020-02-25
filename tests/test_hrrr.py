@@ -1,7 +1,6 @@
+import os
 import unittest
 from weather_forecast_retrieval import hrrr
-import pandas as pd
-import os
 
 
 def compare_gold(v_name, gold_dir, test_df):

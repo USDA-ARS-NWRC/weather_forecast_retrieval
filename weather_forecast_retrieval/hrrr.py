@@ -2,23 +2,24 @@
 Connect to the HRRR site and download the data
 """
 
-from ftplib import FTP
-import os, fnmatch
-import logging
-from logging.handlers import TimedRotatingFileHandler
-from datetime import datetime, timedelta, time
-import pandas as pd
-import utm
 import copy
-from bs4 import BeautifulSoup
-import requests
+import fnmatch
+import logging
+import os
 import re
-from siphon.catalog import TDSCatalog
-import xarray as xr
+from datetime import datetime, timedelta, time
+from ftplib import FTP
+from logging.handlers import TimedRotatingFileHandler
 from multiprocessing.pool import ThreadPool
 
-from weather_forecast_retrieval import hrrr_archive
-from weather_forecast_retrieval import utils
+import pandas as pd
+import requests
+import utm
+import xarray as xr
+from bs4 import BeautifulSoup
+from siphon.catalog import TDSCatalog
+
+from weather_forecast_retrieval import hrrr_archive, utils
 
 
 class HRRR:
