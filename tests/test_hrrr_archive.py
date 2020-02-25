@@ -20,7 +20,7 @@ def compare_gold(v_name, gold_dir, test_df):
     Args:
         v_name: Name with in the file contains
         gold_dir: Directory containing gold standard results
-        test_dir: Directory containing test results to be compared
+        test_df: Data frame containing test results to be compared
     Returns:
         Boolean: Whether the two images were the same
     """
@@ -71,10 +71,13 @@ class TestHRRRArchive(unittest.TestCase):
             shutil.rmtree(out_dir)
 
     def test_archive_errors(self):
-        """ Test some of the simple errors for the archive """
+        """
+        Test some of the simple errors for the archive
+        """
 
         # start end date
-        self.assertRaises(Exception, 
+        self.assertRaises(
+            Exception,
             hrrr_archive.HRRR_from_UofU,
             self.end_date,
             self.start_date,
@@ -82,7 +85,8 @@ class TestHRRRArchive(unittest.TestCase):
         )
 
         # forecasts
-        self.assertRaises(Exception, 
+        self.assertRaises(
+            Exception,
             hrrr_archive.HRRR_from_UofU,
             self.start_date,
             self.end_date,
@@ -91,7 +95,10 @@ class TestHRRRArchive(unittest.TestCase):
         )
 
     def test_download_archive(self):
-        """ Test downloading the archive data from UofU, could take around 8 minutes """
+        """
+        Test downloading the archive data from UofU.
+        Can take around 8 minutes.
+        """
 
         # get the data from the archive
         hrrr_archive.HRRR_from_UofU(

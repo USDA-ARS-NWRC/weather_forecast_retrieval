@@ -185,7 +185,7 @@ def HRRR_from_UofU(start_date, end_date, save_dir, external_logger=None,
     if start_date >= end_date:
         logger.error('Start date is before end date')
         raise Exception('Start date is before end date')
-    
+
     if not isinstance(forecasts, range):
         if not isinstance(forecasts, list):
             logger.error('forecasts must be a list or range')
