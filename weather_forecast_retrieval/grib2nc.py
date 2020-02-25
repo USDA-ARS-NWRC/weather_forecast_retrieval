@@ -1,21 +1,20 @@
-import os
-import sys
-from subprocess import check_output
 import argparse
-import time
-import coloredlogs
 import logging
+import os
+import time
+from subprocess import check_output
+
+import coloredlogs
 
 
-def grib2nc(f_hrrr, output=None, external_logger=None,
-            chunk_x = 45, chunk_y = 45):
+def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
     """
     Converts grib files to netcdf using HRRR forecast data and the
     variables required by the SMRF.
     Uses the wgrib2 command to identify variable names and uses that to filter
     the output from the commandline.
 
-    args:
+    Args:
         f_hrrr: Path to a HRRR grib file
         output: Path to output the resulting netcdf
         external_logger: External logger is desired
@@ -24,7 +23,8 @@ def grib2nc(f_hrrr, output=None, external_logger=None,
 
     """
     start = time.time()
-    if external_logger == None:
+
+    if external_logger is None:
         fmt = "%(levelname)s: %(msg)s"
         log = logging.getLogger(__name__)
         coloredlogs.install(logger=log, fmt=fmt)
@@ -32,44 +32,41 @@ def grib2nc(f_hrrr, output=None, external_logger=None,
         msg = "GRIB2NC Converter Utility"
         log.info(msg)
         log.info("=" * len(msg))
-
     else:
         log = external_logger
 
     log.info('Converting to netcdf: {}'.format(f_hrrr))
 
     # criteria dictionary for extracting variables, CASE MATTERS
-    criteria = {'air_temp': {
-                    'wgrib2 keys':[":TMP Temperature","2 m"]},
-
-                'dew_point': {
-                'wgrib2 keys':[":DPT","2 m"]},
-
-                'relative_humidity': {
-                'wgrib2 keys':[":RH Relative Humidity","2 m"]
-                },
-            'wind_u': {
-                'wgrib2 keys':[":UGRD U-Component","10 m"]
-
-                },
-            'wind_v': {
-                'wgrib2 keys':[":VGRD V-Component","10 m"]
-
-                },
-            'precip_int': {
-                'wgrib2 keys':[":APCP Total Precipitation"]
-
-                },
-            'short_wave': {
-                'wgrib2 keys':['Downward Short-Wave Radiation Flux', ':surface']
-                },
-            'elevation': {
-                'wgrib2 keys': ['Geopotential Height', ':surface']
-            }
-            }
+    criteria = {
+        'air_temp': {
+            'wgrib2 keys': [":TMP Temperature", "2 m"]
+        },
+        'dew_point': {
+            'wgrib2 keys': [":DPT", "2 m"]
+        },
+        'relative_humidity': {
+            'wgrib2 keys': [":RH Relative Humidity", "2 m"]
+        },
+        'wind_u': {
+            'wgrib2 keys': [":UGRD U-Component", "10 m"]
+        },
+        'wind_v': {
+            'wgrib2 keys': [":VGRD V-Component", "10 m"]
+        },
+        'precip_int': {
+            'wgrib2 keys': [":APCP Total Precipitation"]
+        },
+        'short_wave': {
+            'wgrib2 keys': ['Downward Short-Wave Radiation Flux', ':surface']
+        },
+        'elevation': {
+            'wgrib2 keys': ['Geopotential Height', ':surface']
+        }
+    }
 
     # No output file name used, use the original plus a new extension
-    if output == None:
+    if output is None:
         output = ".".join(os.path.basename(f_hrrr).split(".")[0:-1]) + ".nc"
     temp_output = output + '.tmp'
 
@@ -136,17 +133,19 @@ def main():
                                 " HRRR grib files to netcdf using only the "
                                 " variables we want.")
 
-    p.add_argument(dest="hrrr", help="Path to the HRRR file containing the"
-                                     " variables for SMRF")
-    p.add_argument("-o", "--output", dest="output", required=False,
-                                                default=None,
-                                                help="Path to output the netcdf"
-                                                " file if you don't want it"
-                                                " renamed the same as the hrrr"
-                                                " file with a different"
-                                                " extension.")
+    p.add_argument(dest="hrrr",
+                   help="Path to the HRRR file containing the variables "
+                        "for SMRF")
+    p.add_argument("-o", "--output",
+                   dest="output",
+                   required=False,
+                   default=None,
+                   help="Path to output the netcdf file if you don't want it "
+                        "renamed the same as the hrrr file with a different "
+                        "extension.")
     args = p.parse_args()
     grib2nc(args.hrrr, args.output)
+
 
 if __name__ == "__main__":
     main()
