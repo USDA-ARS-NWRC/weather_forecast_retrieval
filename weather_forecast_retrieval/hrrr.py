@@ -21,7 +21,7 @@ from weather_forecast_retrieval import hrrr_archive
 from weather_forecast_retrieval import utils
 
 
-class HRRR():
+class HRRR:
     """
     The High Resolution Rapid Refresh (HRRR) model is a NOAA
     real-time 3 km resolution forecast. The model output is updated
@@ -134,7 +134,7 @@ class HRRR():
                 self.request_timeout = int(self.config['output']['request_timeout'])
 
         # start logging
-        if external_logger == None:
+        if external_logger is None:
 
             # setup the logging
             if configFile is not None:
@@ -667,7 +667,6 @@ class HRRR():
 
             return False
 
-
     def get_one_grib(self, fp, new_var_map, dt):
         """
         Get valid HRRR data using xarray
@@ -738,7 +737,6 @@ class HRRR():
                 success = False
 
         return success
-
 
     def check_file_health(self, output_dir, start_date, end_date,
                           hours=range(23), forecasts=range(18), min_size=100):
