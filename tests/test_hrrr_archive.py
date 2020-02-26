@@ -3,11 +3,14 @@
 
 """Tests for `weather_forecast_retrieval` package."""
 
-import unittest
-from weather_forecast_retrieval import hrrr, hrrr_archive
-import pandas as pd
 import os
 import shutil
+import unittest
+
+import numpy as np
+import pandas as pd
+
+from weather_forecast_retrieval import hrrr_archive
 
 
 def compare_gold(v_name, gold_dir, test_df):
@@ -17,20 +20,22 @@ def compare_gold(v_name, gold_dir, test_df):
     Args:
         v_name: Name with in the file contains
         gold_dir: Directory containing gold standard results
-        test_dir: Directory containing test results to be compared
+        test_df: Data frame containing test results to be compared
     Returns:
         Boolean: Whether the two images were the same
     """
 
     # read in the gold standard
     fp1 = os.path.join(gold_dir, v_name+'.csv')
-    dfgold = pd.read_csv(fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=pd.np.float32)
+    dfgold = pd.read_csv(
+        fp1, 'r', delimiter=',', parse_dates=['date_time'], dtype=np.float32
+    )
     dfgold.set_index('date_time', inplace=True)
 
     # see if they are the same
     result = dfgold.equals(test_df)
 
-    return  result
+    return result
 
 
 class TestHRRRArchive(unittest.TestCase):
@@ -66,10 +71,13 @@ class TestHRRRArchive(unittest.TestCase):
             shutil.rmtree(out_dir)
 
     def test_archive_errors(self):
-        """ Test some of the simple errors for the archive """
+        """
+        Test some of the simple errors for the archive
+        """
 
         # start end date
-        self.assertRaises(Exception, 
+        self.assertRaises(
+            Exception,
             hrrr_archive.HRRR_from_UofU,
             self.end_date,
             self.start_date,
@@ -77,16 +85,20 @@ class TestHRRRArchive(unittest.TestCase):
         )
 
         # forecasts
-        self.assertRaises(Exception, 
+        self.assertRaises(
+            Exception,
             hrrr_archive.HRRR_from_UofU,
             self.start_date,
             self.end_date,
             self.output_path,
             forecasts=0
         )
-            
+
     def test_download_archive(self):
-        """ Test downloading the archive data from UofU, could take around 8 minutes """
+        """
+        Test downloading the archive data from UofU.
+        Can take around 8 minutes.
+        """
 
         # get the data from the archive
         hrrr_archive.HRRR_from_UofU(

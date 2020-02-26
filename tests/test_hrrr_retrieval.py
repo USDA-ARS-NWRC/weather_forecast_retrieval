@@ -1,9 +1,9 @@
-import unittest
-from datetime import datetime, timedelta
-from weather_forecast_retrieval import hrrr
-import pandas as pd
 import os
 import shutil
+import unittest
+from datetime import datetime, timedelta
+
+from weather_forecast_retrieval import hrrr
 
 
 class TestHRRRRetrevial(unittest.TestCase):
@@ -12,7 +12,7 @@ class TestHRRRRetrevial(unittest.TestCase):
     def setUp(self):
         self.end_date = datetime.utcnow()
         self.start_date = self.end_date - timedelta(minutes=10)
-        self.config_file = config_file = 'tests/hrrr_dates_test.ini'
+        self.config_file = 'tests/hrrr_dates_test.ini'
 
     def tearDown(self):
         """
@@ -25,9 +25,10 @@ class TestHRRRRetrevial(unittest.TestCase):
         shutil.rmtree(out_path)
 
     def test_download_dates(self):
-        """ Test loading the data from an OpenDAP THREDDS server """     
+        """ Test loading the data from an OpenDAP THREDDS server """
 
         try:
-            r = hrrr.HRRR(self.config_file).retrieve_http_by_date(self.start_date, self.end_date)
+            hrrr.HRRR(self.config_file)\
+                .retrieve_http_by_date(self.start_date, self.end_date)
         except Exception as e:
             self.fail('Download failed: {}'.format(e))

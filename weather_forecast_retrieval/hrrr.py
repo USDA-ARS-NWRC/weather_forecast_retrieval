@@ -2,29 +2,28 @@
 Connect to the HRRR site and download the data
 """
 
-from ftplib import FTP
-import os, sys, fnmatch
-import logging
-from logging.handlers import TimedRotatingFileHandler
-from datetime import datetime, timedelta, time
-import pandas as pd
-import utm
-# import numpy as np
 import copy
-from bs4 import BeautifulSoup
-import requests
+import fnmatch
+import logging
+import os
 import re
-import netCDF4 as nc
-from siphon.catalog import TDSCatalog
-import xarray as xr
+from datetime import datetime, timedelta, time
+from ftplib import FTP
+from logging.handlers import TimedRotatingFileHandler
 from multiprocessing.pool import ThreadPool
 
-from weather_forecast_retrieval import hrrr_archive
-from weather_forecast_retrieval import utils
-from weather_forecast_retrieval.grib2nc import grib2nc
+import numpy as np
+import pandas as pd
+import requests
+import utm
+import xarray as xr
+from bs4 import BeautifulSoup
+from siphon.catalog import TDSCatalog
+
+from weather_forecast_retrieval import hrrr_archive, utils
 
 
-class HRRR():
+class HRRR:
     """
     The High Resolution Rapid Refresh (HRRR) model is a NOAA
     real-time 3 km resolution forecast. The model output is updated
@@ -45,9 +44,9 @@ class HRRR():
     # need to make this hour correct for the forecast
     file_filter = 'hrrr.t*z.wrfsfcf*.grib2'
     regexp = re.compile('hrrr\.t\d\dz\.wrfsfcf\d\d\.grib2')
-    
+
     http_url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.{}/conus/'
-    
+
     # dataset filter by keys arguments
     var_map_grib = {
         'air_temp': {
@@ -92,7 +91,7 @@ class HRRR():
             }
         }
 
-    # variable map to read the netcdf, the field names are those 
+    # variable map to read the netcdf, the field names are those
     # converted from wgrib2 by default
     var_map_netcdf = {
         'air_temp': 'TMP_2maboveground',
@@ -126,7 +125,7 @@ class HRRR():
 
             # parse the rest of the config file
             self.output_dir = self.config['output']['output_dir']
-            
+
             if 'start_date' in self.config['output'].keys():
                 self.start_date = pd.to_datetime(self.config['output']['start_date'])
             if 'end_date' in self.config['output'].keys():
@@ -137,7 +136,7 @@ class HRRR():
                 self.request_timeout = int(self.config['output']['request_timeout'])
 
         # start logging
-        if external_logger == None:
+        if external_logger is None:
 
             # setup the logging
             if configFile is not None:
@@ -165,7 +164,7 @@ class HRRR():
                 #                     filemode='a',
                 #                     level=numeric_level,
                 #                     format=fmt)
-                
+
                 handler = TimedRotatingFileHandler(logfile,
                                                    when='D',
                                                    interval=1,
@@ -330,7 +329,7 @@ class HRRR():
             if node.get('href').endswith('grib2'):
                 file_name = node.get('href')
                 result = self.regexp.match(file_name)
-                
+
                 if result:
                     # matched a file name so get more information about it
                     file_url = url_date + file_name
@@ -387,13 +386,13 @@ class HRRR():
                     f.close()
                     self._logger.debug('Saved to {}'.format(out_file))
                     success = out_file
-                        
+
         except Exception as e:
             self._logger.warning('Problem processing response')
             self._logger.warning(e)
-            
+
         return success
-        
+
 
     def get_saved_data(self, start_date, end_date, bbox, file_type='grib2', output_dir=None,
                        var_map=None, forecast=[0], force_zone_number=None,
@@ -493,7 +492,7 @@ class HRRR():
         01            01   02   03   04
         02                 01   02   03
         03                      01   02
-        
+
         """
         self.idx = None
         self.metadata = None
@@ -568,7 +567,7 @@ class HRRR():
             else:
                 df = self.data[value].to_dataframe()
 
-            # convert from a row multiindex to a column multiindex 
+            # convert from a row multiindex to a column multiindex
             df = df.unstack(level=[1,2])
 
             # Get the metadata using the elevation variables
@@ -589,7 +588,7 @@ class HRRR():
                 self.metadata['longitude'] -= 360   # it's reporting in degrees from the east
                 self.metadata = self.metadata.apply(apply_utm, args=(self.force_zone_number,), axis=1)
                 self.metadata.rename(columns={value: key}, inplace=True)
-            
+
             else:
                 # else this is just a normal variable
                 del df['longitude']
@@ -608,7 +607,7 @@ class HRRR():
         c = []
         for key in self.df.keys():
             c.extend(list(self.df[key].columns.values))
-        
+
         self.metadata = self.metadata[self.metadata.index.isin(list(set(c)))]
 
     def get_one_netcdf(self, fp, var_map, dt):
@@ -652,12 +651,12 @@ class HRRR():
             self._logger.info('Reading {}'.format(fp[2]))
             data = xr.open_dataset(d.access_urls['OPENDAP'])
 
-            s = data.where((data.latitude >= self.bbox[1]) & 
-                        (data.latitude <= self.bbox[3]) & 
-                        (data.longitude >= self.bbox[0]+360) & 
+            s = data.where((data.latitude >= self.bbox[1]) &
+                        (data.latitude <= self.bbox[3]) &
+                        (data.longitude >= self.bbox[0]+360) &
                         (data.longitude <= self.bbox[2]+360),
                         drop=True)
-            
+
             if self.data is None:
                 self.data = s
             else:
@@ -669,7 +668,6 @@ class HRRR():
             self._logger.warning(e)
 
             return False
-
 
     def get_one_grib(self, fp, new_var_map, dt):
         """
@@ -690,7 +688,7 @@ class HRRR():
         for key,params in new_var_map.items():
 
             try:
-                
+
                 # open just one dataset at a time
                 data = xr.open_dataset(fp, engine='cfgrib', backend_kwargs={'filter_by_keys': params})
 
@@ -706,23 +704,23 @@ class HRRR():
                 # remove some coordinate so they can all be combined into one dataset
                 for v in ['heightAboveGround', 'surface']:
                     if v in data.coords.keys():
-                        data = data.drop(v)
+                        data = data.drop_vars(v)
 
                 # make the time an index coordinate
                 data = data.assign_coords(time=data['valid_time'])
                 data = data.expand_dims('time')
 
                 # have to set the x and y coordinates based on the 3000 meter cell size
-                data = data.assign_coords(x=pd.np.arange(0, len(data['x'])) * 3000)
-                data = data.assign_coords(y=pd.np.arange(0, len(data['y'])) * 3000)
+                data = data.assign_coords(x=np.arange(0, len(data['x'])) * 3000)
+                data = data.assign_coords(y=np.arange(0, len(data['y'])) * 3000)
 
                 # delete the step and valid time coordinates
                 del data['step']
                 del data['valid_time']
 
-                s = data.where((data.latitude >= self.bbox[1]) & 
-                       (data.latitude <= self.bbox[3]) & 
-                       (data.longitude >= self.bbox[0]+360) & 
+                s = data.where((data.latitude >= self.bbox[1]) &
+                       (data.latitude <= self.bbox[3]) &
+                       (data.longitude >= self.bbox[0]+360) &
                        (data.longitude <= self.bbox[2]+360),
                        drop=True)
 
@@ -741,7 +739,6 @@ class HRRR():
                 success = False
 
         return success
-
 
     def check_file_health(self, output_dir, start_date, end_date,
                           hours=range(23), forecasts=range(18), min_size=100):

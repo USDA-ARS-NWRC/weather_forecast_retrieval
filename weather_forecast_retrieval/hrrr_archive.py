@@ -16,15 +16,16 @@ http://hrrr.chpc.utah.edu/
 
 """
 
-from datetime import date, datetime, timedelta
 import argparse
 import logging
-import coloredlogs
-import time
 import os
+import time
+from datetime import datetime
+
+import coloredlogs
+import pandas as pd
 import pytz
 import requests
-import pandas as pd
 
 # times when downloading should stop as recomended by U of U
 tzmdt = pytz.timezone('America/Denver')
@@ -184,7 +185,7 @@ def HRRR_from_UofU(start_date, end_date, save_dir, external_logger=None,
     if start_date >= end_date:
         logger.error('Start date is before end date')
         raise Exception('Start date is before end date')
-    
+
     if not isinstance(forecasts, range):
         if not isinstance(forecasts, list):
             logger.error('forecasts must be a list or range')
