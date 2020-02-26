@@ -1,20 +1,23 @@
 #!/usr/bin/env python
 
-import pandas as pd
-import numpy as np
-import mysql.connector
-import os
+import argparse
 import copy
+import datetime
+import os
+
+import numpy as np
+import pandas as pd
 import utm
+
+import matplotlib.pyplot as plt
+import mysql.connector
+import scipy.spatial
+
 try:
     from weather_forecast_retrieval import hrrr
 except:
     pass
 
-import matplotlib.pyplot as plt
-import scipy.spatial
-import argparse
-import datetime
 
 sql_user={'user': 'micahsandusky',
           'password': 'B3rj3r+572',

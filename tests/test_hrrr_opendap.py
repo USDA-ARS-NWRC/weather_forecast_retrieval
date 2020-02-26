@@ -101,4 +101,3 @@ class TestHRRROpendap(unittest.TestCase):
             self.assertTrue(status)
 
         self.assertTrue(metadata is not None)
-

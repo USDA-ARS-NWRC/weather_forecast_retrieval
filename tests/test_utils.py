@@ -1,7 +1,10 @@
-import unittest
-from weather_forecast_retrieval import hrrr, utils
-import pandas as pd
 import os
+import unittest
+
+import pandas as pd
+
+from weather_forecast_retrieval import hrrr, utils
+
 
 class TestUtils(unittest.TestCase):
     """Test some of the utils"""

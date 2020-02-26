@@ -1,7 +1,9 @@
 
-import os, sys
-from collections import Sequence
 import datetime
+import os
+import sys
+from collections import Sequence
+
 import pandas as pd
 
 PY3 = sys.version_info[0] >= 3

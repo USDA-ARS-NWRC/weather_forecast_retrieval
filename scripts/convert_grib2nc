@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
+import argparse
+import logging
+import os
+from datetime import datetime, time
+from logging.handlers import TimedRotatingFileHandler
+
+import pandas as pd
+
 from weather_forecast_retrieval import hrrr, utils
 from weather_forecast_retrieval.grib2nc import grib2nc
-import os
-import argparse
-import pandas as pd
-from datetime import datetime, time
-import logging
-from logging.handlers import TimedRotatingFileHandler
+
 
 def run(config_file, start_date):
 

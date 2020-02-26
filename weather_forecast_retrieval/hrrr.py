@@ -7,7 +7,7 @@ import fnmatch
 import logging
 import os
 import re
-from datetime import datetime, timedelta, time
+from datetime import datetime, time, timedelta
 from ftplib import FTP
 from logging.handlers import TimedRotatingFileHandler
 from multiprocessing.pool import ThreadPool
@@ -54,42 +54,42 @@ class HRRR:
             'typeOfLevel': 'heightAboveGround',
             'cfName': 'air_temperature',
             'cfVarName': 't2m'
-            },
+        },
         'relative_humidity': {
             'level': 2,
             'typeOfLevel': 'heightAboveGround',
             # 'parameterName': 'Relative humidity',
             'cfVarName': 'r2'
-            },
+        },
         'wind_u': {
             'level': 10,
             'typeOfLevel': 'heightAboveGround',
             # 'parameterName': 'u-component of wind',
             'cfVarName': 'u10'
-            },
+        },
         'wind_v': {
             'level': 10,
             'typeOfLevel': 'heightAboveGround',
             # 'parameterName': 'v-component of wind',
             'cfVarName': 'v10'
-            },
+        },
         'precip_int': {
             'level': 0,
             'typeOfLevel': 'surface',
             'name': 'Total Precipitation',
             'shortName': 'tp'
-            },
+        },
         'short_wave': {
             'level': 0,
             'typeOfLevel': 'surface',
             'stepType': 'instant',
             'cfVarName': 'dswrf'
-            },
+        },
         'elevation': {
             'typeOfLevel': 'surface',
             'cfVarName': 'orog'
-            }
         }
+    }
 
     # variable map to read the netcdf, the field names are those
     # converted from wgrib2 by default
@@ -102,7 +102,7 @@ class HRRR:
         'precip_int': 'APCP_surface',
         'short_wave': 'DSWRF_surface',
         'elevation': 'HGT_surface',
-        }
+    }
 
     def __init__(self, configFile=None, external_logger=None):
         """
@@ -127,13 +127,16 @@ class HRRR:
             self.output_dir = self.config['output']['output_dir']
 
             if 'start_date' in self.config['output'].keys():
-                self.start_date = pd.to_datetime(self.config['output']['start_date'])
+                self.start_date = pd.to_datetime(
+                    self.config['output']['start_date'])
             if 'end_date' in self.config['output'].keys():
-                self.end_date = pd.to_datetime(self.config['output']['end_date'])
+                self.end_date = pd.to_datetime(
+                    self.config['output']['end_date'])
             if 'num_requests' in self.config['output'].keys():
                 self.num_requests = int(self.config['output']['num_requests'])
             if 'request_timeout' in self.config['output'].keys():
-                self.request_timeout = int(self.config['output']['request_timeout'])
+                self.request_timeout = int(
+                    self.config['output']['request_timeout'])
 
         # start logging
         if external_logger is None:
@@ -245,9 +248,11 @@ class HRRR:
             forecast_hours = range(24)
             for fhr in forecast_hours:
 
-                wanted_files = fnmatch.filter(ftp_files, self.file_name.format(fhr))
+                wanted_files = fnmatch.filter(
+                    ftp_files, self.file_name.format(fhr))
 
-                self._logger.debug('Found {} files matching pattern'.format(len(wanted_files)))
+                self._logger.debug(
+                    'Found {} files matching pattern'.format(len(wanted_files)))
 
                 # go through each file and see if it exists, retrieve if not
                 for f in wanted_files:
@@ -260,7 +265,8 @@ class HRRR:
                         h.close()
 
         ftp.close()
-        self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
+        self._logger.info(
+            '{} -- Done with downloads'.format(datetime.now().isoformat()))
 
     def retrieve_http_by_date(self, start_date=None, end_date=None):
         """
@@ -335,21 +341,24 @@ class HRRR:
                     file_url = url_date + file_name
                     data = node.next_element.next_element.strip()
                     el = data.split(' ')
-                    modified = pd.to_datetime(el[0] + ' ' + el[1]).tz_localize(tz='UTC')
+                    modified = pd.to_datetime(
+                        el[0] + ' ' + el[1]).tz_localize(tz='UTC')
                     size = el[3]
                     df = df.append({
                         'modified': modified,
                         'file_name': file_name,
                         'url': file_url,
                         'size': size
-                        }, ignore_index=True)
+                    }, ignore_index=True)
 
         self._logger.debug('Found {} matching files'.format(len(df)))
 
         # parse by the date
-        idx = (df['modified'] >= self.start_date) & (df['modified'] <= self.end_date)
+        idx = (df['modified'] >= self.start_date) & (
+            df['modified'] <= self.end_date)
         df = df.loc[idx]
-        self._logger.debug('Found {} files between start and end date'.format(len(df)))
+        self._logger.debug(
+            'Found {} files between start and end date'.format(len(df)))
 
         self._logger.debug('Generating requests')
         pool = ThreadPool(processes=self.num_requests)
@@ -360,7 +369,8 @@ class HRRR:
         # for the requests to finish before continuing
         res = pool.map(self.fetch_url, df.url.to_list())
 
-        self._logger.info('{} -- Done with downloads'.format(datetime.now().isoformat()))
+        self._logger.info(
+            '{} -- Done with downloads'.format(datetime.now().isoformat()))
         return res
 
     def fetch_url(self, uri):
@@ -392,7 +402,6 @@ class HRRR:
             self._logger.warning(e)
 
         return success
-
 
     def get_saved_data(self, start_date, end_date, bbox, file_type='grib2', output_dir=None,
                        var_map=None, forecast=[0], force_zone_number=None,
@@ -437,7 +446,8 @@ class HRRR:
                 var_map = self.var_map_grib
             else:
                 var_map = self.var_map_netcdf
-            self._logger.warning('var_map not specified, will return default outputs!')
+            self._logger.warning(
+                'var_map not specified, will return default outputs!')
 
         self.force_zone_number = force_zone_number
         if output_dir is not None:
@@ -450,7 +460,7 @@ class HRRR:
 
         # filter to desired keys if specified
         if var_keys is not None:
-            new_var_map = { key: var_map[key] for key in var_keys}
+            new_var_map = {key: var_map[key] for key in var_keys}
         else:
             new_var_map = copy.deepcopy(var_map)
         self.var_map = new_var_map
@@ -460,7 +470,8 @@ class HRRR:
         # get the data for a forecast
         if forecast_flag:
             # df, metadata = self.get_forecast()
-            raise NotImplementedError('Getting the forecast is not implemented yet')
+            raise NotImplementedError(
+                'Getting the forecast is not implemented yet')
 
         # get the data for a regular run
         else:
@@ -504,9 +515,10 @@ class HRRR:
             # make sure we get a working file. This allows for 6 tries,
             # accounting for the fact that we start at forecast hour 1
             file_time = d
-            for fx_hr in range(1,8):
+            for fx_hr in range(1, 8):
                 # get the name of the file
-                day_folder, file_name = utils.hrrr_file_name_finder(file_time, fx_hr, self.file_type)
+                day_folder, file_name = utils.hrrr_file_name_finder(
+                    file_time, fx_hr, self.file_type)
 
                 if self.file_type == 'grib2':
                     base_path = os.path.abspath(self.output_dir)
@@ -538,15 +550,15 @@ class HRRR:
             # make sure we get a working file
             for fx_hr in range(7):
                 fp = utils.hrrr_file_name_finder(self.output_dir,
-                                            file_time,
-                                            fx_hr)
+                                                 file_time,
+                                                 fx_hr)
 
                 success, df, idx, metadata = self.get_one_grib(df, idx,
-                                                                metadata,
-                                                                fp,
-                                                                new_var_map,
-                                                                file_time,
-                                                                bbox)
+                                                               metadata,
+                                                               fp,
+                                                               new_var_map,
+                                                               file_time,
+                                                               bbox)
                 if success:
                     break
                 if fx_hr == 6:
@@ -561,14 +573,14 @@ class HRRR:
         """
 
         # self.data
-        for key,value in self.var_map.items():
+        for key, value in self.var_map.items():
             if self.file_type == 'grib2':
                 df = self.data[key].to_dataframe()
             else:
                 df = self.data[value].to_dataframe()
 
             # convert from a row multiindex to a column multiindex
-            df = df.unstack(level=[1,2])
+            df = df.unstack(level=[1, 2])
 
             # Get the metadata using the elevation variables
             if key == 'elevation':
@@ -578,15 +590,18 @@ class HRRR:
                 metadata = []
                 for mm in ['latitude', 'longitude', value]:
                     dftmp = df[mm].copy()
-                    cols = ['grid_{}_{}'.format(x[0], x[1]) for x in dftmp.columns.to_flat_index()]
+                    cols = ['grid_{}_{}'.format(x[0], x[1])
+                            for x in dftmp.columns.to_flat_index()]
                     dftmp.columns = cols
                     dftmp = dftmp.iloc[0]
                     dftmp.name = mm
                     metadata.append(dftmp)
 
                 self.metadata = pd.concat(metadata, axis=1)
-                self.metadata['longitude'] -= 360   # it's reporting in degrees from the east
-                self.metadata = self.metadata.apply(apply_utm, args=(self.force_zone_number,), axis=1)
+                # it's reporting in degrees from the east
+                self.metadata['longitude'] -= 360
+                self.metadata = self.metadata.apply(
+                    apply_utm, args=(self.force_zone_number,), axis=1)
                 self.metadata.rename(columns={value: key}, inplace=True)
 
             else:
@@ -595,7 +610,8 @@ class HRRR:
                 del df['latitude']
 
                 # make new names for the columns as grid_y_x
-                cols = ['grid_{}_{}'.format(x[1], x[2]) for x in df.columns.to_flat_index()]
+                cols = ['grid_{}_{}'.format(x[1], x[2])
+                        for x in df.columns.to_flat_index()]
                 df.columns = cols
                 df.index.rename('date_time', inplace=True)
 
@@ -631,20 +647,23 @@ class HRRR:
 
             # have to ensure to change the day catalog if the day changes
             if self.day_cat is None:
-                self.day_cat = TDSCatalog(self.main_cat.catalog_refs[fp[1]].href)
+                self.day_cat = TDSCatalog(
+                    self.main_cat.catalog_refs[fp[1]].href)
             elif self.main_cat.catalog_refs[fp[1]].href != self.day_cat.catalog_url:
                 # close the old session and start a new one
                 if hasattr(self.day_cat, 'session'):
                     self.day_cat.session.close()
-                self.day_cat = TDSCatalog(self.main_cat.catalog_refs[fp[1]].href)
-
+                self.day_cat = TDSCatalog(
+                    self.main_cat.catalog_refs[fp[1]].href)
 
             if len(self.day_cat.datasets) == 0:
-                raise Exception('HRRR netcdf THREDDS catalog has no datasets for day {}'.format(fp[1]))
+                raise Exception(
+                    'HRRR netcdf THREDDS catalog has no datasets for day {}'.format(fp[1]))
 
             # go through and get the file reference
             if fp[2] not in self.day_cat.datasets.keys():
-                raise Exception('{}/{} does not exist on THREDDS server'.format(fp[1], fp[2]))
+                raise Exception(
+                    '{}/{} does not exist on THREDDS server'.format(fp[1], fp[2]))
 
             d = self.day_cat.datasets[fp[2]]
 
@@ -652,10 +671,10 @@ class HRRR:
             data = xr.open_dataset(d.access_urls['OPENDAP'])
 
             s = data.where((data.latitude >= self.bbox[1]) &
-                        (data.latitude <= self.bbox[3]) &
-                        (data.longitude >= self.bbox[0]+360) &
-                        (data.longitude <= self.bbox[2]+360),
-                        drop=True)
+                           (data.latitude <= self.bbox[3]) &
+                           (data.longitude >= self.bbox[0]+360) &
+                           (data.longitude <= self.bbox[2]+360),
+                           drop=True)
 
             if self.data is None:
                 self.data = s
@@ -685,12 +704,13 @@ class HRRR:
 
         self._logger.debug('Reading {}'.format(fp))
 
-        for key,params in new_var_map.items():
+        for key, params in new_var_map.items():
 
             try:
 
                 # open just one dataset at a time
-                data = xr.open_dataset(fp, engine='cfgrib', backend_kwargs={'filter_by_keys': params})
+                data = xr.open_dataset(fp, engine='cfgrib', backend_kwargs={
+                                       'filter_by_keys': params})
 
                 if len(data) > 1:
                     raise Exception('More than one grib variable returned')
@@ -711,18 +731,20 @@ class HRRR:
                 data = data.expand_dims('time')
 
                 # have to set the x and y coordinates based on the 3000 meter cell size
-                data = data.assign_coords(x=np.arange(0, len(data['x'])) * 3000)
-                data = data.assign_coords(y=np.arange(0, len(data['y'])) * 3000)
+                data = data.assign_coords(
+                    x=np.arange(0, len(data['x'])) * 3000)
+                data = data.assign_coords(
+                    y=np.arange(0, len(data['y'])) * 3000)
 
                 # delete the step and valid time coordinates
                 del data['step']
                 del data['valid_time']
 
                 s = data.where((data.latitude >= self.bbox[1]) &
-                       (data.latitude <= self.bbox[3]) &
-                       (data.longitude >= self.bbox[0]+360) &
-                       (data.longitude <= self.bbox[2]+360),
-                       drop=True)
+                               (data.latitude <= self.bbox[3]) &
+                               (data.longitude >= self.bbox[0]+360) &
+                               (data.longitude <= self.bbox[2]+360),
+                               drop=True)
 
                 data.close()
 
@@ -760,7 +782,7 @@ class HRRR:
         sd = start_date.date()
         ed = end_date.date()
         # base pattern template
-        dir_pattern = os.path.join(output_dir,'hrrr.{}')
+        dir_pattern = os.path.join(output_dir, 'hrrr.{}')
         file_pattern_all = 'hrrr.t*z.wrfsfcf*.grib2'
         file_pattern = 'hrrr.t{:02d}z.wrfsfcf{:02d}.grib2'
         # get a date range
@@ -783,7 +805,8 @@ class HRRR:
             for hr in hours:
                 for fx in forecasts:
                     file_key = file_pattern.format(hr, fx)
-                    missing = health_check.check_missing_file(dir_key, file_key)
+                    missing = health_check.check_missing_file(
+                        dir_key, file_key)
                     missing_hrrr += missing
 
         # get rid of duplicates
@@ -819,9 +842,9 @@ class HRRR:
                 print(os.path.basename(fp_mh))
                 file_day = pd.to_datetime(os.path.dirname(fp_mh)[-8:])
                 success = hrrr_archive.download_url(os.path.basename(fp_mh),
-                                                        out_dir,
-                                                        self._logger,
-                                                        file_day)
+                                                    out_dir,
+                                                    self._logger,
+                                                    file_day)
 
             self._logger.info('Finished fixing missing files')
 
@@ -834,9 +857,9 @@ class HRRR:
                 # remove and redownload the file
                 os.remove(fp_sh)
                 success = hrrr_archive.download_url(os.path.basename(fp_sh),
-                                                        out_dir,
-                                                        self._logger,
-                                                        file_day)
+                                                    out_dir,
+                                                    self._logger,
+                                                    file_day)
 
             self._logger.info('Finished fixing files that were too small')
 

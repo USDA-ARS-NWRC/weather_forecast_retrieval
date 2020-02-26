@@ -2,11 +2,13 @@
 Connect to the RAP Thredds Data Server site and download the data
 """
 
-from siphon.catalog import TDSCatalog
-import threading
-import os, sys
 import logging
+import os
+import sys
+import threading
+
 import coloredlogs
+from siphon.catalog import TDSCatalog
 
 PY3 = sys.version_info[0] >= 3
 if PY3:  # pragma: no cover
@@ -133,8 +135,3 @@ class RAP():
         
 if __name__ == '__main__':
     RAP().retrieve_tds()
-    
-    
-    
-    
-    

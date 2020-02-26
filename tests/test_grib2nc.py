@@ -1,6 +1,8 @@
-import unittest
-from weather_forecast_retrieval.grib2nc import grib2nc
 import os
+import unittest
+
+from weather_forecast_retrieval.grib2nc import grib2nc
+
 
 class TestGrib2nc(unittest.TestCase):
     """Tests for `weather_forecast_retrieval` package."""
