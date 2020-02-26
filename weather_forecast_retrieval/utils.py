@@ -3,7 +3,7 @@ import datetime
 import os
 import sys
 from collections import Sequence
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 
 import pandas as pd
 
@@ -32,7 +32,7 @@ def read_config(config_file, encoding='utf-8'):
         dict1: A dictionary of dictionaires representing the config file.
     """
 
-    config = SafeConfigParser()
+    config = ConfigParser()
     config.optionxform = str
 
     PY3 = sys.version_info[0] >= 3
