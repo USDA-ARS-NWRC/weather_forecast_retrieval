@@ -20,7 +20,7 @@ import xarray as xr
 from bs4 import BeautifulSoup
 from siphon.catalog import TDSCatalog
 
-from weather_forecast_retrieval import hrrr_archive, utils
+from weather_forecast_retrieval import utils
 
 
 class HRRR:
@@ -43,9 +43,9 @@ class HRRR:
 
     # need to make this hour correct for the forecast
     file_filter = 'hrrr.t*z.wrfsfcf*.grib2'
-    regexp = re.compile('hrrr\.t\d\dz\.wrfsfcf\d\d\.grib2')
+    regexp = re.compile('hrrr\.t\d\dz\.wrfsfcf\d\d\.grib2')  # noqa
 
-    http_url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.{}/conus/'
+    http_url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.{}/conus/'  # noqa
 
     # dataset filter by keys arguments
     var_map_grib = {
@@ -252,7 +252,9 @@ class HRRR:
                     ftp_files, self.file_name.format(fhr))
 
                 self._logger.debug(
-                    'Found {} files matching pattern'.format(len(wanted_files)))
+                    'Found {} files matching pattern'.format(
+                        len(wanted_files)
+                    ))
 
                 # go through each file and see if it exists, retrieve if not
                 for f in wanted_files:
@@ -291,12 +293,14 @@ class HRRR:
             self.end_date = end_date
 
         # check if dates are timezone aware, if not then assume UTC
-        if self.start_date.tzinfo is None or self.start_date.tzinfo.utcoffset(self.start_date):
+        if self.start_date.tzinfo is None or \
+                self.start_date.tzinfo.utcoffset(self.start_date):
             self.start_date = self.start_date.tz_localize(tz='UTC')
         else:
             self.start_date = self.start_date.tz_convert(tz='UTC')
 
-        if self.end_date.tzinfo is None or self.end_date.tzinfo.utcoffset(self.end_date):
+        if self.end_date.tzinfo is None or \
+                self.end_date.tzinfo.utcoffset(self.end_date):
             self.end_date = self.end_date.tz_localize(tz='UTC')
         else:
             self.end_date = self.end_date.tz_convert(tz='UTC')
@@ -403,7 +407,8 @@ class HRRR:
 
         return success
 
-    def get_saved_data(self, start_date, end_date, bbox, file_type='grib2', output_dir=None,
+    def get_saved_data(self, start_date, end_date, bbox,
+                       file_type='grib2', output_dir=None,
                        var_map=None, forecast=[0], force_zone_number=None,
                        forecast_flag=False, day_hour=0, var_keys=None):
         """
@@ -411,18 +416,21 @@ class HRRR:
         bounding box.
 
         Args:
-            start_date: datetime for the start
-            end_date: datetime for the end
-            bbox: list of  [lonmin,latmin,lonmax,latmax]
-            file_type: 'grib' or 'netcdf', determines how to read the file
-            var_map: dictionary to map the desired variables into {new_variable: hrrr_variable}
-            forecast: list of forecast hours to grab
-            forecast_flag: weather or not to get forecast hours
-            day_hour: which hour in the day to grab for forecast scenario
-            var_keys: which keys to grab from smrf variables, default is var_map
+            start_date:     datetime for the start
+            end_date:       datetime for the end
+            bbox:           list of  [lonmin,latmin,lonmax,latmax]
+            file_type:      'grib' or 'netcdf', determines how to read the file
+            var_map:        dictionary to map the desired variables
+                            into {new_variable: hrrr_variable}
+            forecast:       list of forecast hours to grab
+            forecast_flag:  weather or not to get forecast hours
+            day_hour:       which hour in the day to grab for forecast scenario
+            var_keys:       which keys to grab from smrf variables,
+                            default is var_map
 
         Returns:
-            List containing dataframe for the metadata for each node point for the desired variables
+            List containing dataframe for the metadata for each node point for
+            the desired variables
         """
 
         if start_date > end_date:
@@ -453,7 +461,8 @@ class HRRR:
         if output_dir is not None:
             self.output_dir = output_dir
 
-        # Don't remember why this was needed, but it does require lots of extra reading
+        # Don't remember why this was needed, but it does require
+        # lots of extra reading
         # self.start_date = self.start_date - timedelta(hours=3)
         # self.end_date = self.end_date + timedelta(hours=3)
         self.delta_hr = timedelta(hours=1)
@@ -465,7 +474,7 @@ class HRRR:
             new_var_map = copy.deepcopy(var_map)
         self.var_map = new_var_map
 
-        ### load in the data for the given files and bounding box###
+        # load in the data for the given files and bounding box###
 
         # get the data for a forecast
         if forecast_flag:
@@ -531,41 +540,43 @@ class HRRR:
                 if success:
                     break
                 if fx_hr == 6:
-                    raise IOError('Not able to find good grib file for \
-                                    {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
+                    raise IOError(
+                        'Not able to find good grib file for {}'.format(
+                            file_time.strftime('%Y-%m-%d %H:%M')))
 
             d += self.delta_hr
 
         # return df, metadata
 
-    def get_forecast(self):
-        """
-        Not implemented yet but will get the HRRR forecast
-        """
+    # def get_forecast(self):
+    #     """
+    #     Not implemented yet but will get the HRRR forecast
+    #     """
 
-        # loop through each forecast hour
-        for f in forecast:
-            # add forecast hour
-            file_time = d + pd.to_timedelta(f, 'h')
-            # make sure we get a working file
-            for fx_hr in range(7):
-                fp = utils.hrrr_file_name_finder(self.output_dir,
-                                                 file_time,
-                                                 fx_hr)
+    #     # loop through each forecast hour
+    #     for f in forecast:
+    #         # add forecast hour
+    #         file_time = d + pd.to_timedelta(f, 'h')
+    #         # make sure we get a working file
+    #         for fx_hr in range(7):
+    #             fp = utils.hrrr_file_name_finder(self.output_dir,
+    #                                              file_time,
+    #                                              fx_hr)
 
-                success, df, idx, metadata = self.get_one_grib(df, idx,
-                                                               metadata,
-                                                               fp,
-                                                               new_var_map,
-                                                               file_time,
-                                                               bbox)
-                if success:
-                    break
-                if fx_hr == 6:
-                    raise IOError('Not able to find good grib file for \
-                                    {}'.format(file_time.strftime('%Y-%m-%d %H:%M')))
+    #             success, df, idx, metadata = self.get_one_grib(df, idx,
+    #                                                            metadata,
+    #                                                            fp,
+    #                                                            new_var_map,
+    #                                                            file_time,
+    #                                                            bbox)
+    #             if success:
+    #                 break
+    #             if fx_hr == 6:
+    #                 raise IOError(
+    #                     'Not able to find good grib file for {}'.format(
+    #                         file_time.strftime('%Y-%m-%d %H:%M')))
 
-        return df, metadata
+    #     return df, metadata
 
     def convert_to_dataframes(self):
         """
@@ -649,7 +660,8 @@ class HRRR:
             if self.day_cat is None:
                 self.day_cat = TDSCatalog(
                     self.main_cat.catalog_refs[fp[1]].href)
-            elif self.main_cat.catalog_refs[fp[1]].href != self.day_cat.catalog_url:
+            elif self.main_cat.catalog_refs[fp[1]].href != \
+                    self.day_cat.catalog_url:
                 # close the old session and start a new one
                 if hasattr(self.day_cat, 'session'):
                     self.day_cat.session.close()
@@ -658,12 +670,14 @@ class HRRR:
 
             if len(self.day_cat.datasets) == 0:
                 raise Exception(
-                    'HRRR netcdf THREDDS catalog has no datasets for day {}'.format(fp[1]))
+                    ("HRRR netcdf THREDDS catalog has"
+                     " no datasets for day {}").format(fp[1]))
 
             # go through and get the file reference
             if fp[2] not in self.day_cat.datasets.keys():
                 raise Exception(
-                    '{}/{} does not exist on THREDDS server'.format(fp[1], fp[2]))
+                    '{}/{} does not exist on THREDDS server'.format(
+                        fp[1], fp[2]))
 
             d = self.day_cat.datasets[fp[2]]
 
@@ -721,7 +735,8 @@ class HRRR:
                 elif 'shortName' in params.keys():
                     data = data.rename({params['shortName']: key})
 
-                # remove some coordinate so they can all be combined into one dataset
+                # remove some coordinate so they can all be
+                # combined into one dataset
                 for v in ['heightAboveGround', 'surface']:
                     if v in data.coords.keys():
                         data = data.drop_vars(v)
@@ -730,7 +745,8 @@ class HRRR:
                 data = data.assign_coords(time=data['valid_time'])
                 data = data.expand_dims('time')
 
-                # have to set the x and y coordinates based on the 3000 meter cell size
+                # have to set the x and y coordinates based on
+                # the 3000 meter cell size
                 data = data.assign_coords(
                     x=np.arange(0, len(data['x'])) * 3000)
                 data = data.assign_coords(
@@ -762,106 +778,109 @@ class HRRR:
 
         return success
 
-    def check_file_health(self, output_dir, start_date, end_date,
-                          hours=range(23), forecasts=range(18), min_size=100):
-        """
-        Check the health of the downloaded hrrr files so that we can download
-        bad files from U of U archive if something has gone wrong.
+    # def check_file_health(self, output_dir, start_date, end_date,
+    #                       hours=range(23), forecasts=range(18),min_size=100):
+    #     """
+    #     Check the health of the downloaded hrrr files so that we can download
+    #     bad files from U of U archive if something has gone wrong.
 
-        Args:
-            output_dir:     Location of HRRR files
-            start_date:     date to start checking files
-            end_date:       date to stop checking files
-            hours:          hours within the day to check
-            forecasts:      forecast hours within the day to check
+    #     Args:
+    #         output_dir:     Location of HRRR files
+    #         start_date:     date to start checking files
+    #         end_date:       date to stop checking files
+    #         hours:          hours within the day to check
+    #         forecasts:      forecast hours within the day to check
 
-        Returns:
-            files:          list of file names that failed the tests
-        """
-        fmt_day = '%Y%m%d'
-        sd = start_date.date()
-        ed = end_date.date()
-        # base pattern template
-        dir_pattern = os.path.join(output_dir, 'hrrr.{}')
-        file_pattern_all = 'hrrr.t*z.wrfsfcf*.grib2'
-        file_pattern = 'hrrr.t{:02d}z.wrfsfcf{:02d}.grib2'
-        # get a date range
-        num_days = (ed-sd).days
-        d_range = [timedelta(days=d) + sd for d in range(num_days)]
+    #     Returns:
+    #         files:          list of file names that failed the tests
+    #     """
+    #     fmt_day = '%Y%m%d'
+    #     sd = start_date.date()
+    #     ed = end_date.date()
+    #     # base pattern template
+    #     dir_pattern = os.path.join(output_dir, 'hrrr.{}')
+    #     file_pattern_all = 'hrrr.t*z.wrfsfcf*.grib2'
+    #     file_pattern = 'hrrr.t{:02d}z.wrfsfcf{:02d}.grib2'
+    #     # get a date range
+    #     num_days = (ed-sd).days
+    #     d_range = [timedelta(days=d) + sd for d in range(num_days)]
 
-        # empty list for storing bad files
-        small_hrrr = []
-        missing_hrrr = []
+    #     # empty list for storing bad files
+    #     small_hrrr = []
+    #     missing_hrrr = []
 
-        for dt in d_range:
-            # check for files that are too small first
-            dir_key = dir_pattern.format(dt.strftime(fmt_day))
-            file_key = file_pattern_all
-            too_small = health_check.check_min_file_size(dir_key, file_key,
-                                                         min_size=min_size)
-            # add bad files to list
-            small_hrrr += too_small
-            # check same dirs for missing files
-            for hr in hours:
-                for fx in forecasts:
-                    file_key = file_pattern.format(hr, fx)
-                    missing = health_check.check_missing_file(
-                        dir_key, file_key)
-                    missing_hrrr += missing
+    #     for dt in d_range:
+    #         # check for files that are too small first
+    #         dir_key = dir_pattern.format(dt.strftime(fmt_day))
+    #         file_key = file_pattern_all
+    #         too_small = health_check.check_min_file_size(dir_key, file_key,
+    #                                                      min_size=min_size)
+    #         # add bad files to list
+    #         small_hrrr += too_small
+    #         # check same dirs for missing files
+    #         for hr in hours:
+    #             for fx in forecasts:
+    #                 file_key = file_pattern.format(hr, fx)
+    #                 missing = health_check.check_missing_file(
+    #                     dir_key, file_key)
+    #                 missing_hrrr += missing
 
-        # get rid of duplicates
-        small_hrrr = list(set(small_hrrr))
-        missing_hrrr = list(set(missing_hrrr))
+    #     # get rid of duplicates
+    #     small_hrrr = list(set(small_hrrr))
+    #     missing_hrrr = list(set(missing_hrrr))
 
-        return small_hrrr, missing_hrrr
+    #     return small_hrrr, missing_hrrr
 
-    def fix_bad_files(self, start_date, end_date, out_dir, min_size=100,
-                      hours=range(23), forecasts=range(18)):
-        """
-        Routine for checking the downloaded file health for some files in the
-        past and attempting to fix the bad file
+    # def fix_bad_files(self, start_date, end_date, out_dir, min_size=100,
+    #                   hours=range(23), forecasts=range(18)):
+    #     """
+    #     Routine for checking the downloaded file health for some files in the
+    #     past and attempting to fix the bad file
 
-        Args:
-            start_date:     start date datetime object for checking the files
-            end_date:       end date datetime object for checking the files
-            out_dir:        base directory where the HRRR files are stored
+    #     Args:
+    #         start_date:     start date datetime object for checking the files
+    #         end_date:       end date datetime object for checking the files
+    #         out_dir:        base directory where the HRRR files are stored
 
-        """
-        # get the bad files
-        small_hrrr, missing_hrrr = self.check_file_health(out_dir,
-                                                          start_date,
-                                                          end_date,
-                                                          min_size=min_size,
-                                                          hours=hours,
-                                                          forecasts=forecasts)
+    #     """
+    #     # get the bad files
+    #     small_hrrr, missing_hrrr = self.check_file_health(out_dir,
+    #                                                       start_date,
+    #                                                       end_date,
+    #                                                       min_size=min_size,
+    #                                                       hours=hours,
+    #                                                       forecasts=forecasts)
 
-        if len(missing_hrrr) > 0:
-            self._logger.info('going to fix missing hrrr')
-            for fp_mh in missing_hrrr:
-                self._logger.debug(fp_mh)
-                print(os.path.basename(fp_mh))
-                file_day = pd.to_datetime(os.path.dirname(fp_mh)[-8:])
-                success = hrrr_archive.download_url(os.path.basename(fp_mh),
-                                                    out_dir,
-                                                    self._logger,
-                                                    file_day)
+    #     if len(missing_hrrr) > 0:
+    #         self._logger.info('going to fix missing hrrr')
+    #         for fp_mh in missing_hrrr:
+    #             self._logger.debug(fp_mh)
+    #             print(os.path.basename(fp_mh))
+    #             file_day = pd.to_datetime(os.path.dirname(fp_mh)[-8:])
+    #             success = hrrr_archive.download_url(os.path.basename(fp_mh),
+    #                                                 out_dir,
+    #                                                 self._logger,
+    #                                                 file_day)
 
-            self._logger.info('Finished fixing missing files')
+    #         self._logger.info('Finished fixing missing files')
 
-        # run through the files and try to fix them
-        if len(small_hrrr) > 0:
-            self._logger.info('\n\ngoing to fix small hrrr')
-            for fp_sh in small_hrrr:
-                self._logger.info(fp_sh)
-                file_day = pd.to_datetime(os.path.dirname(fp_sh)[-8:])
-                # remove and redownload the file
-                os.remove(fp_sh)
-                success = hrrr_archive.download_url(os.path.basename(fp_sh),
-                                                    out_dir,
-                                                    self._logger,
-                                                    file_day)
+    #     # run through the files and try to fix them
+    #     if len(small_hrrr) > 0:
+    #         self._logger.info('\n\ngoing to fix small hrrr')
+    #         for fp_sh in small_hrrr:
+    #             self._logger.info(fp_sh)
+    #             file_day = pd.to_datetime(os.path.dirname(fp_sh)[-8:])
+    #             # remove and redownload the file
+    #             os.remove(fp_sh)
+    #             success = hrrr_archive.download_url(os.path.basename(fp_sh),
+    #                                                 out_dir,
+    #                                                 self._logger,
+    #                                                 file_day)
 
-            self._logger.info('Finished fixing files that were too small')
+    #             if not success:
+    #                 self._logger.warn('Could not download')
+
+    #         self._logger.info('Finished fixing files that were too small')
 
 
 def apply_utm(s, force_zone_number):

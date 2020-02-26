@@ -43,7 +43,8 @@ class TestHRRR(unittest.TestCase):
         """
 
         # Find the right path to tests
-        # check whether or not this is being ran as a single test or part of the suite
+        # check whether or not this is being ran as a single test
+        # or part of the suite
         check_file = 'test_hrrr.py'
         if os.path.isfile(check_file):
             self.test_dir = ''
@@ -54,7 +55,7 @@ class TestHRRR(unittest.TestCase):
 
         self.test_dir = os.path.abspath(self.test_dir)
 
-        ### configurations for testing HRRR.get_saved_data
+        # configurations for testing HRRR.get_saved_data
         self.bbox = [-116.85837324, 42.96134124, -116.64913327, 43.16852535]
         self.start_date = pd.to_datetime('2018-07-22 01:00')
         self.end_date = pd.to_datetime('2018-07-22 06:00')
@@ -72,12 +73,12 @@ class TestHRRR(unittest.TestCase):
 
         # get the data
         metadata, data = hrrr.HRRR().get_saved_data(
-                                        self.start_date,
-                                        self.end_date,
-                                        self.bbox,
-                                        file_type='grib2',
-                                        output_dir=self.hrrr_directory,
-                                        force_zone_number=self.force_zone_number)
+            self.start_date,
+            self.end_date,
+            self.bbox,
+            file_type='grib2',
+            output_dir=self.hrrr_directory,
+            force_zone_number=self.force_zone_number)
 
         df = pd.read_csv(os.path.join(self.gold, 'metadata.csv'))
         df.set_index('grid', inplace=True)
