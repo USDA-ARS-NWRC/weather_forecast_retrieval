@@ -47,13 +47,13 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
     test_suite='tests',
     scripts=[
         'scripts/run_hrrr_retrieval',
         'scripts/run_hrrr_retrieval_dates',
         'scripts/convert_grib2nc'
-        ]
+    ]
 )
