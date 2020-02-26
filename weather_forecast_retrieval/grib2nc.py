@@ -1,10 +1,9 @@
 import argparse
-import logging
 import os
 import time
 from subprocess import check_output
 
-import coloredlogs
+from weather_forecast_retrieval import utils
 
 
 def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
@@ -25,9 +24,10 @@ def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
     start = time.time()
 
     if external_logger is None:
-        fmt = "%(levelname)s: %(msg)s"
-        log = logging.getLogger(__name__)
-        coloredlogs.install(logger=log, fmt=fmt)
+        log = utils.create_logger(__name__)
+        # fmt = "%(levelname)s: %(msg)s"
+        # log = logging.getLogger(__name__)
+        # coloredlogs.install(logger=log, fmt=fmt)
 
         msg = "GRIB2NC Converter Utility"
         log.info(msg)

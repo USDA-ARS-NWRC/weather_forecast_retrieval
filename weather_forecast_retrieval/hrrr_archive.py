@@ -17,15 +17,15 @@ http://hrrr.chpc.utah.edu/
 """
 
 import argparse
-import logging
 import os
 import time
 from datetime import datetime
 
-import coloredlogs
 import pandas as pd
 import pytz
 import requests
+
+from weather_forecast_retrieval import utils
 
 # times when downloading should stop as recomended by U of U
 tzmdt = pytz.timezone('America/Denver')
@@ -171,9 +171,11 @@ def HRRR_from_UofU(start_date, end_date, save_dir, external_logger=None,
     """
 
     if external_logger is None:
-        fmt = "%(levelname)s: %(msg)s"
-        logger = logging.getLogger(__name__)
-        coloredlogs.install(logger=logger, fmt=fmt)
+        logger = utils.create_logger(__name__)
+
+        # fmt = "%(levelname)s: %(msg)s"
+        # logger = logging.getLogger(__name__)
+        # coloredlogs.install(logger=logger, fmt=fmt)
 
         msg = "hrrr_archive get data from University of Utah"
         logger.info(msg)

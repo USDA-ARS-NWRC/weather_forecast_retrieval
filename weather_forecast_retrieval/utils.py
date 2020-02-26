@@ -4,7 +4,8 @@ import os
 import sys
 from collections import Sequence
 from configparser import ConfigParser
-
+import coloredlogs
+import logging
 import pandas as pd
 
 PY3 = sys.version_info[0] >= 3
@@ -19,6 +20,19 @@ except ImportError:  # pragma: no cover
         from collections import OrderedDict
     except ImportError:
         from ordereddict import OrderedDict
+
+
+def create_logger(name):
+    """Create a logger
+
+    Returns:
+        logger -- a logger
+    """
+    fmt = "%(levelname)s: %(msg)s"
+    logger = logging.getLogger(name)
+    coloredlogs.install(logger=logger, fmt=fmt)
+
+    return logger
 
 
 def read_config(config_file, encoding='utf-8'):
