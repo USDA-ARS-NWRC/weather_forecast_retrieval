@@ -12,5 +12,6 @@ install: pip install -r requirements_dev.txt
 # command to run tests, e.g. python setup.py test
 script:
     - make lint
-    - make coverage
+    # This won't work because all the dependancies, need the docker image
+    # - make coverage
 
