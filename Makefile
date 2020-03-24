@@ -47,6 +47,9 @@ clean-test: ## remove test and coverage artifacts
 	rm -f .coverage
 	rm -fr htmlcov/
 
+isort: ## using isort to sort imports
+	isort -rc -vb .
+
 lint: ## check style with flake8
 	flake8 weather_forecast_retrieval tests
 
@@ -59,9 +62,9 @@ test-all: ## run tests on every Python version with tox
 
 coverage: ## check code coverage quickly with the default Python
 	coverage run --source weather_forecast_retrieval setup.py test
-	coverage report -m
+	coverage report -m --fail-under=70
 	coverage html
-	$(BROWSER) htmlcov/index.html
+	# $(BROWSER) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/weather_forecast_retrieval.rst

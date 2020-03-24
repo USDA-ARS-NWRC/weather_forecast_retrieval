@@ -17,15 +17,15 @@ http://hrrr.chpc.utah.edu/
 """
 
 import argparse
-import logging
 import os
 import time
 from datetime import datetime
 
-import coloredlogs
 import pandas as pd
 import pytz
 import requests
+
+from weather_forecast_retrieval import utils
 
 # times when downloading should stop as recomended by U of U
 tzmdt = pytz.timezone('America/Denver')
@@ -50,11 +50,11 @@ def check_before_download(logger):
             # nowtime = datetime.now()
             nowutc = datetime.utcfromtimestamp(time.time())
             nowtime_mdt = nowutc.replace(tzinfo=pytz.utc).astimezone(tzmdt)
-            #print(nowtime_mdt)
+            # print(nowtime_mdt)
             logger.info('Sleeping {}'.format(nowtime_mdt))
             this_hour = nowtime_mdt.time().hour
             this_min = nowtime_mdt.time().minute
-            #print(this_hour, this_min)
+
             time.sleep(100)
 
 
@@ -66,7 +66,8 @@ def download_url(fname, OUTDIR, logger, file_day, model='hrrr', field='sfc'):
         fname:      HRRR file name
         OUTDIR:     Location to put HRRR file
         logger:     Logger instance
-        file_day:        datetime date correspondig to the hrrr file (i.e hrrr.{date}/hrrr...)
+        file_day:   datetime date correspondig to the hrrr
+                    file (i.e hrrr.{date}/hrrr...)
 
     Returns:
         success:    boolean of weather or not we were succesful
@@ -74,7 +75,7 @@ def download_url(fname, OUTDIR, logger, file_day, model='hrrr', field='sfc'):
     """
 
     URL = "https://pando-rgw01.chpc.utah.edu/%s/%s/%s/%s" \
-           % (model, field, file_day.strftime('%Y%m%d'), fname)
+        % (model, field, file_day.strftime('%Y%m%d'), fname)
 
     # 2) Rename file with date preceeding original filename
     #    i.e. hrrr.20170105/hrrr.t00z.wrfsfcf00.grib2
@@ -169,10 +170,12 @@ def HRRR_from_UofU(start_date, end_date, save_dir, external_logger=None,
 
     """
 
-    if external_logger == None:
-        fmt = "%(levelname)s: %(msg)s"
-        logger = logging.getLogger(__name__)
-        coloredlogs.install(logger=logger, fmt=fmt)
+    if external_logger is None:
+        logger = utils.create_logger(__name__)
+
+        # fmt = "%(levelname)s: %(msg)s"
+        # logger = logging.getLogger(__name__)
+        # coloredlogs.install(logger=logger, fmt=fmt)
 
         msg = "hrrr_archive get data from University of Utah"
         logger.info(msg)
@@ -191,7 +194,6 @@ def HRRR_from_UofU(start_date, end_date, save_dir, external_logger=None,
             logger.error('forecasts must be a list or range')
             raise Exception('forecasts must be a list or range')
 
-
     # HRRR data is hourly so create a list of hourly values
     dt_index = pd.date_range(start_date, end_date, freq='H')
 
@@ -200,7 +202,8 @@ def HRRR_from_UofU(start_date, end_date, save_dir, external_logger=None,
         raise IOError('save_dir {} does not exist'.format(save_dir))
     logger.info('Writing to {}'.format(save_dir))
 
-    logger.info('Collecting hrrr data for {} through {}'.format(start_date, end_date))
+    logger.info('Collecting hrrr data for {} through {}'.format(
+        start_date, end_date))
     logger.info('Forecast hours: {}'.format(forecasts))
     for dd in dt_index:
 
@@ -220,8 +223,9 @@ def cli():
     Command line interface to hrrr_archive
     """
 
-    parser = argparse.ArgumentParser(description="Command line tool for downloading"
-                                                " HRRR grib files from the University of Utah")
+    parser = argparse.ArgumentParser(
+        description=("Command line tool for downloading"
+                     " HRRR grib files from the University of Utah"))
 
     parser.add_argument('-s', '--start', dest='start_date',
                         required=True, default=None,
@@ -238,8 +242,6 @@ def cli():
     parser.add_argument('-f', '--forecasts', dest='forecasts',
                         required=False, default=1, type=int,
                         help='Number of forecasts to get')
-
-
 
     # start_date, end_date, save_dir, external_logger=None,
     # forecasts=range(3), model_type='hrrr', var_type='sfc'):

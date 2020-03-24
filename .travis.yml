@@ -3,27 +3,15 @@
 
 language: python
 python:
-  - 3.5
-  - 3.4
-  - 3.3
-  - 2.7
-  - 2.6
+    - 3.7
+    - 3.6
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox-travis
+install: pip install -r requirements_dev.txt
 
 # command to run tests, e.g. python setup.py test
-script: tox
+script:
+    - make lint
+    # This won't work because all the dependancies, need the docker image
+    # - make coverage
 
-# After you create the Github repo and add it to Travis, run the
-# travis_pypi_setup.py script to finish PyPI deployment setup
-deploy:
-  provider: pypi
-  distributions: sdist bdist_wheel
-  user: scotthavens
-  password:
-    secure: PLEASE_REPLACE_ME
-  on:
-    tags: true
-    repo: scotthavens/weather_forecast_retrieval
-    python: 2.7
