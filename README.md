@@ -76,7 +76,6 @@ The following command line will download data for a single hour and output into 
 get_hrrr_archive -s '2018-07-22 12:00' -e '2018-07-22 12:10' -o tests/RME/output/
 ```
 
-
 ## convert_grib2nc
 
 ## run_hrrr_retrieval
