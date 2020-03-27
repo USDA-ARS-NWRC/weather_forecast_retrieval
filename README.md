@@ -12,14 +12,14 @@ Current atmospheric models implemented:
 ## Install
 
 ```
-pip install weather_forecast_retrieval
+pip install weather-forecast-retrieval
 ```
 
 ## System dependencies
 
 ### nccopy
 
-`nccopy` is used during the conversion in `grib2nc`. To install the `netCDF-C` libraries that are specific for your system. See the instructions from [Unidata](https://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html#sec_get_pre_built) 
+`nccopy` is used during the conversion in `grib2nc`. To install the `netCDF-C` libraries that are specific for your system. See the instructions from [Unidata](https://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html#sec_get_pre_built)
 
 ### wgrib2
 
@@ -35,7 +35,7 @@ ln wgrib2/wgrib2 ~/bin/wgrib2
 
 ## Docker
 
-The retrival aspect of `weather_forecast_retieval` has been built into a Docker image based on the Python 3 Alpine linux image. This allows for a docker deployment to run and retrieve HRRR data and convert to netcdf if needed. To use, first build the image
+The retrieval aspect of `weather_forecast_retieval` has been built into a Docker image based on the Python 3 Alpine linux image. This allows for a docker deployment to run and retrieve HRRR data and convert to netcdf if needed. To use, first build the image
 
 ```
 docker build -t usdaarsnwrc/weather_forecast_retieval .
