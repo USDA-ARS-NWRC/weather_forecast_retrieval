@@ -1,10 +1,9 @@
 import argparse
-import logging
 import os
 import time
 from subprocess import check_output
 
-import coloredlogs
+from weather_forecast_retrieval import utils
 
 
 def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
@@ -25,9 +24,10 @@ def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
     start = time.time()
 
     if external_logger is None:
-        fmt = "%(levelname)s: %(msg)s"
-        log = logging.getLogger(__name__)
-        coloredlogs.install(logger=log, fmt=fmt)
+        log = utils.create_logger(__name__)
+        # fmt = "%(levelname)s: %(msg)s"
+        # log = logging.getLogger(__name__)
+        # coloredlogs.install(logger=log, fmt=fmt)
 
         msg = "GRIB2NC Converter Utility"
         log.info(msg)
@@ -74,7 +74,7 @@ def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
     var_count = 0
 
     # Cycle through all the variables and export the grib var names
-    for k,v in criteria.items():
+    for k, v in criteria.items():
         log.debug("Attempting to extract grib name for {} ".format(k))
 
         cmd = "wgrib2 -v {} ".format(f_hrrr)
@@ -84,9 +84,9 @@ def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
             cmd += '| egrep "({})" '.format(kw)
         # Run the command
 
-        #cmd += " -netcdf {}".format(output)
+        # cmd += " -netcdf {}".format(output)
         s = check_output(cmd, shell=True).decode('utf-8')
-        num_grib_var = len(s.split('\n'))
+        # num_grib_var = len(s.split('\n'))
         # Check if we only identify one variable based on line returns
         return_count = len([True for c in s if c == '\n'])
 
@@ -99,26 +99,32 @@ def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
         # Add the grib var name to our running string/list
         grib_vars += s
 
-    log.debug("Extracting {} variables and converting to netcdf...".format(var_count))
+    log.debug(
+        "Extracting {} variables and converting to netcdf..."
+        .format(var_count))
     log.debug("Outputting to: {}".format(temp_output))
 
     # Using the var names we just collected run wgrib2 for netcdf conversion
     log.debug(grib_vars)
-    log.info("Converting grib2 to netcdf4...".format(len(grib_vars), len(cmd.split('\n'))))
-    cmd = 'echo "{}" | wgrib2 -nc4 -i {} -netcdf {}'.format(grib_vars, f_hrrr, temp_output)
+    log.info("Converting grib2 to netcdf4...".format(
+        len(grib_vars), len(cmd.split('\n'))))
+    cmd = 'echo "{}" | wgrib2 -nc4 -i {} -netcdf {}'.format(
+        grib_vars, f_hrrr, temp_output)
     log.debug(cmd)
     s = check_output(cmd, shell=True)
 
     # Recast dimensions
     log.info("Reducing dimensional variables to type ints and floats.")
 
-    cmd = "ncap2 -O -s 'latitude=float(latitude);longitude=float(longitude);x=int(x);y=int(y);time=int(time)' {0} {0}".format(temp_output)
+    cmd = ("ncap2 -O -s 'latitude=float(latitude);longitude=float(longitude);"
+           "x=int(x);y=int(y);time=int(time)' {0} {0}").format(temp_output)
     log.debug(cmd)
     s = check_output(cmd, shell=True)
 
     # Add chunking
     log.info("Adding chunking")
-    cmd = "nccopy -w -c time/1,x/{},y/{} {} {}".format(chunk_x, chunk_y, temp_output, output)
+    cmd = "nccopy -w -c time/1,x/{},y/{} {} {}".format(
+        chunk_x, chunk_y, temp_output, output)
     log.debug(cmd)
     s = check_output(cmd, shell=True)
 

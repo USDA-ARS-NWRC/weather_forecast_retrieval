@@ -40,7 +40,7 @@ def compare_gold(v_name, gold_dir, test_df):
         # see if they are the same
         # result = dfgold.equals(test_df)
 
-        return np.allclose(test_df.values,dfgold.values, atol=0)
+        return np.allclose(test_df.values, dfgold.values, atol=0)
     else:
         return True
 
@@ -54,17 +54,20 @@ class TestHRRROpendap(unittest.TestCase):
         like SMRF
         """
 
-        self.url_path = 'http://10.200.28.71/thredds/catalog/hrrr_netcdf/catalog.xml'
+        self.url_path = 'http://10.200.28.71/thredds/catalog/hrrr_netcdf/catalog.xml'  # noqa
 
         # check if we can access the THREDDS server
         try:
             status_code = urllib.request.urlopen(self.url_path).getcode()
             if status_code != 200:
-                raise unittest.SkipTest('Unable to access THREDDS data server, skipping OpenDAP tests')
-        except:
-            raise unittest.SkipTest('Unable to access THREDDS data server, skipping OpenDAP tests')
+                raise unittest.SkipTest(
+                    ("Unable to access THREDDS data server,"
+                     " skipping OpenDAP tests"))
+        except Exception:
+            raise unittest.SkipTest(
+                'Unable to access THREDDS data server, skipping OpenDAP tests')
 
-        ### configurations for testing HRRR.get_saved_data
+        # configurations for testing HRRR.get_saved_data
         self.bbox = [-116.85837324, 42.96134124, -116.64913327, 43.16852535]
 
         # start date and end date
@@ -75,19 +78,19 @@ class TestHRRROpendap(unittest.TestCase):
         self.force_zone_number = 11
         self.day_hour = 0
 
-        self.output_path = os.path.join('tests','RME','output')
-        self.gold = os.path.join('tests','RME','gold','hrrr')
+        self.output_path = os.path.join('tests', 'RME', 'output')
+        self.gold = os.path.join('tests', 'RME', 'gold', 'hrrr')
 
     def test_load_data(self):
         """ Test loading the data from an OpenDAP THREDDS server """
 
         # get the data
         metadata, data = hrrr.HRRR().get_saved_data(
-                                        self.start_date,
-                                        self.end_date,
-                                        self.bbox,
-                                        file_type='netcdf',
-                                        output_dir=self.url_path)
+            self.start_date,
+            self.end_date,
+            self.bbox,
+            file_type='netcdf',
+            output_dir=self.url_path)
 
         df = pd.read_csv(os.path.join(self.gold, 'metadata.csv'))
         df.set_index('grid', inplace=True)
@@ -101,4 +104,3 @@ class TestHRRROpendap(unittest.TestCase):
             self.assertTrue(status)
 
         self.assertTrue(metadata is not None)
-

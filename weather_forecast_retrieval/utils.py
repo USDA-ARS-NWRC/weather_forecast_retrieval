@@ -1,19 +1,17 @@
 
-import os, sys
-from collections import Sequence
 import datetime
+import os
+import sys
+from collections import Sequence
+from configparser import ConfigParser
+import coloredlogs
+import logging
 import pandas as pd
 
 PY3 = sys.version_info[0] >= 3
 
-if PY3:  # pragma: no cover
-    from configparser import SafeConfigParser
-    basestring = str
-    unicode_type = str
-else:  # pragma: no cover
-    from ConfigParser import SafeConfigParser
-    basestring = basestring
-    unicode_type = unicode
+basestring = str
+unicode_type = str
 
 try:
     from cyordereddict import OrderedDict
@@ -22,6 +20,20 @@ except ImportError:  # pragma: no cover
         from collections import OrderedDict
     except ImportError:
         from ordereddict import OrderedDict
+
+
+def create_logger(name):
+    """Create a logger
+
+    Returns:
+        logger -- a logger
+    """
+    fmt = "%(levelname)s: %(msg)s"
+    logger = logging.getLogger(name)
+    coloredlogs.install(logger=logger, fmt=fmt)
+
+    return logger
+
 
 def read_config(config_file, encoding='utf-8'):
     """
@@ -34,9 +46,8 @@ def read_config(config_file, encoding='utf-8'):
         dict1: A dictionary of dictionaires representing the config file.
     """
 
-    config = SafeConfigParser()
+    config = ConfigParser()
     config.optionxform = str
-
 
     PY3 = sys.version_info[0] >= 3
 
@@ -185,7 +196,7 @@ def hrrr_file_name_finder(date, fx_hr=0, file_extension='grib2'):
     if file_extension == 'netcdf':
         file_extension = 'nc'
 
-    fmt_day ='%Y%m%d'
+    fmt_day = '%Y%m%d'
     # base_path = os.path.abspath(base_path)
     date = pd.to_datetime(date)
     fx_hr = int(fx_hr)
@@ -203,6 +214,7 @@ def hrrr_file_name_finder(date, fx_hr=0, file_extension='grib2'):
 
     # create new path
     day_folder = 'hrrr.{}'.format(day.strftime(fmt_day))
-    file_name = 'hrrr.t{:02d}z.wrfsfcf{:02d}.{}'.format(new_hr, fx_hr, file_extension)
+    file_name = 'hrrr.t{:02d}z.wrfsfcf{:02d}.{}'.format(
+        new_hr, fx_hr, file_extension)
 
     return day_folder, file_name

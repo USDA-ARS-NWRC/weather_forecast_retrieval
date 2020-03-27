@@ -47,7 +47,7 @@ class TestHRRRArchive(unittest.TestCase):
         like SMRF
         """
 
-        ### configurations for testing HRRR.get_saved_data
+        # configurations for testing HRRR.get_saved_data
         self.bbox = [-116.85837324, 42.96134124, -116.64913327, 43.16852535]
 
         # start date and end date
@@ -58,8 +58,8 @@ class TestHRRRArchive(unittest.TestCase):
         self.force_zone_number = 11
         self.day_hour = 0
 
-        self.output_path = os.path.join('tests','RME','output')
-        self.gold = os.path.join('tests','RME','gold','hrrr_opendap')
+        self.output_path = os.path.join('tests', 'RME', 'output')
+        self.gold = os.path.join('tests', 'RME', 'gold', 'hrrr_opendap')
 
     def tearDown(self):
         """

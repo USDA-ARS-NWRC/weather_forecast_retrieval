@@ -26,7 +26,7 @@ with open('requirements.txt') as req_file:
 setup(
     name='weather_forecast_retrieval',
     version='0.6.10',
-    description="Weather forecast retrieval gathers relavant gridded weather forecasts to ingest into physically based models for water supply forecasts",
+    description="Weather forecast retrieval gathers relevant gridded weather forecasts to ingest into physically based models for water supply forecasts",
     long_description=readme,
     long_description_content_type="text/markdown",
     author="Scott Havens",
@@ -47,13 +47,13 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
     test_suite='tests',
     scripts=[
         'scripts/run_hrrr_retrieval',
         'scripts/run_hrrr_retrieval_dates',
         'scripts/convert_grib2nc'
-        ]
+    ]
 )
