@@ -11,10 +11,12 @@ __pycache__/
 # C extensions
 *.so
 
-# Eclipse
+# Eclipse, VSCode, IntelliJ
 .project
 .pydevproject
 .settings
+.vscode
+.idea
 
 # Distribution / packaging
 .Python
