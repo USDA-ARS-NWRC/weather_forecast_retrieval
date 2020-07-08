@@ -45,6 +45,7 @@ def compare_gold(v_name, gold_dir, test_df):
         return True
 
 
+@unittest.SkipTest
 class TestHRRROpendap(unittest.TestCase):
     """Test loading HRRR from an openDAP server"""
 
