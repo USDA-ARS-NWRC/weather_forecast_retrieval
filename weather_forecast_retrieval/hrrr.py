@@ -589,6 +589,7 @@ class HRRR:
                 df = self.data[key].to_dataframe()
             else:
                 df = self.data[value].to_dataframe()
+                key = value
 
             # convert from a row multiindex to a column multiindex
             df = df.unstack(level=[1, 2])
@@ -617,11 +618,10 @@ class HRRR:
 
             else:
                 # else this is just a normal variable
-                del df['longitude']
-                del df['latitude']
+                df = df.loc[:, key]
 
                 # make new names for the columns as grid_y_x
-                cols = ['grid_{}_{}'.format(x[1], x[2])
+                cols = ['grid_{}_{}'.format(x[0], x[1])
                         for x in df.columns.to_flat_index()]
                 df.columns = cols
                 df.index.rename('date_time', inplace=True)
