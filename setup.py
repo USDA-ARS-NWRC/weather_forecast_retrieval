@@ -25,7 +25,7 @@ with open('requirements.txt') as req_file:
 
 setup(
     name='weather_forecast_retrieval',
-    version='0.6.13',
+    version='0.6.14',
     description="Weather forecast retrieval gathers relevant gridded weather "
                 "forecasts to ingest into physically based models for water "
                 "supply forecasts",
