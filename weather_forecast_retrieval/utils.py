@@ -1,11 +1,12 @@
 
 import datetime
+import logging
 import os
 import sys
 from collections import Sequence
 from configparser import ConfigParser
+
 import coloredlogs
-import logging
 import pandas as pd
 
 PY3 = sys.version_info[0] >= 3

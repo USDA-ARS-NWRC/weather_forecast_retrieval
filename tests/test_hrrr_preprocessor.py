@@ -1,11 +1,11 @@
 import os
 import shutil
 import unittest
-import xarray as xr
+
 import pandas as pd
 
-from weather_forecast_retrieval.hrrr_preprocessor import HRRRPreprocessor
 from weather_forecast_retrieval.hrrr import HRRR
+from weather_forecast_retrieval.hrrr_preprocessor import HRRRPreprocessor
 
 
 class TestHRRRPreprocessor(unittest.TestCase):
