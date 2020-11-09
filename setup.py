@@ -31,14 +31,15 @@ setup(
                 "supply forecasts",
     long_description=readme,
     long_description_content_type="text/markdown",
-    author="Scott Havens",
-    author_email='scott.havens@ars.usda.gov',
+    author="USDA ARS NWRC",
+    author_email='snow@ars.usda.gov',
     url='https://github.com/USDA-ARS-NWRC/weather_forecast_retrieval',
     packages=['weather_forecast_retrieval'],
     entry_points={
         'console_scripts': [
             'grib2nc=weather_forecast_retrieval.grib2nc:main',
-            'get_hrrr_archive=weather_forecast_retrieval.hrrr_archive:cli'
+            'get_hrrr_archive=weather_forecast_retrieval.hrrr_archive:cli',
+            'hrrr_preprocessor=weather_forecast_retrieval.hrrr_preprocessor:cli'
         ]},
     include_package_data=True,
     install_requires=requirements,
