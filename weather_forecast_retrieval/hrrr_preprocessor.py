@@ -14,7 +14,7 @@ class HRRRPreprocessor():
     FMT2 = '%H'
 
     def __init__(self, hrrr_dir, start_date, end_date, output_dir,
-                 bbox, forecast_hr, verbose=False):
+                 bbox, forecast_hr, ncpu=0, verbose=False):
 
         log_level = logging.INFO
         if verbose:
@@ -50,6 +50,9 @@ class HRRRPreprocessor():
         # forecast number, only do one at a time so multiple can run at once
         self.forecast_hr = forecast_hr
 
+        # ncpu arg for wgrib2, 0 will default to all available cpu's
+        self.ncpu = '' if ncpu == 0 else '-ncpu {}'.format(ncpu)
+
         self._logger.info('HRRR directory: {}'.format(self.hrrr_dir))
         self._logger.info('Cropped HRRR directory: {}'.format(self.output_dir))
         self._logger.info('Process files between {} and {}'.format(
@@ -58,6 +61,7 @@ class HRRRPreprocessor():
         self._logger.info(
             '{} hours will be processed'.format(len(self.date_times)))
         self._logger.info('Forecast hour: {}'.format(self.forecast_hr))
+        self._logger.info('Number of cpu argument: {}'.format(self.ncpu))
 
     def call_wgrib2(self, action):
         """Execute a wgrib2 command
@@ -126,8 +130,9 @@ class HRRRPreprocessor():
             self.call_wgrib2(variable_action)
 
             # Crop the domain
-            crop_action = 'wgrib2 {} -small_grib {}:{} {}:{} {}'.format(
+            crop_action = 'wgrib2 {} {} -small_grib {}:{} {}:{} {}'.format(
                 self.tmp_file,
+                self.ncpu,
                 self.lonw,
                 self.lone,
                 self.lats,
@@ -170,6 +175,9 @@ def cli():
 
     parser.add_argument('-f', '--forecast_hr', dest='forecast_hr', type=int,
                         required=True, help='Forecast hour')
+
+    parser.add_argument('-n', '--ncpu', dest='ncpu', type=int, default=0,
+                        help='Number of CPUs for wgrib2, 0 (default) will use all available')
 
     parser.add_argument('--bbox', dest='bbox',
                         type=lambda s: [i for i in s.split(',')],
