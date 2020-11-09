@@ -112,6 +112,8 @@ optional arguments:
                         End date
   -f FORECAST_HR, --forecast_hr FORECAST_HR
                         Forecast hour
+  -n NCPU, --ncpu NCPU  Number of CPUs for wgrib2, 0 (default) will use all
+                        available
   --bbox BBOX           Bounding box as delimited string --bbox='longitude
                         left, longitude right, latitude bottom, latitude top'
   --verbose             increase logging verbosity
