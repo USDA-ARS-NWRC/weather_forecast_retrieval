@@ -106,8 +106,7 @@ def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
 
     # Using the var names we just collected run wgrib2 for netcdf conversion
     log.debug(grib_vars)
-    log.info("Converting grib2 to netcdf4...".format(
-        len(grib_vars), len(cmd.split('\n'))))
+    log.info("Converting grib2 to netcdf4...")
     cmd = 'echo "{}" | wgrib2 -nc4 -i {} -netcdf {}'.format(
         grib_vars, f_hrrr, temp_output)
     log.debug(cmd)

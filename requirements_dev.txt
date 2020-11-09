@@ -2,6 +2,6 @@
 twine
 coverage==5.0.3
 pylint==2.4.4
-flake8==3.7.9
-autopep8==1.4.4
+flake8
+autopep8
 isort==4.3.21
