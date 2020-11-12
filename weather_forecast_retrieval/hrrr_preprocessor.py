@@ -122,7 +122,7 @@ class HRRRPreprocessor():
             # create a temp file with just the variables needed
             variable_action = """wgrib2 {} -match """ \
                 """'TMP:2 m|RH:2 m|UGRD:10 m|VGRD:10 m|APCP:surface|""" \
-                """DSWRF:surface|HGT:surface|TCDC:' -GRIB {}"""
+                """DSWRF:surface|HGT:surface|TCDC:entire atmosphere' -GRIB {}"""
 
             variable_action = variable_action.format(hrrr_abs_file_path,
                                                      self.tmp_file)
