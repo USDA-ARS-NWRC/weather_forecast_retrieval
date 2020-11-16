@@ -76,6 +76,49 @@ The following command line will download data for a single hour and output into 
 get_hrrr_archive -s '2018-07-22 12:00' -e '2018-07-22 12:10' -o tests/RME/output/
 ```
 
+## hrrr_preprocessor
+
+Use `hrrr_preprocessor` to make smaller files from a larger HRRR file. This will crop to a bounding box and extract the following variables:
+
+- air temperature 2m (TMP:2 m)
+- relative_humidity 2m (RH:2 m)
+- wind_u 10m (UGRD:10 m)
+- wind_v 10m (VGRD:10 m)
+- precip_int surface (APCP: surface)
+- short_wave surface (DSWRF: surface)
+- elevation (HGT:surface)
+- TCDC for entire atmosphere (for WindNinja)
+
+```bash
+usage: hrrr_preprocessor [-h] -o OUTPUT_DIR -s START_DATE -e END_DATE -f
+                         FORECAST_HR --bbox BBOX [--verbose]
+                         hrrr_dir
+
+Crop HRRR files by a bounding box and extract only the necessary surface variables for running with AWSM. 
+
+Example command:
+$ hrrr_preprocessor -s '2019-10-01 00:00' -e '2019-10-01 02:00' -f 0 --bbox="-119,-118,37,38" -o /path/to/output --verbose /path/to/hrrr
+
+positional arguments:
+  hrrr_dir              Directory of HRRR files to use as input
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        Directory to write cropped HRRR files to
+  -s START_DATE, --start START_DATE
+                        Start date
+  -e END_DATE, --end END_DATE
+                        End date
+  -f FORECAST_HR, --forecast_hr FORECAST_HR
+                        Forecast hour
+  -n NCPU, --ncpu NCPU  Number of CPUs for wgrib2, 0 (default) will use all
+                        available
+  --bbox BBOX           Bounding box as delimited string --bbox='longitude
+                        left, longitude right, latitude bottom, latitude top'
+  --verbose             increase logging verbosity
+```
+
 ## convert_grib2nc
 
 ## run_hrrr_retrieval
