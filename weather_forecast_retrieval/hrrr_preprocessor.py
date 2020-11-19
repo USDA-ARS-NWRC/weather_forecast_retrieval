@@ -13,6 +13,17 @@ class HRRRPreprocessor():
     FMT1 = '%Y%m%d'
     FMT2 = '%H'
 
+    VARIABLES = [
+        'TMP:2 m',
+        'RH:2 m',
+        'UGRD:10 m',
+        'VGRD:10 m',
+        'APCP:surface',
+        'DSWRF:surface',
+        'HGT:surface',
+        'TCDC:entire atmosphere'
+    ]
+
     def __init__(self, hrrr_dir, start_date, end_date, output_dir,
                  bbox, forecast_hr, ncpu=0, verbose=False):
 
@@ -63,6 +74,29 @@ class HRRRPreprocessor():
         self._logger.info('Forecast hour: {}'.format(self.forecast_hr))
         self._logger.info('Number of cpu argument: {}'.format(self.ncpu))
 
+    @property
+    def variable_match(self):
+        return '|'.join(self.VARIABLES)
+
+    def check_for_good_file(self, file_name):
+
+        check_action = 'wgrib2 {}'.format(file_name)
+        status, output = self.call_wgrib2(check_action)
+
+        bad_flag = False
+        if status != 0:
+            bad_flag = True
+        else:
+            output = ''.join(output)
+            for variable in self.VARIABLES:
+                if variable not in output:
+                    self._logger.warning('Variable {} not in file'.format(variable))
+                    bad_flag = True
+
+        if bad_flag:
+            self._logger.warning('Removing {}'.format(file_name))
+            os.remove(file_name)
+
     def call_wgrib2(self, action):
         """Execute a wgrib2 command
         Arguments:
@@ -83,18 +117,21 @@ class HRRRPreprocessor():
             universal_newlines=True
         ) as s:
 
-            # stream the output of WindNinja to the logger
+            # stream the output of wgrib2 to the logger
             return_code = s.wait()
+            output = []
             if return_code:
                 for line in s.stdout:
                     self._logger.warning(line.rstrip())
+                    output.append(line.rstrip())
                 self._logger.warning(
                     "An error occured while running wgrib2 action")
             else:
                 for line in s.stdout:
                     self._logger.debug(line.rstrip())
+                    output.append(line.rstrip())
 
-            return return_code
+            return return_code, output
 
     def run(self):
 
@@ -120,12 +157,10 @@ class HRRRPreprocessor():
             new_hrrr_file = os.path.join(new_hrrr_path, hrrr_file_name)
 
             # create a temp file with just the variables needed
-            variable_action = """wgrib2 {} -match """ \
-                """'TMP:2 m|RH:2 m|UGRD:10 m|VGRD:10 m|APCP:surface|""" \
-                """DSWRF:surface|HGT:surface|TCDC:entire atmosphere' -GRIB {}"""
-
-            variable_action = variable_action.format(hrrr_abs_file_path,
-                                                     self.tmp_file)
+            variable_action = "wgrib2 {} -match '{}' -GRIB {}".format(
+                hrrr_abs_file_path,
+                self.variable_match,
+                self.tmp_file)
 
             self.call_wgrib2(variable_action)
 
@@ -140,6 +175,9 @@ class HRRRPreprocessor():
                 new_hrrr_file)
 
             self.call_wgrib2(crop_action)
+
+            # Check that the file has been created and is not empty or corrupt
+            self.check_for_good_file(new_hrrr_file)
 
         # clean up
         os.remove(self.tmp_file)
