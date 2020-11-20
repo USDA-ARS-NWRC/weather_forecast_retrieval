@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import subprocess
-import uuid
 
 import pandas as pd
 
@@ -33,6 +32,7 @@ class HRRRPreprocessor():
 
         logging.basicConfig(level=log_level)
         self._logger = logging.getLogger('HRRRPreprocessor')
+        self.verbose = verbose
 
         if shutil.which('wgrib2') is None:
             raise Exception('wgrib2 is not installed')
@@ -42,8 +42,6 @@ class HRRRPreprocessor():
 
         # output directory for cropped hrrr files
         self.output_dir = output_dir
-        self.tmp_file = os.path.join(
-            self.output_dir, '{}.grib2'.format(uuid.uuid4().hex))
         os.makedirs(self.output_dir, exist_ok=True)
 
         # bounding box
@@ -92,6 +90,9 @@ class HRRRPreprocessor():
                 if variable not in output:
                     self._logger.warning('Variable {} not in file'.format(variable))
                     bad_flag = True
+
+                    if not self.verbose and bad_flag:
+                        break
 
         if bad_flag:
             self._logger.warning('Removing {}'.format(file_name))
@@ -156,31 +157,23 @@ class HRRRPreprocessor():
             os.makedirs(new_hrrr_path, exist_ok=True)
             new_hrrr_file = os.path.join(new_hrrr_path, hrrr_file_name)
 
-            # create a temp file with just the variables needed
-            variable_action = "wgrib2 {} -match '{}' -GRIB {}".format(
-                hrrr_abs_file_path,
-                self.variable_match,
-                self.tmp_file)
+            # one command to crop then extract the variables
+            pipe_action = """wgrib2 {} {} -small_grib {}:{} {}:{} - | """ \
+                """wgrib2 - -match '{}' -GRIB {}""".format(
+                    hrrr_abs_file_path,
+                    self.ncpu,
+                    self.lonw,
+                    self.lone,
+                    self.lats,
+                    self.latn,
+                    self.variable_match,
+                    new_hrrr_file
+                )
 
-            self.call_wgrib2(variable_action)
-
-            # Crop the domain
-            crop_action = 'wgrib2 {} {} -small_grib {}:{} {}:{} {}'.format(
-                self.tmp_file,
-                self.ncpu,
-                self.lonw,
-                self.lone,
-                self.lats,
-                self.latn,
-                new_hrrr_file)
-
-            self.call_wgrib2(crop_action)
+            self.call_wgrib2(pipe_action)
 
             # Check that the file has been created and is not empty or corrupt
             self.check_for_good_file(new_hrrr_file)
-
-        # clean up
-        os.remove(self.tmp_file)
 
 
 def cli():
