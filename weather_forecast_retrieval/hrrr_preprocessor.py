@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import subprocess
-import uuid
 
 import pandas as pd
 
@@ -12,6 +11,17 @@ class HRRRPreprocessor():
 
     FMT1 = '%Y%m%d'
     FMT2 = '%H'
+
+    VARIABLES = [
+        'TMP:2 m',
+        'RH:2 m',
+        'UGRD:10 m',
+        'VGRD:10 m',
+        'APCP:surface',
+        'DSWRF:surface',
+        'HGT:surface',
+        'TCDC:entire atmosphere'
+    ]
 
     def __init__(self, hrrr_dir, start_date, end_date, output_dir,
                  bbox, forecast_hr, ncpu=0, verbose=False):
@@ -22,6 +32,7 @@ class HRRRPreprocessor():
 
         logging.basicConfig(level=log_level)
         self._logger = logging.getLogger('HRRRPreprocessor')
+        self.verbose = verbose
 
         if shutil.which('wgrib2') is None:
             raise Exception('wgrib2 is not installed')
@@ -31,8 +42,6 @@ class HRRRPreprocessor():
 
         # output directory for cropped hrrr files
         self.output_dir = output_dir
-        self.tmp_file = os.path.join(
-            self.output_dir, '{}.grib2'.format(uuid.uuid4().hex))
         os.makedirs(self.output_dir, exist_ok=True)
 
         # bounding box
@@ -63,6 +72,32 @@ class HRRRPreprocessor():
         self._logger.info('Forecast hour: {}'.format(self.forecast_hr))
         self._logger.info('Number of cpu argument: {}'.format(self.ncpu))
 
+    @property
+    def variable_match(self):
+        return '|'.join(self.VARIABLES)
+
+    def check_for_good_file(self, file_name):
+
+        check_action = 'wgrib2 {}'.format(file_name)
+        status, output = self.call_wgrib2(check_action)
+
+        bad_flag = False
+        if status != 0:
+            bad_flag = True
+        else:
+            output = ''.join(output)
+            for variable in self.VARIABLES:
+                if variable not in output:
+                    self._logger.warning('Variable {} not in file'.format(variable))
+                    bad_flag = True
+
+                    if not self.verbose and bad_flag:
+                        break
+
+        if bad_flag:
+            self._logger.warning('Removing {}'.format(file_name))
+            os.remove(file_name)
+
     def call_wgrib2(self, action):
         """Execute a wgrib2 command
         Arguments:
@@ -83,18 +118,21 @@ class HRRRPreprocessor():
             universal_newlines=True
         ) as s:
 
-            # stream the output of WindNinja to the logger
+            # stream the output of wgrib2 to the logger
             return_code = s.wait()
+            output = []
             if return_code:
                 for line in s.stdout:
                     self._logger.warning(line.rstrip())
+                    output.append(line.rstrip())
                 self._logger.warning(
                     "An error occured while running wgrib2 action")
             else:
                 for line in s.stdout:
                     self._logger.debug(line.rstrip())
+                    output.append(line.rstrip())
 
-            return return_code
+            return return_code, output
 
     def run(self):
 
@@ -119,30 +157,23 @@ class HRRRPreprocessor():
             os.makedirs(new_hrrr_path, exist_ok=True)
             new_hrrr_file = os.path.join(new_hrrr_path, hrrr_file_name)
 
-            # create a temp file with just the variables needed
-            variable_action = """wgrib2 {} -match """ \
-                """'TMP:2 m|RH:2 m|UGRD:10 m|VGRD:10 m|APCP:surface|""" \
-                """DSWRF:surface|HGT:surface|TCDC:entire atmosphere' -GRIB {}"""
+            # one command to crop then extract the variables
+            pipe_action = """wgrib2 {} {} -small_grib {}:{} {}:{} - | """ \
+                """wgrib2 - -match '{}' -GRIB {}""".format(
+                    hrrr_abs_file_path,
+                    self.ncpu,
+                    self.lonw,
+                    self.lone,
+                    self.lats,
+                    self.latn,
+                    self.variable_match,
+                    new_hrrr_file
+                )
 
-            variable_action = variable_action.format(hrrr_abs_file_path,
-                                                     self.tmp_file)
+            self.call_wgrib2(pipe_action)
 
-            self.call_wgrib2(variable_action)
-
-            # Crop the domain
-            crop_action = 'wgrib2 {} {} -small_grib {}:{} {}:{} {}'.format(
-                self.tmp_file,
-                self.ncpu,
-                self.lonw,
-                self.lone,
-                self.lats,
-                self.latn,
-                new_hrrr_file)
-
-            self.call_wgrib2(crop_action)
-
-        # clean up
-        os.remove(self.tmp_file)
+            # Check that the file has been created and is not empty or corrupt
+            self.check_for_good_file(new_hrrr_file)
 
 
 def cli():

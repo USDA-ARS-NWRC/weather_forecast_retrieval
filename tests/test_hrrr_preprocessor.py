@@ -34,9 +34,9 @@ class TestHRRRPreprocessor(unittest.TestCase):
         if os.path.exists(out_dir):
             shutil.rmtree(out_dir)
 
-    def test_pre_process(self):
+    def test_00_pre_process_bad_file(self):
 
-        HRRRPreprocessor(
+        hp = HRRRPreprocessor(
             self.hrrr_directory,
             self.start_date,
             self.end_date,
@@ -44,7 +44,29 @@ class TestHRRRPreprocessor(unittest.TestCase):
             self.bbox_crop,
             1,
             verbose=True
-        ).run()
+        )
+        hp.run()
+
+        # neither files have TCDC so they shouldn't write
+        self.assertFalse(os.path.exists(
+            'tests/RME/output/hrrr.20180722/hrrr.t01z.wrfsfcf01.grib2'))
+        self.assertFalse(os.path.exists(
+            'tests/RME/output/hrrr.20180722/hrrr.t02z.wrfsfcf01.grib2'))
+
+    def test_01_pre_process(self):
+
+        hp = HRRRPreprocessor(
+            self.hrrr_directory,
+            self.start_date,
+            self.end_date,
+            self.output_path,
+            self.bbox_crop,
+            1,
+            verbose=True
+        )
+        # The files in this repo don't have TCDC
+        hp.VARIABLES.pop(-1)
+        hp.run()
 
         self.assertTrue(os.path.exists(
             'tests/RME/output/hrrr.20180722/hrrr.t01z.wrfsfcf01.grib2'))
