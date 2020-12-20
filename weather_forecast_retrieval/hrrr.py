@@ -21,6 +21,7 @@ from bs4 import BeautifulSoup
 from siphon.catalog import TDSCatalog
 
 from weather_forecast_retrieval import utils
+from weather_forecast_retrieval.data import hrrr
 
 
 class HRRR:
@@ -526,8 +527,9 @@ class HRRR:
             file_time = d
             for fx_hr in range(1, 8):
                 # get the name of the file
-                day_folder, file_name = utils.hrrr_file_name_finder(
-                    file_time, fx_hr, self.file_type)
+                day_folder, file_name = hrrr.FileHandler.folder_and_file(
+                    file_time, fx_hr, self.file_type
+                )
 
                 if self.file_type == 'grib2':
                     base_path = os.path.abspath(self.output_dir)

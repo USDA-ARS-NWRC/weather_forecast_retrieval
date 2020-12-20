@@ -1,15 +1,13 @@
-
-import datetime
 import logging
 import os
 import sys
+
 from collections import Sequence
 from configparser import ConfigParser
 
 import coloredlogs
-import pandas as pd
 
-PY3 = sys.version_info[0] >= 3
+from weather_forecast_retrieval.data import hrrr
 
 basestring = str
 unicode_type = str
@@ -144,78 +142,8 @@ def isscalar(x):
         return True
 
 
-def get_hrrr_file_date(fp, fx=False):
-    '''
-    Get the date from a hrrr file name. Assuming the directory structure
-    used in the rest of this code.
-
-    Args:
-        fp: file path to hrrr grib2 file within normal hrrr structure
-        fx: include the forecast hour or not
-    Returns:
-        file_time: datetime object for that specific file
-
-    '''
-    # go off the base and fx hour or just the base hour
-    fn = os.path.basename(fp)
-    if fx:
-        add_hrs = int(fn[6:8]) + int(fn[17:19])
-    else:
-        add_hrs = int(fn[6:8])
-
-    # find the day from the hrrr.<day> folder
-    date_day = pd.to_datetime(os.path.dirname(fp).split('hrrr.')[1])
-    # find the actual datetime
-    file_time = pd.to_datetime(date_day + datetime.timedelta(hours=add_hrs))
-
-    return file_time
-
-
-def hrrr_file_name_finder(date, fx_hr=0, file_extension='grib2'):
+def hrrr_file_name_finder(*kwargs):
     """
-    Find the file pointer for a hrrr file with a specific forecast hour
-
-    hours    0    1    2    3    4
-             |----|----|----|----|
-    forecast
-    start    fx hour
-             |----|----|----|----|
-    00       01   02   03   04   05
-    01            01   02   03   04
-    02                 01   02   03
-    03                      01   02
-
-    Args:
-        date:       datetime that the file is used for
-        fx_hr:      forecast hour
-    Returns:
-        day_folder: they folder that the file will be in, hrrr.YYYYMMDD
-        file_name:  file name for the date requested
-
+    TODO: Deprecate in favor of calling HRRR FileHandler directly.
     """
-
-    if file_extension == 'netcdf':
-        file_extension = 'nc'
-
-    fmt_day = '%Y%m%d'
-    # base_path = os.path.abspath(base_path)
-    date = pd.to_datetime(date)
-    fx_hr = int(fx_hr)
-
-    day = date.date()
-    hr = int(date.hour)
-
-    # find the new base hour given the date and forecast hour
-    new_hr = hr - fx_hr
-
-    # if we've dropped back a day, fix logic to reflect that
-    if new_hr < 0:
-        day = day - pd.to_timedelta('1 day')
-        new_hr = new_hr + 24
-
-    # create new path
-    day_folder = 'hrrr.{}'.format(day.strftime(fmt_day))
-    file_name = 'hrrr.t{:02d}z.wrfsfcf{:02d}.{}'.format(
-        new_hr, fx_hr, file_extension)
-
-    return day_folder, file_name
+    return hrrr.FileHandler.folder_and_file(*kwargs)
