@@ -1,28 +1,19 @@
-import os
-import shutil
-import unittest
 from datetime import datetime, timedelta
 
+from tests.RME_test_case import RMETestCase
 from weather_forecast_retrieval import hrrr
 
 
-class TestHRRRRetrevial(unittest.TestCase):
+class TestHRRRRetrieval(RMETestCase):
     """Test downloading HRRR from NOMADS """
 
     def setUp(self):
+        super().setUp()
         self.end_date = datetime.utcnow()
         self.start_date = self.end_date - timedelta(minutes=10)
-        self.config_file = 'tests/hrrr_dates_test.ini'
-
-    def tearDown(self):
-        """
-        Delete the directory created
-        """
-        out_path = os.path.join(
-            'tests/RME/output',
-            'hrrr.{}'.format(self.start_date.strftime('%Y%m%d'))
-        )
-        shutil.rmtree(out_path)
+        self.config_file = self.basin_dir.joinpath(
+            'hrrr_dates_test.ini'
+        ).as_posix()
 
     def test_download_dates(self):
         """ Test loading the data from an OpenDAP THREDDS server """
