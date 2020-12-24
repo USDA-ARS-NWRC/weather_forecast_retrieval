@@ -28,5 +28,8 @@ class RMETestCase(unittest.TestCase):
     def tearDown(self):
         """
         Cleanup the downloaded files
+        Cleanup grib2 index files
         """
         shutil.rmtree(self.output_path)
+        for index_file in self.hrrr_dir.rglob('**/*.grib2.*.idx'):
+            index_file.unlink()
