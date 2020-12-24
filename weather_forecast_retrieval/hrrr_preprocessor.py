@@ -6,12 +6,10 @@ import subprocess
 
 import pandas as pd
 
+from weather_forecast_retrieval.data.hrrr import FileHandler
+
 
 class HRRRPreprocessor():
-
-    FMT1 = '%Y%m%d'
-    FMT2 = '%H'
-
     VARIABLES = [
         'TMP:2 m',
         'RH:2 m',
@@ -140,10 +138,10 @@ class HRRRPreprocessor():
             self._logger.info('Processing date: {}'.format(date_time))
 
             # get the file and path's
-            hrrr_day_dir = 'hrrr.{}'.format(date_time.strftime(self.FMT1))
-            hrrr_file_name = 'hrrr.t{}z.wrfsfcf{:02}.grib2'.format(
-                date_time.strftime(self.FMT2),
-                self.forecast_hr)
+            hrrr_day_dir = FileHandler.folder_name(date_time)
+            hrrr_file_name = FileHandler.file_name(
+                date_time.hour, self.forecast_hr
+            )
             hrrr_abs_file_path = os.path.join(
                 self.hrrr_dir,
                 hrrr_day_dir,

@@ -10,6 +10,10 @@ class TestHRRRPreprocessor(RMETestCase):
 
     start_date = '2018-07-22 01:00'
     end_date = '2018-07-22 02:00'
+    output_files = [
+            'hrrr.20180722/hrrr.t01z.wrfsfcf01.grib2',
+            'hrrr.20180722/hrrr.t02z.wrfsfcf01.grib2',
+        ]
 
     def setUp(self):
         """
@@ -32,13 +36,11 @@ class TestHRRRPreprocessor(RMETestCase):
         )
         hp.run()
 
-        # neither files have TCDC so they shouldn't write
-        self.assertFalse(self.output_path.joinpath(
-            'hrrr.20180722/hrrr.t01z.wrfsfcf01.grib2').exists()
-        )
-        self.assertFalse(self.output_path.joinpath(
-            'hrrr.20180722/hrrr.t02z.wrfsfcf01.grib2').exists()
-        )
+        for file in self.output_files:
+            self.assertFalse(
+                self.output_path.joinpath(file).exists(),
+                'File was written although no TCDC variable in GRIB source'
+            )
 
     def test_01_pre_process(self):
 
@@ -55,12 +57,11 @@ class TestHRRRPreprocessor(RMETestCase):
         hp.VARIABLES.pop(-1)
         hp.run()
 
-        self.assertTrue(self.output_path.joinpath(
-            'hrrr.20180722/hrrr.t01z.wrfsfcf01.grib2').exists()
-        )
-        self.assertTrue(self.output_path.joinpath(
-            'hrrr.20180722/hrrr.t02z.wrfsfcf01.grib2').exists()
-        )
+        for file in self.output_files:
+            self.assertFalse(
+                self.output_path.joinpath(file).exists(),
+                'File was not written successfully'
+            )
 
         # ensure that the data has what is needed
         metadata, data = HRRR().get_saved_data(
