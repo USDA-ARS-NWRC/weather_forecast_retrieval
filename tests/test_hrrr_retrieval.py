@@ -1,9 +1,14 @@
+import unittest
 from datetime import datetime, timedelta
 
 from tests.RME_test_case import RMETestCase
+from tests.helpers import skip_external_http_request
 from weather_forecast_retrieval import hrrr
 
 
+@unittest.skipIf(
+    skip_external_http_request(), 'Skipping HRRR external HTTP requests'
+)
 class TestHRRRRetrieval(RMETestCase):
     """Test downloading HRRR from NOMADS """
 
