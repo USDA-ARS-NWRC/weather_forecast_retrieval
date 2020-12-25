@@ -9,8 +9,8 @@ import pandas as pd
 from weather_forecast_retrieval.data.hrrr import FileHandler
 
 
-class HRRRPreprocessor():
-    VARIABLES = [
+class HRRRPreprocessor:
+    VARIABLES = tuple([
         'TMP:2 m',
         'RH:2 m',
         'UGRD:10 m',
@@ -19,7 +19,7 @@ class HRRRPreprocessor():
         'DSWRF:surface',
         'HGT:surface',
         'TCDC:entire atmosphere'
-    ]
+    ])
 
     def __init__(self, hrrr_dir, start_date, end_date, output_dir,
                  bbox, forecast_hr, ncpu=0, verbose=False):
@@ -57,6 +57,8 @@ class HRRRPreprocessor():
         # forecast number, only do one at a time so multiple can run at once
         self.forecast_hr = forecast_hr
 
+        self.variables = [variable for variable in self.VARIABLES]
+
         # ncpu arg for wgrib2, 0 will default to all available cpu's
         self.ncpu = '' if ncpu == 0 else '-ncpu {}'.format(ncpu)
 
@@ -70,10 +72,6 @@ class HRRRPreprocessor():
         self._logger.info('Forecast hour: {}'.format(self.forecast_hr))
         self._logger.info('Number of cpu argument: {}'.format(self.ncpu))
 
-    @property
-    def variable_match(self):
-        return '|'.join(self.VARIABLES)
-
     def check_for_good_file(self, file_name):
 
         check_action = 'wgrib2 {}'.format(file_name)
@@ -84,9 +82,11 @@ class HRRRPreprocessor():
             bad_flag = True
         else:
             output = ''.join(output)
-            for variable in self.VARIABLES:
+            for variable in self.variables:
                 if variable not in output:
-                    self._logger.warning('Variable {} not in file'.format(variable))
+                    self._logger.warning(
+                        'Variable {} not in file'.format(variable)
+                    )
                     bad_flag = True
 
                     if not self.verbose and bad_flag:
@@ -164,7 +164,7 @@ class HRRRPreprocessor():
                     self.lone,
                     self.lats,
                     self.latn,
-                    self.variable_match,
+                    '|'.join(self.variables),
                     new_hrrr_file
                 )
 

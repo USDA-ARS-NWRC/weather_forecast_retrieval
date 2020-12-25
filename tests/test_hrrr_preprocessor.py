@@ -6,7 +6,12 @@ from weather_forecast_retrieval.hrrr_preprocessor import HRRRPreprocessor
 
 
 class TestHRRRPreprocessor(RMETestCase):
-    """Test cropping HRRR files"""
+    """
+    Test cropping HRRR files
+
+    The test HRRR files in this repo don't have TCDC variable in their GRIB
+    file.
+    """
 
     start_date = '2018-07-22 01:00'
     end_date = '2018-07-22 02:00'
@@ -16,54 +21,37 @@ class TestHRRRPreprocessor(RMETestCase):
         ]
 
     def setUp(self):
-        """
-        Test the retrieval of existing data that will be passed to programs
-        like SMRF
-        """
         super().setUp()
-        self.bbox_crop = [-116.9, 42.9, -116.5, 43.2]
-
-    def test_00_pre_process_bad_file(self):
-
-        hp = HRRRPreprocessor(
+        self.test_subject = HRRRPreprocessor(
             self.hrrr_dir.as_posix(),
             self.start_date,
             self.end_date,
             self.output_path.as_posix(),
-            self.bbox_crop,
+            [-116.9, 42.9, -116.5, 43.2],
             1,
             verbose=True
         )
-        hp.run()
+
+    def test_bad_file(self):
+        self.test_subject.run()
 
         for file in self.output_files:
             self.assertFalse(
                 self.output_path.joinpath(file).exists(),
-                'File was written although no TCDC variable in GRIB source'
+                'File {} was written although no TCDC variable '
+                'in GRIB source file'.format(file)
             )
 
-    def test_01_pre_process(self):
-
-        hp = HRRRPreprocessor(
-            self.hrrr_dir.as_posix(),
-            self.start_date,
-            self.end_date,
-            self.output_path.as_posix(),
-            self.bbox_crop,
-            1,
-            verbose=True
-        )
-        # The files in this repo don't have TCDC
-        hp.VARIABLES.pop(-1)
-        hp.run()
+    def test_pre_process(self):
+        self.test_subject.variables.pop(-1)
+        self.test_subject.run()
 
         for file in self.output_files:
-            self.assertFalse(
+            self.assertTrue(
                 self.output_path.joinpath(file).exists(),
-                'File was not written successfully'
+                'File {} was not written successfully'.format(file)
             )
 
-        # ensure that the data has what is needed
         metadata, data = HRRR().get_saved_data(
             pd.to_datetime(self.end_date),
             pd.to_datetime('2018-07-22 03:00'),
