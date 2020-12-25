@@ -180,14 +180,14 @@ def cli():
     """
 
     parser = argparse.ArgumentParser(
-        description="""Crop HRRR files by a bounding box and """
-                    """extract only the necessary surface variables """
-                    """for running with AWSM. \n\nExample command:\n"""
-                    """$ hrrr_preprocessor -s '2019-10-01 00:00' """
-                    """-e '2019-10-01 02:00' -f 0 --bbox="-119,-118,37,38" """
-                    """-o /path/to/output --verbose """
-                    """/path/to/hrrr""",
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        description="Crop HRRR files by a bounding box and "
+                    "extract only the necessary surface variables "
+                    "for running with AWSM. \n\nExample command:\n"
+                    "$ hrrr_preprocessor -s '2019-10-01 00:00' "
+                    "-e '2019-10-01 02:00' -f 0 --bbox=\"-119,-118,37,38\" "
+                    "-o /path/to/output --verbose "
+                    "/path/to/hrrr"
+    )
 
     parser.add_argument('hrrr_dir', metavar='hrrr_dir', type=str,
                         help='Directory of HRRR files to use as input')
@@ -206,14 +206,15 @@ def cli():
                         required=True, help='Forecast hour')
 
     parser.add_argument('-n', '--ncpu', dest='ncpu', type=int, default=0,
-                        help='Number of CPUs for wgrib2, 0 (default) will use all available')
+                        help='Number of CPUs for wgrib2, 0 (default) will use '
+                             'all available')
 
     parser.add_argument('--bbox', dest='bbox',
                         type=lambda s: [i for i in s.split(',')],
                         required=True,
-                        help="""Bounding box as delimited string """
-                        """--bbox='longitude left, longitude right, latitude bottom, """
-                        """latitude top'""")
+                        help="Bounding box as delimited string "
+                        "--bbox='longitude left, longitude right, "
+                             "latitude bottom, latitude top'")
 
     parser.add_argument("--verbose", help="increase logging verbosity",
                         action="store_true")
