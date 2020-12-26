@@ -290,36 +290,6 @@ class HRRR:
 
         # return df, metadata
 
-    # def get_forecast(self):
-    #     """
-    #     Not implemented yet but will get the HRRR forecast
-    #     """
-
-    #     # loop through each forecast hour
-    #     for f in forecast:
-    #         # add forecast hour
-    #         file_time = d + pd.to_timedelta(f, 'h')
-    #         # make sure we get a working file
-    #         for fx_hr in range(7):
-    #             fp = utils.hrrr_file_name_finder(self.output_dir,
-    #                                              file_time,
-    #                                              fx_hr)
-
-    #             success, df, idx, metadata = self.get_one_grib(df, idx,
-    #                                                            metadata,
-    #                                                            fp,
-    #                                                            new_var_map,
-    #                                                            file_time,
-    #                                                            bbox)
-    #             if success:
-    #                 break
-    #             if fx_hr == 6:
-    #                 raise IOError(
-    #                     'Not able to find good grib file for {}'.format(
-    #                         file_time.strftime('%Y-%m-%d %H:%M')))
-
-    #     return df, metadata
-
     def convert_to_dataframes(self):
         """
         Convert the xarray's to dataframes to return
