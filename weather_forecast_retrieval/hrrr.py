@@ -95,11 +95,7 @@ class HRRR:
             configFile (str):  path to configuration file.
             external_logger: logger instance if using in part of larger program
         """
-        self.num_requests = 2
         self.date_folder = True
-
-        # number of seconds for http request timeout
-        self.request_timeout = 600
 
         # TDS catalog sessions
         self.main_cat = None
@@ -119,9 +115,9 @@ class HRRR:
                 self.end_date = pd.to_datetime(
                     self.config['output']['end_date'])
             if 'num_requests' in self.config['output'].keys():
-                self.num_requests = int(self.config['output']['num_requests'])
+                self._num_requests = int(self.config['output']['num_requests'])
             if 'request_timeout' in self.config['output'].keys():
-                self.request_timeout = int(
+                self._request_timeout = int(
                     self.config['output']['request_timeout'])
 
         self._logger = external_logger or \

@@ -15,6 +15,17 @@ class HttpRetrieval(hrrr.HRRR):
           '/hrrr.{}/conus/'
     FILE_PATTERN = re.compile(r'hrrr\.t\d\dz\.wrfsfcf\d\d\.grib2')
 
+    NUMBER_REQUESTS = 2
+    REQUEST_TIMEOUT = 600
+
+    @property
+    def number_requests(self):
+        return getattr(self, '_number_requests', HttpRetrieval.NUMBER_REQUESTS)
+
+    @property
+    def request_timeout(self):
+        return getattr(self, '_request_timeout', HttpRetrieval.REQUEST_TIMEOUT)
+
     def fetch_by_date(self, start_date=None, end_date=None):
         """
         :params:  start_date - datetime object to override config
@@ -104,7 +115,7 @@ class HttpRetrieval(hrrr.HRRR):
             'Found {} files between start and end date'.format(len(df)))
 
         self._logger.debug('Generating requests')
-        pool = ThreadPool(processes=self.num_requests)
+        pool = ThreadPool(processes=self.number_requests)
 
         self._logger.debug('Sendings {} requests'.format(len(df)))
 
