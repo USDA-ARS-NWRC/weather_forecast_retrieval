@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 
 from tests.RME_test_case import RMETestCase
 from tests.helpers import skip_external_http_request
-from weather_forecast_retrieval import hrrr
+from weather_forecast_retrieval.data.hrrr import HttpRetrieval
 
 
 @unittest.skipIf(
     skip_external_http_request(), 'Skipping HRRR external HTTP requests'
 )
-class TestHRRRRetrieval(RMETestCase):
+class TestHttpRetrieval(RMETestCase):
     """Test downloading HRRR from NOMADS """
 
     def setUp(self):
@@ -24,7 +24,7 @@ class TestHRRRRetrieval(RMETestCase):
         """ Test loading the data from an OpenDAP THREDDS server """
 
         try:
-            hrrr.HRRR(self.config_file)\
-                .retrieve_http_by_date(self.start_date, self.end_date)
+            HttpRetrieval(self.config_file)\
+                .fetch_by_date(self.start_date, self.end_date)
         except Exception as e:
             self.fail('Download failed: {}'.format(e))

@@ -5,16 +5,12 @@ Connect to the HRRR site and download the data
 import copy
 import logging
 import os
-import re
 from datetime import datetime, timedelta
-from multiprocessing.pool import ThreadPool
 
 import numpy as np
 import pandas as pd
-import requests
 import utm
 import xarray as xr
-from bs4 import BeautifulSoup
 from siphon.catalog import TDSCatalog
 
 from weather_forecast_retrieval import utils
@@ -35,9 +31,6 @@ class HRRR:
 
     # need to make this hour correct for the forecast
     file_filter = 'hrrr.t*z.wrfsfcf*.grib2'
-    regexp = re.compile('hrrr\.t\d\dz\.wrfsfcf\d\d\.grib2')  # noqa
-
-    http_url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.{}/conus/'  # noqa
 
     # dataset filter by keys arguments
     var_map_grib = {
@@ -154,143 +147,6 @@ class HRRR:
         if self.day_cat is not None:
             if hasattr(self.day_cat, 'session'):
                 self.day_cat.session.close()
-
-    def retrieve_http_by_date(self, start_date=None, end_date=None):
-        """
-        Retrieve the data from the ftp site. First read the ftp_url and
-        determine what dates are available. Then use that to download
-        the required data.
-
-        :params:  start_date - datetime object to override config
-                  end_date - datetime object to override config
-        """
-
-        self._logger.info('Retrieving data from the http site')
-
-        # could be more robust
-        if start_date is not None:
-            # if type(start_date) is str:
-            start_date = pd.to_datetime(start_date)
-            self.start_date = start_date
-        if end_date is not None:
-            # if type(end_date) is str:
-            end_date = pd.to_datetime(end_date)
-            self.end_date = end_date
-
-        # check if dates are timezone aware, if not then assume UTC
-        if self.start_date.tzinfo is None or \
-                self.start_date.tzinfo.utcoffset(self.start_date):
-            self.start_date = self.start_date.tz_localize(tz='UTC')
-        else:
-            self.start_date = self.start_date.tz_convert(tz='UTC')
-
-        if self.end_date.tzinfo is None or \
-                self.end_date.tzinfo.utcoffset(self.end_date):
-            self.end_date = self.end_date.tz_localize(tz='UTC')
-        else:
-            self.end_date = self.end_date.tz_convert(tz='UTC')
-
-        diff = pd.Timestamp.utcnow() - self.start_date
-        if diff.days > 1:
-            # NOAA only keeps the last two days of data
-            self._logger.info('Requested start date not within 2 days of now')
-            return True
-
-        if self.date_folder:
-            d = 'hrrr.{}'.format(self.start_date.strftime('%Y%m%d'))
-            # check if d exists in output_dir
-            out_path = os.path.join(self.output_dir, d)
-            if not os.path.isdir(out_path):
-                os.mkdir(out_path)
-                self._logger.info('mkdir {}'.format(out_path))
-        else:
-            out_path = self.output_dir
-        self.out_path = out_path
-
-        url_date = self.http_url.format(self.start_date.strftime('%Y%m%d'))
-
-        # get the html text
-        self._logger.debug('Requesting html text from {}'.format(url_date))
-        page = requests.get(url_date).text
-
-        # convert to BeautifulSoup
-        soup = BeautifulSoup(page, 'html.parser')
-
-        # parse
-        columns = ['modified', 'name', 'url', 'size']
-        df = pd.DataFrame(columns=columns)
-
-        for node in soup.find_all('a'):
-            if node.get('href').endswith('grib2'):
-                file_name = node.get('href')
-                result = self.regexp.match(file_name)
-
-                if result:
-                    # matched a file name so get more information about it
-                    file_url = url_date + file_name
-                    data = node.next_element.next_element.strip()
-                    el = data.split(' ')
-                    modified = pd.to_datetime(
-                        el[0] + ' ' + el[1]).tz_localize(tz='UTC')
-                    size = el[3]
-                    df = df.append({
-                        'modified': modified,
-                        'file_name': file_name,
-                        'url': file_url,
-                        'size': size
-                    }, ignore_index=True)
-
-        self._logger.debug('Found {} matching files'.format(len(df)))
-
-        # parse by the date
-        idx = (df['modified'] >= self.start_date) & (
-            df['modified'] <= self.end_date)
-        df = df.loc[idx]
-        self._logger.debug(
-            'Found {} files between start and end date'.format(len(df)))
-
-        self._logger.debug('Generating requests')
-        pool = ThreadPool(processes=self.num_requests)
-
-        self._logger.debug('Sendings {} requests'.format(len(df)))
-
-        # map_async will convert the iterable to a list right away and wait
-        # for the requests to finish before continuing
-        res = pool.map(self.fetch_url, df.url.to_list())
-
-        self._logger.info(
-            '{} -- Done with downloads'.format(datetime.now().isoformat()))
-        return res
-
-    def fetch_url(self, uri):
-        """
-        Fetch the file at the uri and save the file to the out_path
-
-        Args:
-            uri: url of the file
-
-        Returns:
-            False if failed or path to saved file
-        """
-
-        success = False
-        try:
-            self._logger.debug('Fetching {}'.format(uri))
-            r = requests.get(uri, timeout=self.request_timeout)
-            if r.status_code == 200:
-                f = r.url.split('/')[-1]
-                out_file = os.path.join(self.out_path, f)
-                with open(out_file, 'wb') as f:
-                    f.write(r.content)
-                    f.close()
-                    self._logger.debug('Saved to {}'.format(out_file))
-                    success = out_file
-
-        except Exception as e:
-            self._logger.warning('Problem processing response')
-            self._logger.warning(e)
-
-        return success
 
     def get_saved_data(self, start_date, end_date, bbox,
                        file_type='grib2', output_dir=None,
