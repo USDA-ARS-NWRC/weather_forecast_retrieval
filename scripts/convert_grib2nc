@@ -23,7 +23,7 @@ def run(config_file, start_date):
         ex_date = datetime.date(pd.to_datetime(start_date))
         date_folder = 'hrrr.{}'.format(ex_date.strftime('%Y%m%d'))
 
-        log_config = {}
+        log_config = None
         if 'grib2nc_log' in config['logging']:
             log_config = {
                 'logging': {
@@ -32,7 +32,7 @@ def run(config_file, start_date):
                 }
             }
 
-        log = utils.setup_local_logger(log_config, 'grib2nc')
+        log = utils.setup_local_logger('grib2nc', log_config)
 
         msg = "GRIB2NC Converter Utility"
         log.info(msg)

@@ -23,18 +23,11 @@ def grib2nc(f_hrrr, output=None, external_logger=None, chunk_x=45, chunk_y=45):
     """
     start = time.time()
 
-    if external_logger is None:
-        log = utils.create_logger(__name__)
-        # fmt = "%(levelname)s: %(msg)s"
-        # log = logging.getLogger(__name__)
-        # coloredlogs.install(logger=log, fmt=fmt)
+    log = external_logger or utils.setup_local_logger(__name__)
 
-        msg = "GRIB2NC Converter Utility"
-        log.info(msg)
-        log.info("=" * len(msg))
-    else:
-        log = external_logger
-
+    msg = "GRIB2NC Converter Utility"
+    log.info(msg)
+    log.info("=" * len(msg))
     log.info('Converting to netcdf: {}'.format(f_hrrr))
 
     # criteria dictionary for extracting variables, CASE MATTERS

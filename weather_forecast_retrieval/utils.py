@@ -22,24 +22,11 @@ except ImportError:  # pragma: no cover
         from ordereddict import OrderedDict
 
 
-def create_logger(name):
-    """Create a logger
-
-    Returns:
-        logger -- a logger
-    """
-    fmt = "%(levelname)s: %(msg)s"
-    logger = logging.getLogger(name)
-    coloredlogs.install(logger=logger, fmt=fmt)
-
-    return logger
-
-
-def setup_local_logger(config, name):
+def setup_local_logger(name, config=None):
     # Defaults
     logfile = None
     loglevel = 'DEBUG'
-    message_format = '%(levelname)s:%(name)s:%(message)s'
+    message_format = '%(levelname)s:%(name)s: %(message)s'
     log = logging.getLogger(name)
 
     if config is not None:
@@ -67,7 +54,9 @@ def setup_local_logger(config, name):
         handler.setFormatter(formatter)
         log.addHandler(handler)
     else:
-        logging.basicConfig(level=numeric_level)
+        coloredlogs.install(
+            logger=log, level=numeric_level, fmt=message_format
+        )
 
     return log
 

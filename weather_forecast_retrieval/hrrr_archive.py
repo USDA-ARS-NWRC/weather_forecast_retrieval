@@ -169,20 +169,11 @@ def HRRR_from_UofU(start_date, end_date, save_dir, external_logger=None,
     Return:
 
     """
+    logger = external_logger or utils.setup_local_logger(__name__)
 
-    if external_logger is None:
-        logger = utils.create_logger(__name__)
-
-        # fmt = "%(levelname)s: %(msg)s"
-        # logger = logging.getLogger(__name__)
-        # coloredlogs.install(logger=logger, fmt=fmt)
-
-        msg = "hrrr_archive get data from University of Utah"
-        logger.info(msg)
-        logger.info("=" * len(msg))
-
-    else:
-        logger = external_logger
+    msg = "hrrr_archive get data from University of Utah"
+    logger.info(msg)
+    logger.info("=" * len(msg))
 
     # check the start and end date
     if start_date >= end_date:
