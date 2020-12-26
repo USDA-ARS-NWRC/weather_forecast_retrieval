@@ -121,6 +121,7 @@ class HRRR:
         self.main_cat = None
         self.day_cat = None
 
+        self.config = None
         if configFile is not None:
             self.config = utils.read_config(configFile)
 
@@ -139,53 +140,8 @@ class HRRR:
                 self.request_timeout = int(
                     self.config['output']['request_timeout'])
 
-        # start logging
-        if external_logger is None:
-
-            # setup the logging
-            if configFile is not None:
-                logfile = None
-                if 'log_file' in self.config['logging']:
-                    logfile = self.config['logging']['log_file']
-
-                if 'log_level' in self.config['logging']:
-                    loglevel = self.config['logging']['log_level'].upper()
-                else:
-                    loglevel = 'INFO'
-            # if no config file use some defaults
-            else:
-                logfile = None
-                loglevel = 'DEBUG'
-
-            numeric_level = getattr(logging, loglevel, None)
-            if not isinstance(numeric_level, int):
-                raise ValueError('Invalid log level: %s' % loglevel)
-
-            fmt = '%(levelname)s:%(name)s:%(message)s'
-            log = logging.getLogger(__name__)
-            if logfile is not None:
-                # logging.basicConfig(filename=logfile,
-                #                     filemode='a',
-                #                     level=numeric_level,
-                #                     format=fmt)
-
-                handler = TimedRotatingFileHandler(logfile,
-                                                   when='D',
-                                                   interval=1,
-                                                   utc=True,
-                                                   atTime=time(),
-                                                   backupCount=30)
-                log.setLevel(numeric_level)
-                formatter = logging.Formatter(fmt)
-                handler.setFormatter(formatter)
-                log.addHandler(handler)
-            else:
-                logging.basicConfig(level=numeric_level)
-
-            self._loglevel = numeric_level
-            self._logger = log
-        else:
-            self._logger = external_logger
+        self._logger = external_logger or \
+            utils.setup_local_logger(__name__, self.config)
 
         # suppress urllib3 connection logging
         logging.getLogger('urllib3').setLevel(logging.WARNING)

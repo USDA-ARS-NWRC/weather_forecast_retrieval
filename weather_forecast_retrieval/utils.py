@@ -1,9 +1,10 @@
 import logging
 import os
 import sys
-
 from collections import Sequence
 from configparser import ConfigParser
+from datetime import time
+from logging.handlers import TimedRotatingFileHandler
 
 import coloredlogs
 
@@ -32,6 +33,43 @@ def create_logger(name):
     coloredlogs.install(logger=logger, fmt=fmt)
 
     return logger
+
+
+def setup_local_logger(config, name):
+    # Defaults
+    logfile = None
+    loglevel = 'DEBUG'
+    message_format = '%(levelname)s:%(name)s:%(message)s'
+    log = logging.getLogger(name)
+
+    if config is not None:
+        if 'log_file' in config['logging']:
+            logfile = config['logging']['log_file']
+
+        if 'log_level' in config['logging']:
+            loglevel = config['logging']['log_level'].upper()
+        else:
+            loglevel = 'INFO'
+
+    numeric_level = getattr(logging, loglevel, None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % loglevel)
+
+    if logfile is not None:
+        handler = TimedRotatingFileHandler(logfile,
+                                           when='D',
+                                           interval=1,
+                                           utc=True,
+                                           atTime=time(),
+                                           backupCount=30)
+        log.setLevel(numeric_level)
+        formatter = logging.Formatter(message_format)
+        handler.setFormatter(formatter)
+        log.addHandler(handler)
+    else:
+        logging.basicConfig(level=numeric_level)
+
+    return log
 
 
 def read_config(config_file, encoding='utf-8'):
