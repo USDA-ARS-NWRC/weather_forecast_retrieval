@@ -29,7 +29,7 @@ def setup_local_logger(name, config=None):
     message_format = '%(levelname)s:%(name)s: %(message)s'
     log = logging.getLogger(name)
 
-    if config is not None:
+    if config is not None and 'logging' in config:
         if 'log_file' in config['logging']:
             logfile = config['logging']['log_file']
 
