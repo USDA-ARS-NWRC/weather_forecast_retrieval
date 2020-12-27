@@ -32,9 +32,6 @@ def compare_gold(v_name, gold_dir, test_df):
 
 
 class TestHRRR(RMETestCase):
-    start_date = pd.to_datetime('2018-07-22 01:00')
-    end_date = pd.to_datetime('2018-07-22 06:00')
-
     def testHRRRGribLoad(self):
         """
         Load HRRR data from grib files
@@ -42,8 +39,8 @@ class TestHRRR(RMETestCase):
 
         # get the data
         metadata, data = hrrr.HRRR().get_saved_data(
-            self.start_date,
-            self.end_date,
+            self.START_DATE,
+            self.END_DATE,
             self.BBOX,
             file_type='grib2',
             output_dir=self.hrrr_dir.as_posix(),

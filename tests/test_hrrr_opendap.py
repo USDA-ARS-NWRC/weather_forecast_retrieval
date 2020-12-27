@@ -48,9 +48,6 @@ def compare_gold(v_name, gold_dir, test_df):
 class TestHRRROpendap(RMETestCase):
     """ Test loading the data from an OpenDAP THREDDS server """
 
-    start_date = pd.to_datetime('2018-07-22 01:00')
-    end_date = pd.to_datetime('2018-07-22 06:00')
-
     def setUp(self):
         """
         Test the retrieval of existing data that will be passed to programs
@@ -72,8 +69,8 @@ class TestHRRROpendap(RMETestCase):
 
     def test_load_data(self):
         metadata, data = hrrr.HRRR().get_saved_data(
-            self.start_date,
-            self.end_date,
+            self.START_DATE,
+            self.END_DATE,
             self.BBOX,
             file_type='netcdf',
             output_dir=self.output_path.as_posix()
