@@ -26,7 +26,11 @@ class ConfigFile:
             external_logger: Logger instance if using in part of larger
                              program
         """
+        self.start_date = None
+        self.end_date = None
+        self.output_dir = None
         self.config = None
+
         if config_file is not None:
             self.__parse_config(config_file)
 

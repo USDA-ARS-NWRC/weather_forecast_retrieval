@@ -47,6 +47,12 @@ class TestConfigFile(unittest.TestCase):
         subject = ConfigFile(self.LOGGER_NAME)
         self.assertIsNone(subject.config)
 
+    def test_default_properties(self):
+        subject = ConfigFile(self.LOGGER_NAME)
+        self.assertIsNone(subject.start_date)
+        self.assertIsNone(subject.end_date)
+        self.assertIsNone(subject.output_dir)
+
     def test_logger_name(self):
         self.assertEqual(self.LOGGER_NAME, self.subject.log.name)
 
