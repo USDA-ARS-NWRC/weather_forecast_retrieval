@@ -7,16 +7,33 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-from weather_forecast_retrieval import hrrr
+from .config_file import ConfigFile
+from .file_handler import FileHandler
 
 
-class HttpRetrieval(hrrr.HRRR):
+class HttpRetrieval(ConfigFile):
     URL = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod' \
           '/hrrr.{}/conus/'
     FILE_PATTERN = re.compile(r'hrrr\.t\d\dz\.wrfsfcf\d\d\.grib2')
 
     NUMBER_REQUESTS = 2
     REQUEST_TIMEOUT = 600
+
+    def __init__(self, config_file=None, external_logger=None):
+        super().__init__(
+            __name__, config_file=config_file, external_logger=external_logger
+        )
+
+        if self.config is not None and 'output' in self.config:
+            if 'num_requests' in self.config['output'].keys():
+                self._number_requests = int(
+                    self.config['output']['num_requests']
+                )
+            if 'request_timeout' in self.config['output'].keys():
+                self._request_timeout = int(
+                    self.config['output']['request_timeout'])
+
+        self.date_folder = True
 
     @property
     def number_requests(self):
@@ -32,7 +49,7 @@ class HttpRetrieval(hrrr.HRRR):
                   end_date - datetime object to override config
         """
 
-        self._logger.info('Retrieving data from the http site')
+        self.log.info('Retrieving data from the http site')
 
         # could be more robust
         if start_date is not None:
@@ -59,24 +76,26 @@ class HttpRetrieval(hrrr.HRRR):
 
         if diff.days > 1:
             # NOAA only keeps the last two days of data
-            self._logger.info('Requested start date not within 2 days of now')
+            self.log.info('Requested start date not within 2 days of now')
             return True
 
         if self.date_folder:
-            d = 'hrrr.{}'.format(self.start_date.strftime('%Y%m%d'))
-            out_path = os.path.join(self.output_dir, d)
+            dir = FileHandler.folder_name(self.start_date)
+            out_path = os.path.join(self.output_dir, dir)
 
             if not os.path.isdir(out_path):
                 os.mkdir(out_path)
-                self._logger.info('mkdir {}'.format(out_path))
+                self.log.info('mkdir {}'.format(out_path))
         else:
             out_path = self.output_dir
         self.out_path = out_path
 
-        url_date = HttpRetrieval.URL.format(self.start_date.strftime('%Y%m%d'))
+        url_date = HttpRetrieval.URL.format(
+            self.start_date.strftime(FileHandler.SINGLE_DAY_FORMAT)
+        )
 
         # get the html text
-        self._logger.debug('Requesting html text from {}'.format(url_date))
+        self.log.debug('Requesting html text from {}'.format(url_date))
         page = requests.get(url_date).text
 
         soup = BeautifulSoup(page, 'html.parser')
@@ -105,25 +124,25 @@ class HttpRetrieval(hrrr.HRRR):
                         'size': size
                     }, ignore_index=True)
 
-        self._logger.debug('Found {} matching files'.format(len(df)))
+        self.log.debug('Found {} matching files'.format(len(df)))
 
         # parse by the date
-        idx = (df['modified'] >= self.start_date) & (
-            df['modified'] <= self.end_date)
+        idx = (df['modified'] >= self.start_date) & \
+              (df['modified'] <= self.end_date)
         df = df.loc[idx]
-        self._logger.debug(
+        self.log.debug(
             'Found {} files between start and end date'.format(len(df)))
 
-        self._logger.debug('Generating requests')
+        self.log.debug('Generating requests')
         pool = ThreadPool(processes=self.number_requests)
 
-        self._logger.debug('Sendings {} requests'.format(len(df)))
+        self.log.debug('Sendings {} requests'.format(len(df)))
 
         # map_async will convert the iterable to a list right away and wait
         # for the requests to finish before continuing
         res = pool.map(self.fetch_from_url, df.url.to_list())
 
-        self._logger.info(
+        self.log.info(
             '{} -- Done with downloads'.format(datetime.now().isoformat()))
 
         return res
@@ -141,7 +160,7 @@ class HttpRetrieval(hrrr.HRRR):
 
         success = False
         try:
-            self._logger.debug('Fetching {}'.format(uri))
+            self.log.debug('Fetching {}'.format(uri))
             r = requests.get(uri, timeout=self.request_timeout)
             if r.status_code == 200:
                 f = r.url.split('/')[-1]
@@ -149,11 +168,11 @@ class HttpRetrieval(hrrr.HRRR):
                 with open(out_file, 'wb') as f:
                     f.write(r.content)
                     f.close()
-                    self._logger.debug('Saved to {}'.format(out_file))
+                    self.log.debug('Saved to {}'.format(out_file))
                     success = out_file
 
         except Exception as e:
-            self._logger.warning('Problem processing response')
-            self._logger.warning(e)
+            self.log.warning('Problem processing response')
+            self.log.warning(e)
 
         return success
