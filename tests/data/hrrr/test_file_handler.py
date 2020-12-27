@@ -37,7 +37,7 @@ class TestHRRRFileHandler(unittest.TestCase):
         )
         self.assertEqual(
             'hrrr.t04z.wrfsfcf01.nc',
-            FileHandler.file_name(4, 1, FileHandler.NETCDF_FILE)
+            FileHandler.file_name(4, 1, 'netcdf')
         )
 
     def test_folder_name(self):
