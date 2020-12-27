@@ -64,4 +64,4 @@ class TestConfigFile(unittest.TestCase):
         self.assertEqual(external_logger.name, subject.log.name)
 
     def test_log_property(self):
-        self.assertIsInstance(logging.Logger, self.subject.log)
+        self.assertIsInstance(self.subject.log, logging.Logger)
