@@ -1,13 +1,13 @@
 import pandas as pd
 
+from .grib_file import GribFile
+from .netcdf_file import NetCdfFile
+
 
 class FileHandler:
     """
-    Class to handle downloaded HRRR data.
+    Class to handle downloaded HRRR files.
     """
-    GRIB_FILE = 'grib2'
-    NETCDF_FILE = 'netcdf'
-
     SINGLE_DAY_FORMAT = '%Y%m%d'
     ONE_DAY = pd.to_timedelta('1 day')
 
@@ -61,8 +61,8 @@ class FileHandler:
     @staticmethod
     def file_name(hour_of_day, forecast_hour, file_extension=None):
         if file_extension is None:
-            file_extension = FileHandler.GRIB_FILE
-        elif file_extension is FileHandler.NETCDF_FILE:
+            file_extension = GribFile.SUFFIX
+        elif file_extension is NetCdfFile.SUFFIX:
             file_extension = 'nc'
 
         return FileHandler.FILE_NAME_BASE.format(
