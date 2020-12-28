@@ -62,7 +62,7 @@ class NetCdfFile(BaseFile):
                 self.day_cat = TDSCatalog(
                     self.main_cat.catalog_refs[file[1]].href)
             elif self.main_cat.catalog_refs[file[1]].href != \
-                self.day_cat.catalog_url:
+                    self.day_cat.catalog_url:
                 # close the old session and start a new one
                 if hasattr(self.day_cat, 'session'):
                     self.day_cat.session.close()

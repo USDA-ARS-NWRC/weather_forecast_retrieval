@@ -61,13 +61,13 @@ class HttpRetrieval(ConfigFile):
 
         # check if dates are timezone aware, if not then assume UTC
         if self.start_date.tzinfo is None or \
-            self.start_date.tzinfo.utcoffset(self.start_date):
+                self.start_date.tzinfo.utcoffset(self.start_date):
             self.start_date = self.start_date.tz_localize(tz='UTC')
         else:
             self.start_date = self.start_date.tz_convert(tz='UTC')
 
         if self.end_date.tzinfo is None or \
-            self.end_date.tzinfo.utcoffset(self.end_date):
+                self.end_date.tzinfo.utcoffset(self.end_date):
             self.end_date = self.end_date.tz_localize(tz='UTC')
         else:
             self.end_date = self.end_date.tz_convert(tz='UTC')
