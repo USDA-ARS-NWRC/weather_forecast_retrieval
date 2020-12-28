@@ -74,6 +74,14 @@ class TestFileLoaderGetSavedData(RMETestCase):
 
         data_patch.assert_called_once_with(GribFile.VAR_MAP)
 
+    def test_call_get_data_for_specific_keys(self, data_patch, _df_patch):
+        var_key = 'air_temp'
+        self.subject.get_saved_data(*self.METHOD_ARGS, var_keys=[var_key])
+
+        data_patch.assert_called_once_with(
+            {var_key: GribFile.VAR_MAP[var_key]}
+        )
+
     def test_converts_df(self, _data_patch, df_patch):
         self.subject.get_saved_data(*self.METHOD_ARGS)
 

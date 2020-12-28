@@ -82,34 +82,33 @@ class FileLoader(ConfigFile):
 
         if file_type == GribFile.SUFFIX:
             self.file_loader = GribFile()
-            var_map = GribFile.VAR_MAP
         elif file_type == NetCdfFile.SUFFIX:
             self.file_loader = NetCdfFile()
-            var_map = NetCdfFile.VAR_MAP
         else:
             raise Exception('Unknown file type argument')
 
         self.file_loader.bbox = bbox
 
-        self.log.info('Getting saved data')
-        if var_map is None:
+        # filter to desired keys if specified
+        if var_keys is not None:
+            var_map = {key: self.file_loader.VAR_MAP[key] for key in var_keys}
+        else:
+            var_map = self.file_loader.VAR_MAP
             self.log.info(
                 'var_map not specified, will return default outputs'
             )
 
         self.force_zone_number = force_zone_number
+
         if output_dir is not None:
             self.output_dir = output_dir
-
-        # filter to desired keys if specified
-        if var_keys is not None:
-            var_map = {key: var_map[key] for key in var_keys}
 
         if forecast_flag:
             # TODO: Implement forecast retrieval here
             raise NotImplementedError(
                 'Getting the forecast is not implemented yet')
         else:
+            self.log.info('Getting saved data')
             self.get_data(var_map)
 
         metadata, dataframe = self.convert_to_dataframes(var_map)
