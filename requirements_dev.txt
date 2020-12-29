@@ -5,3 +5,4 @@ pylint==2.4.4
 flake8
 autopep8
 isort==4.3.21
+mock

@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `weather_forecast_retrieval` package."""
-
 import os
 import unittest
 import urllib.request
@@ -10,6 +8,7 @@ import urllib.request
 import numpy as np
 import pandas as pd
 
+from tests.RME_test_case import RMETestCase
 from weather_forecast_retrieval import hrrr
 
 
@@ -46,15 +45,15 @@ def compare_gold(v_name, gold_dir, test_df):
 
 
 @unittest.SkipTest
-class TestHRRROpendap(unittest.TestCase):
-    """Test loading HRRR from an openDAP server"""
+class TestHRRROpendap(RMETestCase):
+    """ Test loading the data from an OpenDAP THREDDS server """
 
     def setUp(self):
         """
         Test the retrieval of existing data that will be passed to programs
         like SMRF
         """
-
+        super().setUp()
         self.url_path = 'http://10.200.28.71/thredds/catalog/hrrr_netcdf/catalog.xml'  # noqa
 
         # check if we can access the THREDDS server
@@ -68,30 +67,14 @@ class TestHRRROpendap(unittest.TestCase):
             raise unittest.SkipTest(
                 'Unable to access THREDDS data server, skipping OpenDAP tests')
 
-        # configurations for testing HRRR.get_saved_data
-        self.bbox = [-116.85837324, 42.96134124, -116.64913327, 43.16852535]
-
-        # start date and end date
-        self.start_date = pd.to_datetime('2018-07-22 01:00')
-        self.end_date = pd.to_datetime('2018-07-22 06:00')
-
-        self.hrrr_directory = 'tests/RME/gridded/hrrr_test/'
-        self.force_zone_number = 11
-        self.day_hour = 0
-
-        self.output_path = os.path.join('tests', 'RME', 'output')
-        self.gold = os.path.join('tests', 'RME', 'gold', 'hrrr')
-
     def test_load_data(self):
-        """ Test loading the data from an OpenDAP THREDDS server """
-
-        # get the data
         metadata, data = hrrr.HRRR().get_saved_data(
-            self.start_date,
-            self.end_date,
-            self.bbox,
+            self.START_DATE,
+            self.END_DATE,
+            self.BBOX,
             file_type='netcdf',
-            output_dir=self.url_path)
+            output_dir=self.output_path.as_posix()
+        )
 
         df = pd.read_csv(os.path.join(self.gold, 'metadata.csv'))
         df.set_index('grid', inplace=True)

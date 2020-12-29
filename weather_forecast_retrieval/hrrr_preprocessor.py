@@ -6,13 +6,11 @@ import subprocess
 
 import pandas as pd
 
+from weather_forecast_retrieval.data.hrrr import FileHandler
 
-class HRRRPreprocessor():
 
-    FMT1 = '%Y%m%d'
-    FMT2 = '%H'
-
-    VARIABLES = [
+class HRRRPreprocessor:
+    VARIABLES = tuple([
         'TMP:2 m',
         'RH:2 m',
         'UGRD:10 m',
@@ -21,7 +19,7 @@ class HRRRPreprocessor():
         'DSWRF:surface',
         'HGT:surface',
         'TCDC:entire atmosphere'
-    ]
+    ])
 
     def __init__(self, hrrr_dir, start_date, end_date, output_dir,
                  bbox, forecast_hr, ncpu=0, verbose=False):
@@ -59,6 +57,8 @@ class HRRRPreprocessor():
         # forecast number, only do one at a time so multiple can run at once
         self.forecast_hr = forecast_hr
 
+        self.variables = [variable for variable in self.VARIABLES]
+
         # ncpu arg for wgrib2, 0 will default to all available cpu's
         self.ncpu = '' if ncpu == 0 else '-ncpu {}'.format(ncpu)
 
@@ -72,10 +72,6 @@ class HRRRPreprocessor():
         self._logger.info('Forecast hour: {}'.format(self.forecast_hr))
         self._logger.info('Number of cpu argument: {}'.format(self.ncpu))
 
-    @property
-    def variable_match(self):
-        return '|'.join(self.VARIABLES)
-
     def check_for_good_file(self, file_name):
 
         check_action = 'wgrib2 {}'.format(file_name)
@@ -86,9 +82,11 @@ class HRRRPreprocessor():
             bad_flag = True
         else:
             output = ''.join(output)
-            for variable in self.VARIABLES:
+            for variable in self.variables:
                 if variable not in output:
-                    self._logger.warning('Variable {} not in file'.format(variable))
+                    self._logger.warning(
+                        'Variable {} not in file'.format(variable)
+                    )
                     bad_flag = True
 
                     if not self.verbose and bad_flag:
@@ -140,10 +138,10 @@ class HRRRPreprocessor():
             self._logger.info('Processing date: {}'.format(date_time))
 
             # get the file and path's
-            hrrr_day_dir = 'hrrr.{}'.format(date_time.strftime(self.FMT1))
-            hrrr_file_name = 'hrrr.t{}z.wrfsfcf{:02}.grib2'.format(
-                date_time.strftime(self.FMT2),
-                self.forecast_hr)
+            hrrr_day_dir = FileHandler.folder_name(date_time)
+            hrrr_file_name = FileHandler.file_name(
+                date_time.hour, self.forecast_hr
+            )
             hrrr_abs_file_path = os.path.join(
                 self.hrrr_dir,
                 hrrr_day_dir,
@@ -166,7 +164,7 @@ class HRRRPreprocessor():
                     self.lone,
                     self.lats,
                     self.latn,
-                    self.variable_match,
+                    '|'.join(self.variables),
                     new_hrrr_file
                 )
 
@@ -182,14 +180,14 @@ def cli():
     """
 
     parser = argparse.ArgumentParser(
-        description="""Crop HRRR files by a bounding box and """
-                    """extract only the necessary surface variables """
-                    """for running with AWSM. \n\nExample command:\n"""
-                    """$ hrrr_preprocessor -s '2019-10-01 00:00' """
-                    """-e '2019-10-01 02:00' -f 0 --bbox="-119,-118,37,38" """
-                    """-o /path/to/output --verbose """
-                    """/path/to/hrrr""",
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        description="Crop HRRR files by a bounding box and "
+                    "extract only the necessary surface variables "
+                    "for running with AWSM. \n\nExample command:\n"
+                    "$ hrrr_preprocessor -s '2019-10-01 00:00' "
+                    "-e '2019-10-01 02:00' -f 0 --bbox=\"-119,-118,37,38\" "
+                    "-o /path/to/output --verbose "
+                    "/path/to/hrrr"
+    )
 
     parser.add_argument('hrrr_dir', metavar='hrrr_dir', type=str,
                         help='Directory of HRRR files to use as input')
@@ -208,14 +206,15 @@ def cli():
                         required=True, help='Forecast hour')
 
     parser.add_argument('-n', '--ncpu', dest='ncpu', type=int, default=0,
-                        help='Number of CPUs for wgrib2, 0 (default) will use all available')
+                        help='Number of CPUs for wgrib2, 0 (default) will use '
+                             'all available')
 
     parser.add_argument('--bbox', dest='bbox',
                         type=lambda s: [i for i in s.split(',')],
                         required=True,
-                        help="""Bounding box as delimited string """
-                        """--bbox='longitude left, longitude right, latitude bottom, """
-                        """latitude top'""")
+                        help="Bounding box as delimited string "
+                        "--bbox='longitude left, longitude right, "
+                             "latitude bottom, latitude top'")
 
     parser.add_argument("--verbose", help="increase logging verbosity",
                         action="store_true")

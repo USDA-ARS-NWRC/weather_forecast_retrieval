@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 
 import argparse
-import logging
 import os
-from datetime import datetime, time
-from logging.handlers import TimedRotatingFileHandler
+from datetime import datetime
 
 import pandas as pd
 
-from weather_forecast_retrieval import hrrr, utils
+from weather_forecast_retrieval import utils
 from weather_forecast_retrieval.grib2nc import grib2nc
 
 
@@ -25,27 +23,16 @@ def run(config_file, start_date):
         ex_date = datetime.date(pd.to_datetime(start_date))
         date_folder = 'hrrr.{}'.format(ex_date.strftime('%Y%m%d'))
 
-        # setup logging
-        logfile = None
+        log_config = None
         if 'grib2nc_log' in config['logging']:
-            logfile = config['logging']['grib2nc_log']
+            log_config = {
+                'logging': {
+                    'log_file': config['logging']['grib2nc_log'],
+                    'log_level': 'ERROR',
+                }
+            }
 
-        fmt = '%(levelname)s:%(name)s:%(message)s'
-        log = logging.getLogger('grib2nc')
-        numeric_level = 1
-        if logfile is not None:
-            handler = TimedRotatingFileHandler(logfile,
-                                                when='D',
-                                                interval=1,
-                                                utc=True,
-                                                atTime=time(),
-                                                backupCount=30)
-            log.setLevel(numeric_level)
-            formatter = logging.Formatter(fmt)
-            handler.setFormatter(formatter)
-            log.addHandler(handler)
-        else:
-            logging.basicConfig(level=numeric_level)
+        log = utils.setup_local_logger('grib2nc', log_config)
 
         msg = "GRIB2NC Converter Utility"
         log.info(msg)
@@ -57,7 +44,7 @@ def run(config_file, start_date):
         if not os.path.isdir(grib2_path):
             log.warning('Grib2 path does not exist {}'.format(grib2_path))
             return True
-        
+
         # make and check the netcdf path
         nc_path = os.path.join(output_nc, date_folder)
         if not os.path.isdir(nc_path):
@@ -84,7 +71,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert folder of HRRR grib2 files to netcdf')
     parser.add_argument('config_file', metavar='config_file', type=str,
                         help='Path to config file')
-    
+
     parser.add_argument('-s', '--start', dest='start_date',
                         required=True, default=None,
                         help='Date to convert')

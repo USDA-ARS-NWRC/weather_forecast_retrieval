@@ -3,7 +3,7 @@
 import argparse
 import os
 
-from weather_forecast_retrieval import hrrr
+from weather_forecast_retrieval.data.hrrr import HttpRetrieval
 
 
 def run():
@@ -15,9 +15,7 @@ def run():
     args = parser.parse_args()
 
     if os.path.isfile(args.config_file):
-        #hrrr.HRRR(args.config_file).retrieve_grib_filter()
-        # hrrr.HRRR(args.config_file).retrieve_ftp()
-        hrrr.HRRR(args.config_file).retrieve_http_by_date()
+        HttpRetrieval(args.config_file).fetch_by_date()
 
     else:
         raise IOError('File does not exist.')
