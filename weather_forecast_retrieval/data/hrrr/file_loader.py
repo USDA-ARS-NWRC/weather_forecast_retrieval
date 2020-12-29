@@ -176,7 +176,7 @@ class FileLoader(ConfigFile):
                         'successfully'.format(fx_hr, date)
                     )
 
-                if fx_hr == self.MAX_FORECAST_HOUR + 1:
+                if fx_hr == self.MAX_FORECAST_HOUR:
                     raise IOError(
                         'Not able to find good file for {}'
                         .format(file_time.strftime('%Y-%m-%d %H:%M'))

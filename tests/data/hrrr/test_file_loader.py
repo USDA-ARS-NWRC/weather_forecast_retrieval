@@ -134,7 +134,8 @@ class TestFileLoaderGetData(RMETestCase):
             self.subject.end_date = \
                 self.subject.end_date - 5 * FileLoader.NEXT_HOUR
 
-            self.subject.get_data({})
+            with self.assertRaisesRegex(IOError, 'Not able to find good file'):
+                self.subject.get_data({})
 
             self.assertEqual(
                 6,
@@ -146,7 +147,8 @@ class TestFileLoaderGetData(RMETestCase):
     def test_file_not_found(self):
         self.subject.output_dir = None
 
-        self.subject.get_data({})
+        with self.assertRaises(IOError):
+            self.subject.get_data({})
 
         self.assertEqual(
             0,
@@ -157,11 +159,12 @@ class TestFileLoaderGetData(RMETestCase):
     def test_with_loading_error(self):
         self.subject.file_loader.load.side_effect = Exception('Data error')
 
-        self.subject.get_data({})
+        with self.assertRaises(IOError):
+            self.subject.get_data({})
 
-        # There are two hours with additional forecast hours in the test data.
+        # Can't load the file on disk and the other forecast hours are missing
         self.assertEqual(
-            8,
+            1,
             self.file_loader.load.call_count,
             msg='Tried to find more files than present on disk'
         )
