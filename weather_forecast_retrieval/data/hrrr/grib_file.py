@@ -80,7 +80,10 @@ class GribFile(BaseFile):
             data = xr.open_dataset(
                 file,
                 engine='cfgrib',
-                backend_kwargs={'filter_by_keys': params}
+                backend_kwargs={
+                    'filter_by_keys': params,
+                    'indexpath': '',
+                }
             )
 
             if len(data) > 1:
