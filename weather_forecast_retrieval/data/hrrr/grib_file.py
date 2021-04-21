@@ -130,14 +130,8 @@ class GribFile(BaseFile):
             variable = params.get('cfVarName') or params.get('shortName')
             data = data.rename({variable: key})
 
-            # Set the x and y coordinates based on the cell size
-            data = data.assign_coords(
-                time=data['valid_time'],
-                x=np.arange(0, len(data['x'])) * self.CELL_SIZE,
-                y=np.arange(0, len(data['y'])) * self.CELL_SIZE
-            )
-
             # Make the time an index coordinate
+            data = data.assign_coords(time=data['valid_time'])
             data = data.expand_dims('time')
             del data['valid_time']
 
