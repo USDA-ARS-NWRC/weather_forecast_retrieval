@@ -70,13 +70,25 @@ class GribFile(BaseFile):
             __name__, config_file=config_file, external_logger=external_logger
         )
 
+    @staticmethod
+    def longitude_east(longitude):
+        """
+        HRRR references the longitudes starting from the east.
+        When cropping to a longitude, the reference coordinate needs
+        to be adjusted for that.
+
+        :param longitude:
+        :return: longitude from east
+        """
+        return longitude % 360
+
     def load(self, file, var_map):
         """
         Get valid HRRR data using Xarray
 
         Args:
             file:    Path to grib2 file to open
-            var_map: Var map of variables to grab
+            var_map: Var map of variables to load from file
 
         Returns:
             Array with Xarray Datasets for each variable and
@@ -94,48 +106,42 @@ class GribFile(BaseFile):
                 engine='cfgrib',
                 backend_kwargs={
                     'filter_by_keys': params,
-                    'indexpath': '',
+                    'indexpath': '',  # Don't create an .idx file when reading
                 }
             )
 
             if len(data) > 1:
                 raise Exception('More than one grib variable returned')
 
-            # rename the data variable
-            if 'cfVarName' in params.keys():
-                data = data.rename({params['cfVarName']: key})
-            elif 'shortName' in params.keys():
-                data = data.rename({params['shortName']: key})
+            data = data.where(
+                (data.latitude >= self.bbox[1]) &
+                (data.latitude <= self.bbox[3]) &
+                (data.longitude >= self.longitude_east(self.bbox[0])) &
+                (data.longitude <= self.longitude_east(self.bbox[2])),
+                drop=True
+            )
 
-            # remove some coordinate so they can all be
-            # combined into one dataset
-            for v in ['heightAboveGround', 'surface']:
-                if v in data.coords.keys():
-                    data = data.drop_vars(v)
-
-            # make the time an index coordinate
-            data = data.assign_coords(time=data['valid_time'])
-            data = data.expand_dims('time')
-
-            # have to set the x and y coordinates based on the cell size
-            data = data.assign_coords(
-                x=np.arange(0, len(data['x'])) * self.CELL_SIZE)
-            data = data.assign_coords(
-                y=np.arange(0, len(data['y'])) * self.CELL_SIZE)
-
-            # delete the step and valid time coordinates
+            # Remove some dimensions so all read variables can
+            # be combined into one dataset
+            del data[params['typeOfLevel']]
             del data['step']
+
+            # rename the data variable
+            variable = params.get('cfVarName') or params.get('shortName')
+            data = data.rename({variable: key})
+
+            # Set the x and y coordinates based on the cell size
+            data = data.assign_coords(
+                time=data['valid_time'],
+                x=np.arange(0, len(data['x'])) * self.CELL_SIZE,
+                y=np.arange(0, len(data['y'])) * self.CELL_SIZE
+            )
+
+            # Make the time an index coordinate
+            data = data.expand_dims('time')
             del data['valid_time']
 
-            variable_data.append(
-                data.where(
-                    (data.latitude >= self.bbox[1]) &
-                    (data.latitude <= self.bbox[3]) &
-                    (data.longitude >= self.bbox[0] + 360) &
-                    (data.longitude <= self.bbox[2] + 360),
-                    drop=True
-                )
-            )
+            variable_data.append(data)
 
             data.close()
 
