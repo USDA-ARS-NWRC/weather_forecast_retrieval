@@ -236,8 +236,6 @@ class FileLoader(ConfigFile):
                     metadata.append(dftmp)
 
                 metadata = pd.concat(metadata, axis=1)
-                # it's reporting in degrees from the east
-                metadata['longitude'] -= 360
                 metadata = metadata.apply(
                     FileLoader.apply_utm,
                     args=(self.force_zone_number,),
@@ -280,8 +278,12 @@ class FileLoader(ConfigFile):
         Returns:
             Pandas series entry with fields 'utm_x' and 'utm_y' filled
         """
+        # HRRR has longitude reporting in degrees from the east
+        dataframe['longitude'] -= 360
+
         (dataframe['utm_x'], dataframe['utm_y'], *unused) = utm.from_latlon(
-            dataframe.latitude, dataframe.longitude,
+            dataframe['latitude'],
+            dataframe['longitude'],
             force_zone_number=force_zone_number
         )
 
