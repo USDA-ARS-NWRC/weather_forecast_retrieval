@@ -9,48 +9,60 @@ class GribFile(BaseFile):
 
     CELL_SIZE = 3000  # in meters
 
-    # dataset filter by keys arguments
-    VAR_MAP = {
-        'air_temp': {
-            'level': 2,
-            'typeOfLevel': 'heightAboveGround',
-            'cfName': 'air_temperature',
-            'cfVarName': 't2m'
-        },
-        'relative_humidity': {
-            'level': 2,
-            'typeOfLevel': 'heightAboveGround',
-            # 'parameterName': 'Relative humidity',
-            'cfVarName': 'r2'
-        },
-        'wind_u': {
-            'level': 10,
-            'typeOfLevel': 'heightAboveGround',
-            # 'parameterName': 'u-component of wind',
-            'cfVarName': 'u10'
-        },
-        'wind_v': {
-            'level': 10,
-            'typeOfLevel': 'heightAboveGround',
-            # 'parameterName': 'v-component of wind',
-            'cfVarName': 'v10'
-        },
+    SURFACE = {
+        'level': 0,
+        'typeOfLevel': 'surface',
+    }
+    SURFACE_VARIABLES = {
         'precip_int': {
-            'level': 0,
-            'typeOfLevel': 'surface',
             'name': 'Total Precipitation',
-            'shortName': 'tp'
+            'shortName': 'tp',
+            **SURFACE,
         },
         'short_wave': {
-            'level': 0,
-            'typeOfLevel': 'surface',
             'stepType': 'instant',
-            'cfVarName': 'dswrf'
+            'cfVarName': 'dswrf',
+            **SURFACE,
         },
         'elevation': {
-            'typeOfLevel': 'surface',
-            'cfVarName': 'orog'
+            'cfVarName': 'orog',
+            **SURFACE,
         }
+    }
+    # HAG - Height Above Ground
+    HAG_2 = {
+        'level': 2,
+        'typeOfLevel': 'heightAboveGround',
+    }
+    HAG_2_VARIABLES = {
+        'air_temp': {
+            'cfName': 'air_temperature',
+            'cfVarName': 't2m',
+            **HAG_2,
+        },
+        'relative_humidity': {
+            'cfVarName': 'r2',
+            **HAG_2,
+        },
+    }
+    HAG_10 = {
+        'level': 10,
+        'typeOfLevel': 'heightAboveGround',
+    }
+    HAG_10_VARIABLES = {
+        'wind_u': {
+            'cfVarName': 'u10',
+            **HAG_10,
+        },
+        'wind_v': {
+            'cfVarName': 'v10',
+            **HAG_10,
+        },
+    }
+    VAR_MAP = {
+        **SURFACE_VARIABLES,
+        **HAG_2_VARIABLES,
+        **HAG_10_VARIABLES,
     }
 
     def __init__(self, config_file=None, external_logger=None):
