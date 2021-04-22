@@ -1,4 +1,3 @@
-import numpy as np
 import xarray as xr
 
 from weather_forecast_retrieval.data.hrrr.base_file import BaseFile
