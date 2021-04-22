@@ -52,7 +52,6 @@ class FileLoader(ConfigFile):
                        start_date, end_date, bbox,
                        output_dir=None, file_type='grib2',
                        force_zone_number=None,
-                       forecast_flag=False,
                        var_keys=None):
         """
         Get the saved data from above for a particular time and a particular
@@ -64,7 +63,6 @@ class FileLoader(ConfigFile):
             bbox:           list of  [lonmin,latmin,lonmax,latmax]
             output_dir:     Base path to location of files
             file_type:      'grib' or 'netcdf', determines how to read the file
-            forecast_flag:  weather or not to get forecast hours
             force_zone_number: UTM zone number to convert datetime to
             var_keys:       which keys to grab from smrf variables,
                             default is var_map
@@ -103,13 +101,8 @@ class FileLoader(ConfigFile):
         if output_dir is not None:
             self.output_dir = output_dir
 
-        if forecast_flag:
-            # TODO: Implement forecast retrieval here
-            raise NotImplementedError(
-                'Getting the forecast is not implemented yet')
-        else:
-            self.log.info('Getting saved data')
-            self.get_data(var_map)
+        self.log.info('Getting saved data')
+        self.get_data(var_map)
 
         metadata, dataframe = self.convert_to_dataframes(var_map)
 
