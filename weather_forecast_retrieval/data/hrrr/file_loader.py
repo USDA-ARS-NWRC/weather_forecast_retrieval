@@ -228,16 +228,12 @@ class FileLoader(ConfigFile):
                 metadata = []
                 for mm in ['latitude', 'longitude', value]:
                     dftmp = df[mm].copy()
-                    cols = ['grid_{}_{}'.format(x[0], x[1])
-                            for x in dftmp.columns.to_flat_index()]
-                    dftmp.columns = cols
+                    dftmp.columns = self.format_column_names(dftmp)
                     dftmp = dftmp.iloc[0]
                     dftmp.name = mm
                     metadata.append(dftmp)
 
                 metadata = pd.concat(metadata, axis=1)
-                # it's reporting in degrees from the east
-                metadata['longitude'] -= 360
                 metadata = metadata.apply(
                     FileLoader.apply_utm,
                     args=(self.force_zone_number,),
@@ -246,16 +242,11 @@ class FileLoader(ConfigFile):
                 metadata.rename(columns={value: key}, inplace=True)
 
             else:
-                # else this is just a normal variable
                 df = df.loc[:, key]
 
-                # make new names for the columns as grid_y_x
-                cols = ['grid_{}_{}'.format(x[0], x[1])
-                        for x in df.columns.to_flat_index()]
-                df.columns = cols
+                df.columns = self.format_column_names(df)
                 df.index.rename('date_time', inplace=True)
 
-                # drop any nan values
                 df.dropna(axis=1, how='all', inplace=True)
                 dataframe[key] = df
 
@@ -269,6 +260,20 @@ class FileLoader(ConfigFile):
         return metadata, dataframe
 
     @staticmethod
+    def format_column_names(dataframe):
+        """
+        Make new names for the columns as grid_y_x
+
+        :param dataframe:
+        :return: Array - New column names including the y and x GRIB pixel
+                         index. Example: grid_0_1 for y at 0 and x at 1
+        """
+        return [
+            'grid_{c[0]}_{c[1]}'.format(c=col)
+            for col in dataframe.columns.to_flat_index()
+        ]
+
+    @staticmethod
     def apply_utm(dataframe, force_zone_number):
         """
         Ufunc to calculate the utm from lat/lon for a series
@@ -280,8 +285,12 @@ class FileLoader(ConfigFile):
         Returns:
             Pandas series entry with fields 'utm_x' and 'utm_y' filled
         """
+        # HRRR has longitude reporting in degrees from the east
+        dataframe['longitude'] -= 360
+
         (dataframe['utm_x'], dataframe['utm_y'], *unused) = utm.from_latlon(
-            dataframe.latitude, dataframe.longitude,
+            dataframe['latitude'],
+            dataframe['longitude'],
             force_zone_number=force_zone_number
         )
 
