@@ -76,7 +76,7 @@ jobs:
 
       - name: Run unittests
         run: |
-           python3 -m unittest -v
+           python3 -m unittest -v tests/data/hrrr/test_*
 
   build_dist:
     needs: unittest
@@ -106,7 +106,7 @@ jobs:
           path: dist/*.tar.gz
 
   upload_pypi:
-    needs: [build_sdist]
+    needs: [build_dist]
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
