@@ -8,8 +8,6 @@ from logging.handlers import TimedRotatingFileHandler
 
 import coloredlogs
 
-from weather_forecast_retrieval.data import hrrr
-
 basestring = str
 unicode_type = str
 
@@ -167,10 +165,3 @@ def isscalar(x):
         return False
     else:
         return True
-
-
-def hrrr_file_name_finder(*kwargs):
-    """
-    TODO: Deprecate in favor of calling HRRR FileHandler directly.
-    """
-    return hrrr.FileHandler.folder_and_file(*kwargs)
