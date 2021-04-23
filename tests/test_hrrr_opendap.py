@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from tests.RME_test_case import RMETestCase
-from weather_forecast_retrieval import hrrr
+from weather_forecast_retrieval.data.hrrr import FileLoader
 
 
 def compare_gold(v_name, gold_dir, test_df):
@@ -68,7 +68,7 @@ class TestHRRROpendap(RMETestCase):
                 'Unable to access THREDDS data server, skipping OpenDAP tests')
 
     def test_load_data(self):
-        metadata, data = hrrr.HRRR().get_saved_data(
+        metadata, data = FileLoader().get_saved_data(
             self.START_DATE,
             self.END_DATE,
             self.BBOX,
