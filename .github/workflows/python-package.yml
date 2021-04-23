@@ -54,8 +54,7 @@ jobs:
           python3 -m pip install -r requirements.txt
 
       - name: Run unittests
-        run: |
-           python3 -m unittest -v tests/data/hrrr/test_*
+        run: python3 setup.py test -s tests.data.hrrr.test_file_loader
 
   build_dist:
     needs: unittest

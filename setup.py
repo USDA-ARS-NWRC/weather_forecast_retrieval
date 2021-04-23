@@ -15,17 +15,8 @@ with open('README.md') as readme_file:
 with open('requirements.txt') as req_file:
     requirements = req_file.read()
 
-# setup_requirements = [
-#     # TODO(scotthavens): put setup requirements (distutils extensions, etc.) here
-# ]
-
-# test_requirements = [
-#     # TODO: put package test requirements here
-# ]
-
 setup(
     name='weather_forecast_retrieval',
-    version='0.6.14',
     description="Weather forecast retrieval gathers relevant gridded weather "
                 "forecasts to ingest into physically based models for water "
                 "supply forecasts",
@@ -54,6 +45,14 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     test_suite='tests',
+    extras_require={
+        'tests': [
+            'mock',
+        ],
+    },
+    use_scm_version={
+        'local_scheme': 'node-and-date',
+    },
     scripts=[
         'scripts/run_hrrr_retrieval',
         'scripts/run_hrrr_retrieval_dates',
