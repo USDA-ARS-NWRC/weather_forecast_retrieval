@@ -26,9 +26,6 @@ class FileLoader(ConfigFile):
             __name__, config_file=config_file, external_logger=external_logger
         )
 
-        self.start_date = None
-        self.end_date = None
-
         self._file_loader = None
         self._file_dir = None
         self.data = None
