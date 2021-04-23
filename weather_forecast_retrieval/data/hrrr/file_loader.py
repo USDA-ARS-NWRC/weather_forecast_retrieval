@@ -30,6 +30,7 @@ class FileLoader(ConfigFile):
         self.end_date = None
 
         self._file_loader = None
+        self._file_dir = None
         self.data = None
         self.force_zone_number = None
 
@@ -42,6 +43,14 @@ class FileLoader(ConfigFile):
         self._file_loader = value
 
     @property
+    def file_dir(self):
+        return self._file_dir
+
+    @file_dir.setter
+    def file_dir(self, value):
+        self._file_dir = value
+
+    @property
     def file_type(self):
         if self._file_loader is not None:
             return self._file_loader.SUFFIX
@@ -50,7 +59,7 @@ class FileLoader(ConfigFile):
 
     def get_saved_data(self,
                        start_date, end_date, bbox,
-                       output_dir=None, file_type='grib2',
+                       file_dir=None, file_type='grib2',
                        force_zone_number=None,
                        var_keys=None):
         """
@@ -61,7 +70,7 @@ class FileLoader(ConfigFile):
             start_date:     datetime for the start
             end_date:       datetime for the end
             bbox:           list of  [lonmin,latmin,lonmax,latmax]
-            output_dir:     Base path to location of files
+            file_dir:       Base directory to location of files
             file_type:      'grib' or 'netcdf', determines how to read the file
             force_zone_number: UTM zone number to convert datetime to
             var_keys:       which keys to grab from smrf variables,
@@ -98,8 +107,8 @@ class FileLoader(ConfigFile):
 
         self.force_zone_number = force_zone_number
 
-        if output_dir is not None:
-            self.output_dir = output_dir
+        if file_dir is not None:
+            self.file_dir = file_dir
 
         self.log.info('Getting saved data')
         self.get_data(var_map)
@@ -149,7 +158,7 @@ class FileLoader(ConfigFile):
 
                 try:
                     if self.file_type == GribFile.SUFFIX:
-                        base_path = os.path.abspath(self.output_dir)
+                        base_path = os.path.abspath(self.file_dir)
                         file = os.path.join(base_path, day_folder, file_name)
                         if os.path.exists(file):
                             forecast_data = self.file_loader.load(
@@ -159,7 +168,7 @@ class FileLoader(ConfigFile):
                             self.log.error('  No file for {}'.format(file))
 
                     elif self.file_type == NetCdfFile.SUFFIX:
-                        file = [self.output_dir, day_folder, file_name]
+                        file = [self.file_dir, day_folder, file_name]
                         forecast_data = self.file_loader.load(file)
 
                 except Exception as e:

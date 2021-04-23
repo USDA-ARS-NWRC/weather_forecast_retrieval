@@ -57,7 +57,7 @@ class TestHRRRPreprocessor(RMETestCase):
             pd.to_datetime('2018-07-22 03:00'),
             self.BBOX,
             file_type='grib2',
-            output_dir=self.output_path.as_posix(),
+            file_dir=self.output_path.as_posix(),
             force_zone_number=self.UTM_ZONE_NUMBER)
 
         self.assertCountEqual(

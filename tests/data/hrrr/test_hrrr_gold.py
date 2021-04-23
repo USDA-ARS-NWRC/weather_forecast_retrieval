@@ -37,7 +37,7 @@ class TestHRRR(RMETestCase):
             self.END_DATE,
             self.BBOX,
             file_type='grib2',
-            output_dir=self.hrrr_dir.as_posix(),
+            file_dir=self.hrrr_dir.as_posix(),
             force_zone_number=self.UTM_ZONE_NUMBER
         )
 

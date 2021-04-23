@@ -52,12 +52,12 @@ class TestFileLoaderGetSavedData(RMETestCase):
         cls.subject = FileLoader()
 
     def test_parameters(self, _data_patch, _df_patch):
-        self.subject.get_saved_data(*self.METHOD_ARGS, output_dir='path')
+        self.subject.get_saved_data(*self.METHOD_ARGS, file_dir='path')
 
         self.assertEqual(self.START_DATE, self.subject.start_date)
         self.assertEqual(self.END_DATE, self.subject.end_date)
         self.assertEqual(self.BBOX, self.subject.file_loader.bbox)
-        self.assertEqual('path', self.subject.output_dir)
+        self.assertEqual('path', self.subject.file_dir)
 
     def test_defaults_to_grib(self, _data_patch, _df_patch):
         self.subject.get_saved_data(*self.METHOD_ARGS)
@@ -105,7 +105,7 @@ class TestFileLoaderGetData(RMETestCase):
         subject = FileLoader()
         subject.start_date = RMETestCase.START_DATE
         subject.end_date = RMETestCase.END_DATE
-        subject.output_dir = RMETestCase.hrrr_dir.as_posix()
+        subject.file_dir = RMETestCase.hrrr_dir.as_posix()
         subject.file_loader = file_loader
         self.subject = subject
 
@@ -145,7 +145,7 @@ class TestFileLoaderGetData(RMETestCase):
             )
 
     def test_file_not_found(self):
-        self.subject.output_dir = None
+        self.subject.file_dir = None
 
         with self.assertRaises(IOError):
             self.subject.get_data({})
