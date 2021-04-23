@@ -10,8 +10,7 @@ class RMETestCase(unittest.TestCase):
     """
     Base class for all unit tests using the RME data
     """
-    test_dir = Path(__file__).parent
-    basin_dir = test_dir.joinpath('RME')
+    basin_dir = Path(__file__).parent
     gold_dir = basin_dir.joinpath('gold', 'hrrr')
     hrrr_dir = basin_dir.joinpath('gridded/hrrr_test')
     output_path = basin_dir.joinpath('output')

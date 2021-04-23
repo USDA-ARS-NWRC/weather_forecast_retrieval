@@ -3,7 +3,7 @@ import unittest
 import mock
 import xarray
 
-from tests.RME_test_case import RMETestCase
+from tests.RME import RMETestCase
 from weather_forecast_retrieval.data.hrrr.file_loader import FileLoader
 from weather_forecast_retrieval.data.hrrr.grib_file import GribFile
 from weather_forecast_retrieval.data.hrrr.netcdf_file import NetCdfFile

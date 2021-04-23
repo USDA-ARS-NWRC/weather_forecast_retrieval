@@ -1,6 +1,6 @@
 import pandas as pd
 
-from tests.RME_test_case import RMETestCase
+from tests.RME import RMETestCase
 from weather_forecast_retrieval.data.hrrr import FileLoader
 from weather_forecast_retrieval.hrrr_preprocessor import HRRRPreprocessor
 

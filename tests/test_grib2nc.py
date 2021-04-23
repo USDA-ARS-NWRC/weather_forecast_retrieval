@@ -1,6 +1,6 @@
 import os
 
-from tests.RME_test_case import RMETestCase
+from tests.RME import RMETestCase
 from weather_forecast_retrieval.grib2nc import grib2nc
 
 
