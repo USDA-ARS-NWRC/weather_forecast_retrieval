@@ -30,31 +30,10 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          flake8 topocalc
-
-  coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.7'
-          
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install coverage coveralls PyYAML
-          python3 -m pip install -r requirements.txt
-
-      - name: Run coverage
-        run: |
-          make coveralls
-
+          flake8 weather_forecast_retrieval
 
   unittest:
-    needs: [flake8, coverage]
+    needs: flake8
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
