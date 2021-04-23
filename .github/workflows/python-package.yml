@@ -5,11 +5,11 @@ name: Unittest, flake8, coverage
 
 # Run action on pull requests
 # Run on a published release and push to Pypi
-on:
-  pull_request:
-    branches: [ main ]
-  release: 
-    types: [published]
+on: [push]
+  # pull_request:
+    # branches: [ main ]
+  # release: 
+    # types: [published]
 
 jobs:
 
