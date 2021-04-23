@@ -66,16 +66,17 @@ class FileLoader(ConfigFile):
         Args:
             start_date:     datetime for the start
             end_date:       datetime for the end
-            bbox:           list of  [lonmin,latmin,lonmax,latmax]
+            bbox:           list of  [lonmin, latmin, lonmax, latmax]
             file_dir:       Base directory to location of files
-            file_type:      'grib' or 'netcdf', determines how to read the file
+            file_type:      'grib2' or 'netcdf', determines how to read
+                            the files. Default: grib2
             force_zone_number: UTM zone number to convert datetime to
             var_keys:       which keys to grab from smrf variables,
                             default is var_map
 
         Returns:
-            List containing dataframe for the metadata for each node point for
-            the desired variables
+            List containing dataframe for the metadata adn for each read
+            variable.
         """
 
         if start_date > end_date:
