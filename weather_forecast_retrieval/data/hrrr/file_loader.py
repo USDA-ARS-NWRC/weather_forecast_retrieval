@@ -110,17 +110,7 @@ class FileLoader(ConfigFile):
         self.log.info('Getting saved data')
         self.get_data(var_map)
 
-        metadata, dataframe = self.convert_to_dataframes(var_map)
-
-        # manipulate data in necessary ways
-        for key in dataframe.keys():
-            dataframe[key].sort_index(axis=0, inplace=True)
-            if key == 'air_temp':
-                dataframe['air_temp'] -= 273.15
-            if key == 'cloud_factor':
-                dataframe['cloud_factor'] = 1 - dataframe['cloud_factor'] / 100
-
-        return metadata, dataframe
+        return self.convert_to_dataframes(var_map)
 
     def get_data(self, var_map):
         """
@@ -247,7 +237,14 @@ class FileLoader(ConfigFile):
                 df.index.rename('date_time', inplace=True)
 
                 df.dropna(axis=1, how='all', inplace=True)
+                df.sort_index(axis=0, inplace=True)
                 dataframe[key] = df
+
+                # manipulate data in necessary ways
+                if key == 'air_temp':
+                    dataframe['air_temp'] -= 273.15
+                if key == 'cloud_factor':
+                    dataframe['cloud_factor'] = 1 - dataframe['cloud_factor'] / 100
 
         # the metadata may have more columns than the dataframes
         c = []
