@@ -29,7 +29,7 @@ class TestHRRRPreprocessor(RMETestCase):
             self.output_path.as_posix(),
             [-116.9, 42.9, -116.5, 43.2],
             1,
-            verbose=True
+            verbose=False
         )
 
     def test_bad_file(self):

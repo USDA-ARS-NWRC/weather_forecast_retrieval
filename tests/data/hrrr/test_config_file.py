@@ -2,7 +2,7 @@ import logging
 import unittest
 
 import pandas as pd
-
+import tests.helpers
 from weather_forecast_retrieval.data.hrrr.config_file import ConfigFile
 
 
@@ -13,6 +13,9 @@ class TestConfigFile(unittest.TestCase):
             'output_dir': 'output_location',
             'start_date': '2020-12-31 00:00',
             'end_date': '2020-12-31 23:00',
+        },
+        'logging': {
+            'log_level': 'ERROR',
         }
     }
 
@@ -27,7 +30,9 @@ class TestConfigFile(unittest.TestCase):
         )
 
     def test_missing_output_dir(self):
-        self.subject = ConfigFile(self.LOGGER_NAME, config={})
+        self.subject = ConfigFile(
+            self.LOGGER_NAME, config=tests.helpers.LOG_ERROR_CONFIG
+        )
         self.assertEqual(
             None,
             self.subject.output_dir
@@ -40,7 +45,9 @@ class TestConfigFile(unittest.TestCase):
         )
 
     def test_missing_start_date(self):
-        self.subject = ConfigFile(self.LOGGER_NAME, config={})
+        self.subject = ConfigFile(
+            self.LOGGER_NAME, config=tests.helpers.LOG_ERROR_CONFIG
+        )
         self.assertEqual(
             None,
             self.subject.start_date
@@ -53,7 +60,9 @@ class TestConfigFile(unittest.TestCase):
         )
 
     def test_missing_end_date(self):
-        self.subject = ConfigFile(self.LOGGER_NAME, config={})
+        self.subject = ConfigFile(
+            self.LOGGER_NAME, config=tests.helpers.LOG_ERROR_CONFIG
+        )
         self.assertEqual(
             None,
             self.subject.end_date
@@ -64,7 +73,10 @@ class TestConfigFile(unittest.TestCase):
         self.assertIsNone(subject._config)
 
     def test_default_properties(self):
-        subject = ConfigFile(self.LOGGER_NAME)
+        subject = ConfigFile(
+            self.LOGGER_NAME, config=tests.helpers.LOG_ERROR_CONFIG
+        )
+
         self.assertIsNone(subject.start_date)
         self.assertIsNone(subject.end_date)
         self.assertIsNone(subject.output_dir)
@@ -75,7 +87,8 @@ class TestConfigFile(unittest.TestCase):
     def test_external_logger(self):
         external_logger = logging.Logger('External')
         subject = ConfigFile(
-            self.LOGGER_NAME, external_logger=external_logger
+            self.LOGGER_NAME, external_logger=external_logger,
+            config=tests.helpers.LOG_ERROR_CONFIG
         )
         self.assertEqual(external_logger.name, subject.log.name)
 

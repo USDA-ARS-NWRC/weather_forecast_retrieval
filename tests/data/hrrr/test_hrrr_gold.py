@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+import tests.helpers
 from tests.RME import RMETestCase
 from weather_forecast_retrieval.data.hrrr import FileLoader
 
@@ -34,6 +35,7 @@ class TestHRRR(RMETestCase):
         """
         metadata, data = FileLoader(
             file_dir=self.hrrr_dir.as_posix(),
+            config=tests.helpers.LOG_ERROR_CONFIG,
         ).get_saved_data(
             self.START_DATE,
             self.END_DATE,

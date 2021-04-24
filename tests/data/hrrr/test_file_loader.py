@@ -2,8 +2,8 @@ import logging
 import unittest
 
 import mock
+import tests.helpers
 import xarray
-
 from tests.RME import RMETestCase
 from weather_forecast_retrieval.data.hrrr.file_loader import FileLoader
 from weather_forecast_retrieval.data.hrrr.grib_file import GribFile
@@ -14,8 +14,9 @@ class TestFileLoader(unittest.TestCase):
     FILE_DIR = 'path/to/files/'
 
     def setUp(self):
-        self.subject = FileLoader(self.FILE_DIR)
-        self.subject.log.setLevel(logging.ERROR)
+        self.subject = FileLoader(
+            self.FILE_DIR, config=tests.helpers.LOG_ERROR_CONFIG
+        )
 
     def test_file_dir_property(self):
         self.assertEqual(self.subject.file_dir, self.FILE_DIR)
@@ -61,8 +62,9 @@ class TestFileLoaderGetSavedData(RMETestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.subject = FileLoader(file_dir='path')
-        cls.subject.log.setLevel(logging.ERROR)
+        cls.subject = FileLoader(
+            file_dir='path', config=tests.helpers.LOG_ERROR_CONFIG
+        )
 
     def test_parameters(self, _data_patch, _df_patch):
         self.subject.get_saved_data(*self.METHOD_ARGS)
@@ -104,7 +106,10 @@ class TestFileLoaderGetData(RMETestCase):
         file_loader.name = 'MockLoader'
         file_loader.SUFFIX = GribFile.SUFFIX
 
-        subject = FileLoader(file_dir=RMETestCase.hrrr_dir.as_posix())
+        subject = FileLoader(
+            file_dir=RMETestCase.hrrr_dir.as_posix(),
+            config = tests.helpers.LOG_ERROR_CONFIG
+        )
         subject.start_date = RMETestCase.START_DATE
         subject.end_date = RMETestCase.END_DATE
 
