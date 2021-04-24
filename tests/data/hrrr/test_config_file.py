@@ -23,11 +23,18 @@ class TestConfigFile(unittest.TestCase):
             'weather_forecast_retrieval.utils.read_config',
             return_value=cls.CONFIG
         ):
-            cls.subject = ConfigFile(cls.LOGGER_NAME, cls.CONFIG)
+            cls.subject = ConfigFile(cls.LOGGER_NAME, config_file=cls.CONFIG)
 
     def test_output_dir(self):
         self.assertEqual(
             self.CONFIG['output']['output_dir'],
+            self.subject.output_dir
+        )
+
+    def test_missing_output_dir(self):
+        self.subject = ConfigFile(self.LOGGER_NAME, config_file={})
+        self.assertEqual(
+            None,
             self.subject.output_dir
         )
 
@@ -37,9 +44,23 @@ class TestConfigFile(unittest.TestCase):
             self.subject.start_date,
         )
 
+    def test_missing_start_date(self):
+        self.subject = ConfigFile(self.LOGGER_NAME, config_file={})
+        self.assertEqual(
+            None,
+            self.subject.start_date
+        )
+
     def test_end_date(self):
         self.assertEqual(
             pd.to_datetime(self.CONFIG['output']['end_date']),
+            self.subject.end_date
+        )
+
+    def test_missing_end_date(self):
+        self.subject = ConfigFile(self.LOGGER_NAME, config_file={})
+        self.assertEqual(
+            None,
             self.subject.end_date
         )
 

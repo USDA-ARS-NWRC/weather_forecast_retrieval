@@ -50,15 +50,19 @@ class ConfigFile:
     def __parse_config(self, file):
         self.config = utils.read_config(file)
 
-        # parse the rest of the config file
-        self.output_dir = self.config['output']['output_dir']
+        if 'output' in self.config:
+            keys = self.config['output'].keys()
 
-        if 'start_date' in self.config['output'].keys():
-            self.start_date = pd.to_datetime(
-                self.config['output']['start_date'])
-        if 'end_date' in self.config['output'].keys():
-            self.end_date = pd.to_datetime(
-                self.config['output']['end_date'])
+            if 'output_dir' in keys:
+                self.output_dir = self.config['output']['output_dir']
+
+            if 'start_date' in keys:
+                self.start_date = pd.to_datetime(
+                    self.config['output']['start_date'])
+
+            if 'end_date' in keys:
+                self.end_date = pd.to_datetime(
+                    self.config['output']['end_date'])
 
     def __log_initialization(self):
         msg = self.LOG_INIT_MESSAGE.format(
