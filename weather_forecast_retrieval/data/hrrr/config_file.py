@@ -33,7 +33,7 @@ class ConfigFile:
         self.__parse_config(config)
 
         self._logger = external_logger or \
-                       utils.setup_local_logger(logger_name, self._config)
+            utils.setup_local_logger(logger_name, self._config)
 
         # suppress urllib3 connection logging
         logging.getLogger('urllib3').setLevel(logging.WARNING)

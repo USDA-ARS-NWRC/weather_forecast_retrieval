@@ -108,7 +108,7 @@ class TestFileLoaderGetData(RMETestCase):
 
         subject = FileLoader(
             file_dir=RMETestCase.hrrr_dir.as_posix(),
-            config = tests.helpers.LOG_ERROR_CONFIG
+            config=tests.helpers.LOG_ERROR_CONFIG
         )
         subject.start_date = RMETestCase.START_DATE
         subject.end_date = RMETestCase.END_DATE
