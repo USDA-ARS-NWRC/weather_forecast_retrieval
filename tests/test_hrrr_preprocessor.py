@@ -52,13 +52,14 @@ class TestHRRRPreprocessor(RMETestCase):
                 'File {} was not written successfully'.format(file)
             )
 
-        metadata, data = FileLoader().get_saved_data(
+        metadata, data = FileLoader(
+            file_dir=self.output_path.as_posix(),
+        ).get_saved_data(
             pd.to_datetime(self.end_date),
             pd.to_datetime('2018-07-22 03:00'),
             self.BBOX,
-            file_type='grib2',
-            file_dir=self.output_path.as_posix(),
-            force_zone_number=self.UTM_ZONE_NUMBER)
+            force_zone_number=self.UTM_ZONE_NUMBER
+        )
 
         self.assertCountEqual(
             data.keys(),

@@ -21,23 +21,28 @@ class FileLoader(ConfigFile):
     MAX_FORECAST_HOUR = 6
     NEXT_HOUR = timedelta(hours=1)
 
-    def __init__(self, config_file=None, external_logger=None):
+    def __init__(self,
+                 file_dir,
+                 file_type='grib2',
+                 config_file=None,
+                 external_logger=None
+                 ):
+        """
+        :param file_dir:        Base directory to location of files
+        :param file_type:       'grib2' or 'netcdf', determines how to read
+                                the files. Default: grib2
+        :param config_file:     (Optional) Full path to a .ini file
+        :param external_logger: (Optional) Specify an existing logger instance
+        """
         super().__init__(
             __name__, config_file=config_file, external_logger=external_logger
         )
 
-        self._file_loader = None
-        self._file_dir = None
         self.data = None
         self.force_zone_number = None
 
-    @property
-    def file_loader(self):
-        return self._file_loader
-
-    @file_loader.setter
-    def file_loader(self, value):
-        self._file_loader = value
+        self.file_type = file_type
+        self.file_dir = file_dir
 
     @property
     def file_dir(self):
@@ -49,14 +54,23 @@ class FileLoader(ConfigFile):
 
     @property
     def file_type(self):
-        if self._file_loader is not None:
-            return self._file_loader.SUFFIX
+        return self._file_loader.SUFFIX
+
+    @file_type.setter
+    def file_type(self, value):
+        if value == GribFile.SUFFIX:
+            self._file_loader = GribFile()
+        elif value == NetCdfFile.SUFFIX:
+            self._file_loader = NetCdfFile()
         else:
-            return None
+            raise Exception('Unknown file type argument')
+
+    @property
+    def file_loader(self):
+        return self._file_loader
 
     def get_saved_data(self,
                        start_date, end_date, bbox,
-                       file_dir=None, file_type='grib2',
                        force_zone_number=None,
                        var_keys=None):
         """
@@ -67,9 +81,6 @@ class FileLoader(ConfigFile):
             start_date:     datetime for the start
             end_date:       datetime for the end
             bbox:           list of  [lonmin, latmin, lonmax, latmax]
-            file_dir:       Base directory to location of files
-            file_type:      'grib2' or 'netcdf', determines how to read
-                            the files. Default: grib2
             force_zone_number: UTM zone number to convert datetime to
             var_keys:       which keys to grab from smrf variables,
                             default is var_map
@@ -84,14 +95,6 @@ class FileLoader(ConfigFile):
 
         self.start_date = start_date
         self.end_date = end_date
-
-        if file_type == GribFile.SUFFIX:
-            self.file_loader = GribFile()
-        elif file_type == NetCdfFile.SUFFIX:
-            self.file_loader = NetCdfFile()
-        else:
-            raise Exception('Unknown file type argument')
-
         self.file_loader.bbox = bbox
 
         # filter to desired keys if specified
@@ -104,9 +107,6 @@ class FileLoader(ConfigFile):
             )
 
         self.force_zone_number = force_zone_number
-
-        if file_dir is not None:
-            self.file_dir = file_dir
 
         self.log.info('Getting saved data')
         self.get_data(var_map)
@@ -245,7 +245,8 @@ class FileLoader(ConfigFile):
                 if key == 'air_temp':
                     dataframe['air_temp'] -= 273.15
                 if key == 'cloud_factor':
-                    dataframe['cloud_factor'] = 1 - dataframe['cloud_factor'] / 100
+                    dataframe['cloud_factor'] = \
+                        1 - dataframe['cloud_factor'] / 100
 
         # the metadata may have more columns than the dataframes
         c = []
