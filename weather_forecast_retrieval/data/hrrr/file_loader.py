@@ -24,18 +24,19 @@ class FileLoader(ConfigFile):
     def __init__(self,
                  file_dir,
                  file_type='grib2',
-                 config_file=None,
+                 config=None,
                  external_logger=None
                  ):
         """
         :param file_dir:        Base directory to location of files
         :param file_type:       'grib2' or 'netcdf', determines how to read
                                 the files. Default: grib2
-        :param config_file:     (Optional) Full path to a .ini file
+        :param config:          (Optional) Full path to a .ini file or
+                                a dictionary
         :param external_logger: (Optional) Specify an existing logger instance
         """
         super().__init__(
-            __name__, config_file=config_file, external_logger=external_logger
+            __name__, config=config, external_logger=external_logger
         )
 
         self.data = None

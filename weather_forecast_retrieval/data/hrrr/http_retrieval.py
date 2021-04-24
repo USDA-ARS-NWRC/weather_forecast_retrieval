@@ -19,19 +19,19 @@ class HttpRetrieval(ConfigFile):
     NUMBER_REQUESTS = 2
     REQUEST_TIMEOUT = 600
 
-    def __init__(self, config_file=None, external_logger=None):
+    def __init__(self, config=None, external_logger=None):
         super().__init__(
-            __name__, config_file=config_file, external_logger=external_logger
+            __name__, config=config, external_logger=external_logger
         )
 
-        if self.config is not None and 'output' in self.config:
-            if 'num_requests' in self.config['output'].keys():
+        if self._config is not None and 'output' in self._config:
+            if 'num_requests' in self._config['output'].keys():
                 self._number_requests = int(
-                    self.config['output']['num_requests']
+                    self._config['output']['num_requests']
                 )
-            if 'request_timeout' in self.config['output'].keys():
+            if 'request_timeout' in self._config['output'].keys():
                 self._request_timeout = int(
-                    self.config['output']['request_timeout'])
+                    self._config['output']['request_timeout'])
 
         self.date_folder = True
 

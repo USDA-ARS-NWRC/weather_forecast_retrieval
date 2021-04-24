@@ -19,7 +19,7 @@ class TestHttpRetrieval(RMETestCase):
         self.config_file = self.basin_dir.joinpath(
             'hrrr_dates_test.ini'
         ).as_posix()
-        self.subject = HttpRetrieval(self.config_file)
+        self.subject = HttpRetrieval(config=self.config_file)
 
     def test_start_date(self):
         self.assertEqual(

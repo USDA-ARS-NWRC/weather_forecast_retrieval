@@ -1,7 +1,6 @@
 import logging
 import unittest
 
-import mock
 import pandas as pd
 
 from weather_forecast_retrieval.data.hrrr.config_file import ConfigFile
@@ -19,11 +18,7 @@ class TestConfigFile(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        with mock.patch(
-            'weather_forecast_retrieval.utils.read_config',
-            return_value=cls.CONFIG
-        ):
-            cls.subject = ConfigFile(cls.LOGGER_NAME, config_file=cls.CONFIG)
+        cls.subject = ConfigFile(cls.LOGGER_NAME, config=cls.CONFIG)
 
     def test_output_dir(self):
         self.assertEqual(
@@ -32,7 +27,7 @@ class TestConfigFile(unittest.TestCase):
         )
 
     def test_missing_output_dir(self):
-        self.subject = ConfigFile(self.LOGGER_NAME, config_file={})
+        self.subject = ConfigFile(self.LOGGER_NAME, config={})
         self.assertEqual(
             None,
             self.subject.output_dir
@@ -45,7 +40,7 @@ class TestConfigFile(unittest.TestCase):
         )
 
     def test_missing_start_date(self):
-        self.subject = ConfigFile(self.LOGGER_NAME, config_file={})
+        self.subject = ConfigFile(self.LOGGER_NAME, config={})
         self.assertEqual(
             None,
             self.subject.start_date
@@ -58,7 +53,7 @@ class TestConfigFile(unittest.TestCase):
         )
 
     def test_missing_end_date(self):
-        self.subject = ConfigFile(self.LOGGER_NAME, config_file={})
+        self.subject = ConfigFile(self.LOGGER_NAME, config={})
         self.assertEqual(
             None,
             self.subject.end_date
@@ -66,7 +61,7 @@ class TestConfigFile(unittest.TestCase):
 
     def test_no_config(self):
         subject = ConfigFile(self.LOGGER_NAME)
-        self.assertIsNone(subject.config)
+        self.assertIsNone(subject._config)
 
     def test_default_properties(self):
         subject = ConfigFile(self.LOGGER_NAME)
