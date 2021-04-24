@@ -33,6 +33,12 @@ class TestFileLoader(unittest.TestCase):
         self.subject.file_type = NetCdfFile.SUFFIX
         self.assertEqual(NetCdfFile.SUFFIX, self.subject.file_type)
 
+    def test_logger_to_file_loader(self):
+        self.assertEqual(
+            self.subject.log,
+            self.subject.file_loader.log
+        )
+
 
 def saved_data_return_values():
     metadata = mock.MagicMock()

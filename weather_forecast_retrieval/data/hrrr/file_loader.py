@@ -60,9 +60,9 @@ class FileLoader(ConfigFile):
     @file_type.setter
     def file_type(self, value):
         if value == GribFile.SUFFIX:
-            self._file_loader = GribFile()
+            self._file_loader = GribFile(external_logger=self.log)
         elif value == NetCdfFile.SUFFIX:
-            self._file_loader = NetCdfFile()
+            self._file_loader = NetCdfFile(external_logger=self.log)
         else:
             raise Exception('Unknown file type argument')
 
