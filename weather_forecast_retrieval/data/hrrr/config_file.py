@@ -33,13 +33,11 @@ class ConfigFile:
         self.__parse_config(config)
 
         self._logger = external_logger or \
-            utils.setup_local_logger(logger_name, self._config)
+            self.__log_initialization(logger_name)
 
         # suppress urllib3 connection logging
         logging.getLogger('urllib3').setLevel(logging.WARNING)
         logging.getLogger('cfgrib').setLevel(logging.WARNING)
-
-        self.__log_initialization()
 
     @property
     def log(self):
@@ -69,9 +67,13 @@ class ConfigFile:
                 self.end_date = pd.to_datetime(
                     self._config['output']['end_date'])
 
-    def __log_initialization(self):
+    def __log_initialization(self, logger_name):
+        log = utils.setup_local_logger(logger_name, self._config)
+
         msg = self.LOG_INIT_MESSAGE.format(
             datetime.now().replace(microsecond=0).isoformat()
         )
-        self.log.info("=" * len(msg))
-        self.log.info(msg)
+        log.info("=" * len(msg))
+        log.info(msg)
+
+        return log
