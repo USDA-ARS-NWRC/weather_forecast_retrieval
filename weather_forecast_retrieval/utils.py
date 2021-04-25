@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 from collections import Sequence
 from configparser import ConfigParser
 from datetime import time
@@ -73,12 +72,7 @@ def read_config(config_file, encoding='utf-8'):
     config = ConfigParser()
     config.optionxform = str
 
-    PY3 = sys.version_info[0] >= 3
-
-    if PY3:
-        config.read(config_file, encoding=encoding)
-    else:
-        config.read(config_file)
+    config.read(config_file, encoding=encoding)
 
     sections = config.sections()
     dict1 = OrderedDict()
