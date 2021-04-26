@@ -52,15 +52,15 @@ jobs:
 
       - name: Install eccodes
         run: |
-         if [ "$RUNNER_OS" == "Linux" ]; then
+          if [ "$RUNNER_OS" == "Linux" ]; then
               apt install libeccodes-tools
-         elif [ "$RUNNER_OS" == "macOS" ]; then
+          elif [ "$RUNNER_OS" == "macOS" ]; then
               brew install eccodes
-         else
+          else
               echo "$RUNNER_OS not supported"
               exit 1
-         fi
-  shell: bash
+          fi
+        shell: bash
 
       - name: Install dependencies
         run: |
