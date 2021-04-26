@@ -13,31 +13,33 @@ on: [push]
 
 jobs:
 
-  flake8:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+  # flake8:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.7'
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: '3.7'
           
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install flake8
+  #     - name: Install dependencies
+  #       run: |
+  #         python3 -m pip install --upgrade pip
+  #         python3 -m pip install flake8
 
-      - name: Lint with flake8
-        run: |
-          flake8 weather_forecast_retrieval
+  #     - name: Lint with flake8
+  #       run: |
+  #         flake8 weather_forecast_retrieval
 
   unittest:
-    needs: flake8
+    # needs: flake8
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        # os: [ubuntu-latest, macos-latest]
+        # python-version: [3.6, 3.7, 3.8, 3.9]
+        os: [ubuntu-latest]
+        python-version: [3.9]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -58,7 +60,7 @@ jobs:
         env:
           WFR_SKIP_EXTERNAL_REQUEST_TEST: please_skip
           WFR_SKIP_ON_GITHUB_ACTIONS: also_skip
-        run: python3 -m unittest -v
+        run:  python3 -m unittest -v tests/data/hrrr/test_hrrr_gold.py
 
   build_dist:
     needs: unittest
