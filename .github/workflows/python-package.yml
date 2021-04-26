@@ -54,7 +54,10 @@ jobs:
           python3 -m pip install -r requirements.txt
 
       - name: Run unittests
-        run: python3 setup.py test -s tests.data.hrrr.test_file_loader
+        env:
+          WFR_SKIP_EXTERNAL_REQUEST_TEST: please_skip
+          WFR_SKIP_ON_GITHUB_ACTIONS: also_skip
+        run: python3 -m unittest -v
 
   build_dist:
     needs: unittest

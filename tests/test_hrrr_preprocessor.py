@@ -1,10 +1,16 @@
+import unittest
+
 import pandas as pd
 
 from tests.RME_test_case import RMETestCase
+from tests.helpers import skip_on_github_actions
 from weather_forecast_retrieval.hrrr import HRRR
 from weather_forecast_retrieval.hrrr_preprocessor import HRRRPreprocessor
 
 
+@unittest.skipIf(
+    skip_on_github_actions(), 'On Github Actions, skipping'
+)
 class TestHRRRPreprocessor(RMETestCase):
     """
     Test cropping HRRR files
@@ -16,9 +22,9 @@ class TestHRRRPreprocessor(RMETestCase):
     start_date = '2018-07-22 01:00'
     end_date = '2018-07-22 02:00'
     output_files = [
-            'hrrr.20180722/hrrr.t01z.wrfsfcf01.grib2',
-            'hrrr.20180722/hrrr.t02z.wrfsfcf01.grib2',
-        ]
+        'hrrr.20180722/hrrr.t01z.wrfsfcf01.grib2',
+        'hrrr.20180722/hrrr.t02z.wrfsfcf01.grib2',
+    ]
 
     def setUp(self):
         super().setUp()
@@ -60,7 +66,7 @@ class TestHRRRPreprocessor(RMETestCase):
             output_dir=self.output_path.as_posix(),
             force_zone_number=self.UTM_ZONE_NUMBER)
 
-        self.assertListEqual(
+        self.assertCountEqual(
             list(data.keys()),
             ['air_temp', 'relative_humidity', 'wind_u', 'wind_v', 'precip_int', 'short_wave']
         )
