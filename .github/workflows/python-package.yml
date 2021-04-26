@@ -32,6 +32,14 @@ jobs:
         run: |
           flake8 weather_forecast_retrieval
 
+      - name: ls dir
+        run: |
+          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval
+          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval/tests
+          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval/tests/RME
+          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval/tests/RME/gridded
+          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval/tests/RME/gridded/hrrr_test
+
   unittest:
     needs: flake8
     strategy:
