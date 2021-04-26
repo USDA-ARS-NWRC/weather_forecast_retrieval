@@ -69,10 +69,6 @@ class TestHRRRPreprocessor(RMETestCase):
         )
 
         self.assertCountEqual(
-            << << << < HEAD
             list(data.keys()),
-            == == == =
-            data.keys(),
-            >>>>>> > main
             ['air_temp', 'relative_humidity', 'wind_u', 'wind_v', 'precip_int', 'short_wave']
         )

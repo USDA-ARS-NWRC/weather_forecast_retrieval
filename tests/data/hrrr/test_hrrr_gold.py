@@ -35,7 +35,7 @@ class TestHRRR(RMETestCase):
         """
         metadata, data = FileLoader(
             file_dir=self.hrrr_dir.as_posix(),
-            config=tests.helpers.LOG_ERROR_CONFIG,
+            # config=tests.helpers.LOG_ERROR_CONFIG,
         ).get_saved_data(
             self.START_DATE,
             self.END_DATE,
