@@ -92,6 +92,7 @@ def download_url(fname, OUTDIR, logger, file_day, model='hrrr', field='sfc'):
     check_this = requests.head(URL)
     file_size = int(check_this.headers['content-length'])
 
+    success = False
     try:
         if file_size > 10000:
             logger.info("Downloading: {}".format(URL))

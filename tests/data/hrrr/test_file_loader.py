@@ -2,8 +2,9 @@ import logging
 import unittest
 
 import mock
-import tests.helpers
 import xarray
+
+import tests.helpers
 from tests.RME import RMETestCase
 from weather_forecast_retrieval.data.hrrr.file_loader import FileLoader
 from weather_forecast_retrieval.data.hrrr.grib_file import GribFile

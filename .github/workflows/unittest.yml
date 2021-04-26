@@ -67,4 +67,4 @@ jobs:
         env:
           WFR_SKIP_EXTERNAL_REQUEST_TEST: please_skip
           WFR_SKIP_ON_GITHUB_ACTIONS: also_skip
-        run:  python3 -m unittest -v tests/data/hrrr/test_hrrr_gold.py
+        run:  python3 -m unittest -v

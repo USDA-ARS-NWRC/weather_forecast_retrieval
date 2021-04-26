@@ -2,9 +2,8 @@ import unittest
 
 import pandas as pd
 
-from tests.RME import RMETestCase
 from tests.helpers import skip_on_github_actions
-
+from tests.RME import RMETestCase
 from weather_forecast_retrieval.data.hrrr import FileLoader
 from weather_forecast_retrieval.hrrr_preprocessor import HRRRPreprocessor
 

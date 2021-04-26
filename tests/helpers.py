@@ -2,7 +2,7 @@ import os
 
 LOG_ERROR_CONFIG = {
     'logging': {
-        'log_level': 'DEBUG',
+        'log_level': 'ERROR',
     }
 }
 
