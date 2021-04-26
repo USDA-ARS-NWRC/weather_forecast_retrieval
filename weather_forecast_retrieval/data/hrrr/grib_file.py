@@ -64,9 +64,9 @@ class GribFile(BaseFile):
         **HAG_10_VARIABLES,
     }
 
-    def __init__(self, config_file=None, external_logger=None):
+    def __init__(self, config=None, external_logger=None):
         super().__init__(
-            __name__, config_file=config_file, external_logger=external_logger
+            __name__, config=config, external_logger=external_logger
         )
 
     @staticmethod

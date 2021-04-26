@@ -10,11 +10,9 @@ class BaseFile(ConfigFile):
     """
     VAR_MAP = None
 
-    def __init__(self, logger_name, config_file=None, external_logger=None):
+    def __init__(self, logger_name, config=None, external_logger=None):
         super().__init__(
-            logger_name,
-            config_file=config_file,
-            external_logger=external_logger
+            logger_name, config=config, external_logger=external_logger
         )
 
         self._bbox = None

@@ -1,12 +1,15 @@
 import unittest
 
+import tests.helpers
 from weather_forecast_retrieval.data.hrrr.grib_file import GribFile
 
 
 class TestGribFile(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.subject = GribFile()
+        cls.subject = GribFile(
+            config=tests.helpers.LOG_ERROR_CONFIG
+        )
 
     def test_log_name(self):
         self.assertRegex(

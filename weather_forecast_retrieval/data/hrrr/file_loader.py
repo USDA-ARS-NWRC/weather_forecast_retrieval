@@ -21,38 +21,58 @@ class FileLoader(ConfigFile):
     MAX_FORECAST_HOUR = 6
     NEXT_HOUR = timedelta(hours=1)
 
-    def __init__(self, config_file=None, external_logger=None):
+    def __init__(self,
+                 file_dir,
+                 file_type='grib2',
+                 config=None,
+                 external_logger=None
+                 ):
+        """
+        :param file_dir:        Base directory to location of files
+        :param file_type:       'grib2' or 'netcdf', determines how to read
+                                the files. Default: grib2
+        :param config:          (Optional) Full path to a .ini file or
+                                a dictionary
+        :param external_logger: (Optional) Specify an existing logger instance
+        """
         super().__init__(
-            __name__, config_file=config_file, external_logger=external_logger
+            __name__, config=config, external_logger=external_logger
         )
 
-        self.start_date = None
-        self.end_date = None
-
-        self._file_loader = None
         self.data = None
         self.force_zone_number = None
+
+        self.file_type = file_type
+        self.file_dir = file_dir
+
+    @property
+    def file_dir(self):
+        return self._file_dir
+
+    @file_dir.setter
+    def file_dir(self, value):
+        self._file_dir = value
+
+    @property
+    def file_type(self):
+        return self._file_loader.SUFFIX
+
+    @file_type.setter
+    def file_type(self, value):
+        if value == GribFile.SUFFIX:
+            self._file_loader = GribFile(external_logger=self.log)
+        elif value == NetCdfFile.SUFFIX:
+            self._file_loader = NetCdfFile(external_logger=self.log)
+        else:
+            raise Exception('Unknown file type argument')
 
     @property
     def file_loader(self):
         return self._file_loader
 
-    @file_loader.setter
-    def file_loader(self, value):
-        self._file_loader = value
-
-    @property
-    def file_type(self):
-        if self._file_loader is not None:
-            return self._file_loader.SUFFIX
-        else:
-            return None
-
     def get_saved_data(self,
                        start_date, end_date, bbox,
-                       output_dir=None, file_type='grib2',
                        force_zone_number=None,
-                       forecast_flag=False,
                        var_keys=None):
         """
         Get the saved data from above for a particular time and a particular
@@ -61,17 +81,14 @@ class FileLoader(ConfigFile):
         Args:
             start_date:     datetime for the start
             end_date:       datetime for the end
-            bbox:           list of  [lonmin,latmin,lonmax,latmax]
-            output_dir:     Base path to location of files
-            file_type:      'grib' or 'netcdf', determines how to read the file
-            forecast_flag:  weather or not to get forecast hours
+            bbox:           list of  [lonmin, latmin, lonmax, latmax]
             force_zone_number: UTM zone number to convert datetime to
             var_keys:       which keys to grab from smrf variables,
                             default is var_map
 
         Returns:
-            List containing dataframe for the metadata for each node point for
-            the desired variables
+            List containing dataframe for the metadata adn for each read
+            variable.
         """
 
         if start_date > end_date:
@@ -79,14 +96,6 @@ class FileLoader(ConfigFile):
 
         self.start_date = start_date
         self.end_date = end_date
-
-        if file_type == GribFile.SUFFIX:
-            self.file_loader = GribFile()
-        elif file_type == NetCdfFile.SUFFIX:
-            self.file_loader = NetCdfFile()
-        else:
-            raise Exception('Unknown file type argument')
-
         self.file_loader.bbox = bbox
 
         # filter to desired keys if specified
@@ -100,28 +109,10 @@ class FileLoader(ConfigFile):
 
         self.force_zone_number = force_zone_number
 
-        if output_dir is not None:
-            self.output_dir = output_dir
+        self.log.info('Getting saved data')
+        self.get_data(var_map)
 
-        if forecast_flag:
-            # TODO: Implement forecast retrieval here
-            raise NotImplementedError(
-                'Getting the forecast is not implemented yet')
-        else:
-            self.log.info('Getting saved data')
-            self.get_data(var_map)
-
-        metadata, dataframe = self.convert_to_dataframes(var_map)
-
-        # manipulate data in necessary ways
-        for key in dataframe.keys():
-            dataframe[key].sort_index(axis=0, inplace=True)
-            if key == 'air_temp':
-                dataframe['air_temp'] -= 273.15
-            if key == 'cloud_factor':
-                dataframe['cloud_factor'] = 1 - dataframe['cloud_factor'] / 100
-
-        return metadata, dataframe
+        return self.convert_to_dataframes(var_map)
 
     def get_data(self, var_map):
         """
@@ -156,7 +147,7 @@ class FileLoader(ConfigFile):
 
                 try:
                     if self.file_type == GribFile.SUFFIX:
-                        base_path = os.path.abspath(self.output_dir)
+                        base_path = os.path.abspath(self.file_dir)
                         file = os.path.join(base_path, day_folder, file_name)
                         if os.path.exists(file):
                             forecast_data = self.file_loader.load(
@@ -166,7 +157,7 @@ class FileLoader(ConfigFile):
                             self.log.error('  No file for {}'.format(file))
 
                     elif self.file_type == NetCdfFile.SUFFIX:
-                        file = [self.output_dir, day_folder, file_name]
+                        file = [self.file_dir, day_folder, file_name]
                         forecast_data = self.file_loader.load(file)
 
                 except Exception as e:
@@ -248,7 +239,15 @@ class FileLoader(ConfigFile):
                 df.index.rename('date_time', inplace=True)
 
                 df.dropna(axis=1, how='all', inplace=True)
+                df.sort_index(axis=0, inplace=True)
                 dataframe[key] = df
+
+                # manipulate data in necessary ways
+                if key == 'air_temp':
+                    dataframe['air_temp'] -= 273.15
+                if key == 'cloud_factor':
+                    dataframe['cloud_factor'] = \
+                        1 - dataframe['cloud_factor'] / 100
 
         # the metadata may have more columns than the dataframes
         c = []

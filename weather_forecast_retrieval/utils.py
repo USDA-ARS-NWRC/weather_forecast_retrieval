@@ -1,14 +1,11 @@
 import logging
 import os
-import sys
 from collections import Sequence
 from configparser import ConfigParser
 from datetime import time
 from logging.handlers import TimedRotatingFileHandler
 
 import coloredlogs
-
-from weather_forecast_retrieval.data import hrrr
 
 basestring = str
 unicode_type = str
@@ -75,12 +72,7 @@ def read_config(config_file, encoding='utf-8'):
     config = ConfigParser()
     config.optionxform = str
 
-    PY3 = sys.version_info[0] >= 3
-
-    if PY3:
-        config.read(config_file, encoding=encoding)
-    else:
-        config.read(config_file)
+    config.read(config_file, encoding=encoding)
 
     sections = config.sections()
     dict1 = OrderedDict()
@@ -167,10 +159,3 @@ def isscalar(x):
         return False
     else:
         return True
-
-
-def hrrr_file_name_finder(*kwargs):
-    """
-    TODO: Deprecate in favor of calling HRRR FileHandler directly.
-    """
-    return hrrr.FileHandler.folder_and_file(*kwargs)

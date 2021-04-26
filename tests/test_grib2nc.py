@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from tests.RME_test_case import RMETestCase
+from tests.RME import RMETestCase
 from tests.helpers import skip_on_github_actions
 from weather_forecast_retrieval.grib2nc import grib2nc
 

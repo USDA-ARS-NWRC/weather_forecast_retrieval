@@ -1,12 +1,15 @@
 import unittest
 
+import tests.helpers
 from weather_forecast_retrieval.data.hrrr.netcdf_file import NetCdfFile
 
 
 class TestNetCdfFile(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.subject = NetCdfFile()
+        cls.subject = NetCdfFile(
+            config=tests.helpers.LOG_ERROR_CONFIG
+        )
 
     def test_log_name(self):
         self.assertRegex(
