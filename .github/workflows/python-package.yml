@@ -50,6 +50,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Ubuntu install eccodes
+        if: ${{ matrix.os == ubuntu-latest }}
+        run: apt install libeccodes-tools
+
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
