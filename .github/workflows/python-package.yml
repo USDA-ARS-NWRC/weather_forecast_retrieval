@@ -34,11 +34,7 @@ jobs:
 
       - name: ls dir
         run: |
-          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval
-          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval/tests
-          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval/tests/RME
-          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval/tests/RME/gridded
-          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval/tests/RME/gridded/hrrr_test
+          ls /home/runner/work/weather_forecast_retrieval/weather_forecast_retrieval/tests/RME/gridded/hrrr_test/hrrr.20180722
 
   unittest:
     needs: flake8
