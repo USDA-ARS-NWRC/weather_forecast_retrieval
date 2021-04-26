@@ -53,7 +53,7 @@ jobs:
       - name: Install eccodes
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
-              apt install libeccodes-tools
+              sudo apt-get install -y libeccodes-tools
           elif [ "$RUNNER_OS" == "macOS" ]; then
               brew install eccodes
           else
