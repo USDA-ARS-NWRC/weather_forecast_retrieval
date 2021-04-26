@@ -1,16 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""The setup script."""
-
-# # from setuptools import setup, find_packages
 from setuptools import setup
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
-
-# with open('HISTORY.rst') as history_file:
-#     history = history_file.read()
 
 with open('requirements.txt') as req_file:
     requirements = req_file.read()
@@ -53,6 +44,9 @@ setup(
     use_scm_version={
         'local_scheme': 'node-and-date',
     },
+    setup_requires=[
+        'setuptools_scm'
+    ],
     scripts=[
         'scripts/run_hrrr_retrieval',
         'scripts/run_hrrr_retrieval_dates',
