@@ -1,9 +1,8 @@
 import logging
 import unittest
 
-import mock
 import pandas as pd
-
+import tests.helpers
 from weather_forecast_retrieval.data.hrrr.config_file import ConfigFile
 
 
@@ -14,20 +13,28 @@ class TestConfigFile(unittest.TestCase):
             'output_dir': 'output_location',
             'start_date': '2020-12-31 00:00',
             'end_date': '2020-12-31 23:00',
+        },
+        'logging': {
+            'log_level': 'ERROR',
         }
     }
 
     @classmethod
     def setUpClass(cls):
-        with mock.patch(
-            'weather_forecast_retrieval.utils.read_config',
-            return_value=cls.CONFIG
-        ):
-            cls.subject = ConfigFile(cls.LOGGER_NAME, cls.CONFIG)
+        cls.subject = ConfigFile(cls.LOGGER_NAME, config=cls.CONFIG)
 
     def test_output_dir(self):
         self.assertEqual(
             self.CONFIG['output']['output_dir'],
+            self.subject.output_dir
+        )
+
+    def test_missing_output_dir(self):
+        self.subject = ConfigFile(
+            self.LOGGER_NAME, config=tests.helpers.LOG_ERROR_CONFIG
+        )
+        self.assertEqual(
+            None,
             self.subject.output_dir
         )
 
@@ -37,18 +44,39 @@ class TestConfigFile(unittest.TestCase):
             self.subject.start_date,
         )
 
+    def test_missing_start_date(self):
+        self.subject = ConfigFile(
+            self.LOGGER_NAME, config=tests.helpers.LOG_ERROR_CONFIG
+        )
+        self.assertEqual(
+            None,
+            self.subject.start_date
+        )
+
     def test_end_date(self):
         self.assertEqual(
             pd.to_datetime(self.CONFIG['output']['end_date']),
             self.subject.end_date
         )
 
+    def test_missing_end_date(self):
+        self.subject = ConfigFile(
+            self.LOGGER_NAME, config=tests.helpers.LOG_ERROR_CONFIG
+        )
+        self.assertEqual(
+            None,
+            self.subject.end_date
+        )
+
     def test_no_config(self):
         subject = ConfigFile(self.LOGGER_NAME)
-        self.assertIsNone(subject.config)
+        self.assertIsNone(subject._config)
 
     def test_default_properties(self):
-        subject = ConfigFile(self.LOGGER_NAME)
+        subject = ConfigFile(
+            self.LOGGER_NAME, config=tests.helpers.LOG_ERROR_CONFIG
+        )
+
         self.assertIsNone(subject.start_date)
         self.assertIsNone(subject.end_date)
         self.assertIsNone(subject.output_dir)
@@ -59,7 +87,8 @@ class TestConfigFile(unittest.TestCase):
     def test_external_logger(self):
         external_logger = logging.Logger('External')
         subject = ConfigFile(
-            self.LOGGER_NAME, external_logger=external_logger
+            self.LOGGER_NAME, external_logger=external_logger,
+            config=tests.helpers.LOG_ERROR_CONFIG
         )
         self.assertEqual(external_logger.name, subject.log.name)
 

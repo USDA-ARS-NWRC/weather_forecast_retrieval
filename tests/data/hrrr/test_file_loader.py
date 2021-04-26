@@ -1,31 +1,44 @@
+import logging
 import unittest
 
 import mock
+import tests.helpers
 import xarray
-
-from tests.RME_test_case import RMETestCase
+from tests.RME import RMETestCase
 from weather_forecast_retrieval.data.hrrr.file_loader import FileLoader
 from weather_forecast_retrieval.data.hrrr.grib_file import GribFile
 from weather_forecast_retrieval.data.hrrr.netcdf_file import NetCdfFile
 
 
 class TestFileLoader(unittest.TestCase):
+    FILE_DIR = 'path/to/files/'
+
     def setUp(self):
-        self.subject = FileLoader()
+        self.subject = FileLoader(
+            self.FILE_DIR, config=tests.helpers.LOG_ERROR_CONFIG
+        )
 
-    def test_file_loader_property(self):
-        self.assertEqual(None, self.subject.file_loader)
+    def test_file_dir_property(self):
+        self.assertEqual(self.subject.file_dir, self.FILE_DIR)
 
-        self.subject.file_loader = GribFile
-
-        self.assertEqual(GribFile, self.subject.file_loader)
-
-    def test_file_type(self):
-        self.assertEqual(None, self.subject.file_type)
-
-        self.subject.file_loader = GribFile
-
+    def test_defaults_to_grib2(self):
+        self.assertIsInstance(self.subject.file_loader, GribFile)
         self.assertEqual(GribFile.SUFFIX, self.subject.file_type)
+
+    def test_change_file_dir(self):
+        NEW_DIR = 'somewhere/else'
+        self.subject.file_dir = NEW_DIR
+        self.assertEqual(NEW_DIR, self.subject.file_dir)
+
+    def test_change_file_type(self):
+        self.subject.file_type = NetCdfFile.SUFFIX
+        self.assertEqual(NetCdfFile.SUFFIX, self.subject.file_type)
+
+    def test_logger_to_file_loader(self):
+        self.assertEqual(
+            self.subject.log,
+            self.subject.file_loader.log
+        )
 
 
 def saved_data_return_values():
@@ -49,25 +62,16 @@ class TestFileLoaderGetSavedData(RMETestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.subject = FileLoader()
+        cls.subject = FileLoader(
+            file_dir='path', config=tests.helpers.LOG_ERROR_CONFIG
+        )
 
     def test_parameters(self, _data_patch, _df_patch):
-        self.subject.get_saved_data(*self.METHOD_ARGS, output_dir='path')
+        self.subject.get_saved_data(*self.METHOD_ARGS)
 
         self.assertEqual(self.START_DATE, self.subject.start_date)
         self.assertEqual(self.END_DATE, self.subject.end_date)
         self.assertEqual(self.BBOX, self.subject.file_loader.bbox)
-        self.assertEqual('path', self.subject.output_dir)
-
-    def test_defaults_to_grib(self, _data_patch, _df_patch):
-        self.subject.get_saved_data(*self.METHOD_ARGS)
-
-        self.assertIsInstance(self.subject.file_loader, GribFile)
-
-    def test_netcdf_parameter(self, _data_patch, _df_patch):
-        self.subject.get_saved_data(*self.METHOD_ARGS, file_type='netcdf')
-
-        self.assertIsInstance(self.subject.file_loader, NetCdfFile)
 
     def test_call_get_data(self, data_patch, _df_patch):
         self.subject.get_saved_data(*self.METHOD_ARGS)
@@ -97,34 +101,38 @@ class TestFileLoaderGetSavedData(RMETestCase):
 class TestFileLoaderGetData(RMETestCase):
     def setUp(self):
         super().setUp()
+
         file_loader = mock.MagicMock(spec=GribFile)
         file_loader.name = 'MockLoader'
         file_loader.SUFFIX = GribFile.SUFFIX
-        self.file_loader = file_loader
 
-        subject = FileLoader()
+        subject = FileLoader(
+            file_dir=RMETestCase.hrrr_dir.as_posix(),
+            config=tests.helpers.LOG_ERROR_CONFIG
+        )
         subject.start_date = RMETestCase.START_DATE
         subject.end_date = RMETestCase.END_DATE
-        subject.output_dir = RMETestCase.hrrr_dir.as_posix()
-        subject.file_loader = file_loader
+
         self.subject = subject
+        self.subject.log.setLevel(logging.ERROR)
+        self.subject._file_loader = file_loader
 
     def test_call_to_load(self):
         self.subject.get_data({})
 
         self.assertEqual(
             6,
-            self.file_loader.load.call_count,
+            self.subject.file_loader.load.call_count,
             msg='More data was loaded than requested forecast hours'
         )
         self.assertRegex(
-            self.file_loader.load.call_args.args[0],
+            self.subject.file_loader.load.call_args.args[0],
             r'.*/hrrr.20180722/hrrr.t05z.wrfsfcf01.grib2',
             msg='Path to file not passed to file loader'
         )
         self.assertEqual(
             {},
-            self.file_loader.load.call_args.args[1],
+            self.subject.file_loader.load.call_args.args[1],
             msg='Var map not passed to file loader'
         )
 
@@ -139,20 +147,20 @@ class TestFileLoaderGetData(RMETestCase):
 
             self.assertEqual(
                 6,
-                self.file_loader.load.call_count,
+                self.subject.file_loader.load.call_count,
                 msg='Tried to load than six forecast hours for a '
                     'single time step'
             )
 
     def test_file_not_found(self):
-        self.subject.output_dir = None
+        self.subject.file_dir = None
 
         with self.assertRaises(IOError):
             self.subject.get_data({})
 
         self.assertEqual(
             0,
-            self.file_loader.load.call_count,
+            self.subject.file_loader.load.call_count,
             msg='Tried to load data from file although not present on disk'
         )
 
@@ -165,7 +173,7 @@ class TestFileLoaderGetData(RMETestCase):
         # Can't load the file on disk and the other forecast hours are missing
         self.assertEqual(
             1,
-            self.file_loader.load.call_count,
+            self.subject.file_loader.load.call_count,
             msg='Tried to find more files than present on disk'
         )
 

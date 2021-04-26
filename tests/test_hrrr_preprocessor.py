@@ -1,7 +1,7 @@
 import pandas as pd
 
-from tests.RME_test_case import RMETestCase
-from weather_forecast_retrieval.hrrr import HRRR
+from tests.RME import RMETestCase
+from weather_forecast_retrieval.data.hrrr import FileLoader
 from weather_forecast_retrieval.hrrr_preprocessor import HRRRPreprocessor
 
 
@@ -29,7 +29,7 @@ class TestHRRRPreprocessor(RMETestCase):
             self.output_path.as_posix(),
             [-116.9, 42.9, -116.5, 43.2],
             1,
-            verbose=True
+            verbose=False
         )
 
     def test_bad_file(self):
@@ -52,15 +52,16 @@ class TestHRRRPreprocessor(RMETestCase):
                 'File {} was not written successfully'.format(file)
             )
 
-        metadata, data = HRRR().get_saved_data(
+        metadata, data = FileLoader(
+            file_dir=self.output_path.as_posix(),
+        ).get_saved_data(
             pd.to_datetime(self.end_date),
             pd.to_datetime('2018-07-22 03:00'),
             self.BBOX,
-            file_type='grib2',
-            output_dir=self.output_path.as_posix(),
-            force_zone_number=self.UTM_ZONE_NUMBER)
+            force_zone_number=self.UTM_ZONE_NUMBER
+        )
 
-        self.assertListEqual(
-            list(data.keys()),
+        self.assertCountEqual(
+            data.keys(),
             ['air_temp', 'relative_humidity', 'wind_u', 'wind_v', 'precip_int', 'short_wave']
         )

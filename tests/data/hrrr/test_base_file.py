@@ -1,5 +1,6 @@
 import unittest
 
+import tests.helpers
 from weather_forecast_retrieval.data.hrrr.base_file import BaseFile
 
 
@@ -8,7 +9,10 @@ class TestBaseFile(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.subject = BaseFile(cls.LOGGER_NAME)
+        cls.subject = BaseFile(
+            cls.LOGGER_NAME,
+            config=tests.helpers.LOG_ERROR_CONFIG
+        )
 
     def test_bbox_property(self):
         self.assertIsNone(self.subject.bbox)

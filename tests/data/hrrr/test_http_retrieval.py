@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 
-from tests.RME_test_case import RMETestCase
+from tests.RME import RMETestCase
 from tests.helpers import skip_external_http_request
 from weather_forecast_retrieval.data.hrrr import HttpRetrieval
 
@@ -19,7 +19,7 @@ class TestHttpRetrieval(RMETestCase):
         self.config_file = self.basin_dir.joinpath(
             'hrrr_dates_test.ini'
         ).as_posix()
-        self.subject = HttpRetrieval(self.config_file)
+        self.subject = HttpRetrieval(config=self.config_file)
 
     def test_start_date(self):
         self.assertEqual(
