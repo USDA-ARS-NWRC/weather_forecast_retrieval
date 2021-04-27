@@ -54,11 +54,7 @@ lint: ## check style with flake8
 	flake8 weather_forecast_retrieval tests
 
 test: ## run tests quickly with the default Python
-	
-		python setup.py test
-
-test-all: ## run tests on every Python version with tox
-	tox
+	python -m unittest discover
 
 coverage: ## check code coverage quickly with the default Python
 	coverage run --source weather_forecast_retrieval setup.py test
@@ -78,7 +74,7 @@ servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 release: clean dist # package and upload a release
-	twine upload --repository pypi dist/* 
+	twine upload --repository pypi dist/*
 
 dist: clean ## builds source and wheel package
 	python setup.py sdist
