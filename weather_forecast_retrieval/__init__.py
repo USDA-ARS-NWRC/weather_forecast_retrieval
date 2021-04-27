@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
+from pkg_resources import DistributionNotFound, get_distribution
 
-"""Top-level package for Weather Forecast Retrieval."""
-
-__author__ = """Scott Havens"""
-__email__ = 'scott.havens@ars.usda.gov'
-__version__ = '0.6.14'
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    __version__ = 'unknown'

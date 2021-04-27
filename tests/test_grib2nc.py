@@ -1,5 +1,7 @@
 import os
+import unittest
 
+from tests.helpers import skip_on_github_actions
 from tests.RME import RMETestCase
 from weather_forecast_retrieval.grib2nc import grib2nc
 
@@ -7,6 +9,9 @@ from weather_forecast_retrieval.grib2nc import grib2nc
 class TestGrib2nc(RMETestCase):
     """Tests for `weather_forecast_retrieval` package."""
 
+    @unittest.skipIf(
+        skip_on_github_actions(), 'On Github Actions, skipping'
+    )
     def testGrib2nc(self):
         """
         Convert test data to netcdf

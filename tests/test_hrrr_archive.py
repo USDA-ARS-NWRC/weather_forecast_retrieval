@@ -7,8 +7,8 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from tests.RME import RMETestCase
 from tests.helpers import skip_external_http_request
+from tests.RME import RMETestCase
 from weather_forecast_retrieval import hrrr_archive
 
 

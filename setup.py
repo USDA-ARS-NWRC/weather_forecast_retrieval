@@ -1,31 +1,13 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""The setup script."""
-
-# # from setuptools import setup, find_packages
 from setuptools import setup
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
-# with open('HISTORY.rst') as history_file:
-#     history = history_file.read()
-
 with open('requirements.txt') as req_file:
     requirements = req_file.read()
 
-# setup_requirements = [
-#     # TODO(scotthavens): put setup requirements (distutils extensions, etc.) here
-# ]
-
-# test_requirements = [
-#     # TODO: put package test requirements here
-# ]
-
 setup(
     name='weather_forecast_retrieval',
-    version='0.6.14',
     description="Weather forecast retrieval gathers relevant gridded weather "
                 "forecasts to ingest into physically based models for water "
                 "supply forecasts",
@@ -50,10 +32,24 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Natural Language :: English',
+        'License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     test_suite='tests',
+    extras_require={
+        'tests': [
+            'mock',
+        ],
+    },
+    use_scm_version={
+        'local_scheme': 'node-and-date',
+    },
+    setup_requires=[
+        'setuptools_scm'
+    ],
     scripts=[
         'scripts/run_hrrr_retrieval',
         'scripts/run_hrrr_retrieval_dates',
