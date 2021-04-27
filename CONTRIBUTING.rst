@@ -102,6 +102,16 @@ Before you submit a pull request, check that it meets these guidelines:
    Python version through GitHub actions. Check the tab if there are any issues
    and that all workflows pass.
 
+Releasing to PyPI
+-----------------
+To create a new release on `Pypi.org <https://pypi.org/>`_, follow these steps:
+
+#. Create a new release for weather_forecast_retrieval
+#. Name the tag and release the version number, for example `v0.7.0 <https://github.com/USDA-ARS-NWRC/weather_forecast_retrieval/releases/tag/v0.7.0>`_
+#. Add documentation about the release and why it's different from the previous.
+   Especially highlight any changes that will break existing integrations.
+#. Publish new release which will trigger a build to release to PyPI
+
 Tips
 ----
 
