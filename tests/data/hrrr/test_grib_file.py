@@ -28,3 +28,9 @@ class TestGribFile(unittest.TestCase):
 
     def test_cell_size(self):
         self.assertEqual(3000, GribFile.CELL_SIZE)
+
+    def test_variables(self):
+        self.assertEqual(
+            GribFile.VAR_MAP.keys(),
+            GribFile.VARIABLES
+        )
