@@ -5,4 +5,4 @@ try:
 except DistributionNotFound:
     __version__ = 'unknown'
 
-import weather_forecast_retrieval.data # noqa
+import weather_forecast_retrieval.data
