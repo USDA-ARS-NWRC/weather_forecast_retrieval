@@ -4,6 +4,12 @@ from weather_forecast_retrieval.data.hrrr.base_file import BaseFile
 
 
 class GribFile(BaseFile):
+    """
+    Class to load a GRIB2 file from disk.
+
+    The VAR_MAP class constants holds a mapping for currently available
+    variables that are loadable from a file.
+    """
     SUFFIX = 'grib2'
 
     CELL_SIZE = 3000  # in meters
@@ -63,6 +69,7 @@ class GribFile(BaseFile):
         **HAG_2_VARIABLES,
         **HAG_10_VARIABLES,
     }
+    VARIABLES = VAR_MAP.keys()
 
     def __init__(self, config=None, external_logger=None):
         super().__init__(
