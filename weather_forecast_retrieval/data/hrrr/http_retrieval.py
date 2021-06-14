@@ -14,7 +14,7 @@ from .file_handler import FileHandler
 class HttpRetrieval(ConfigFile):
     URL = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod' \
           '/hrrr.{}/conus/'
-    FILE_PATTERN = re.compile(r'hrrr\.t\d\dz\.wrfsfcf\d\d\.grib2')
+    FILE_PATTERN = r'hrrr\.t\d\dz\.wrfsfcf{}.grib2'
 
     NUMBER_REQUESTS = 2
     REQUEST_TIMEOUT = 600
@@ -34,6 +34,7 @@ class HttpRetrieval(ConfigFile):
                     self._config['output']['request_timeout'])
 
         self.date_folder = True
+        self.forecast_hour = None
 
     @property
     def number_requests(self):
@@ -43,7 +44,38 @@ class HttpRetrieval(ConfigFile):
     def request_timeout(self):
         return getattr(self, '_request_timeout', HttpRetrieval.REQUEST_TIMEOUT)
 
-    def fetch_by_date(self, start_date=None, end_date=None):
+    @property
+    def forecast_str(self):
+        """Turn a list of forecast hours to strings with 2 digits. For
+        example [0, 1] becomes ['00', '01']
+
+        Returns:
+            list: None or list of strings
+        """
+        if self.forecast_hour is None:
+            return None
+        else:
+            return [str(x).zfill(2) for x in self.forecast_hour]
+
+    @property
+    def regex_file_name(self):
+        """Create the regex string to match the file names
+
+        Returns:
+            str: file name pattern to match
+        """
+        if self.forecast_str is None:
+            return self.FILE_PATTERN.format('\\d\\d')
+        else:
+            return self.FILE_PATTERN.format('({})'.format('|'.join(self.forecast_str)))
+
+    @property
+    def url_date(self):
+        return HttpRetrieval.URL.format(
+            self.start_date.strftime(FileHandler.SINGLE_DAY_FORMAT)
+        )
+
+    def fetch_by_date(self, start_date=None, end_date=None, forecast_hour=None):
         """
         :params:  start_date - datetime object to override config
                   end_date - datetime object to override config
@@ -51,26 +83,11 @@ class HttpRetrieval(ConfigFile):
 
         self.log.info('Retrieving data from the http site')
 
-        # could be more robust
-        if start_date is not None:
-            start_date = pd.to_datetime(start_date)
-            self.start_date = start_date
-        if end_date is not None:
-            end_date = pd.to_datetime(end_date)
-            self.end_date = end_date
+        self.start_date = start_date
+        self.end_date = end_date
+        self.forecast_hour = forecast_hour
 
-        # check if dates are timezone aware, if not then assume UTC
-        if self.start_date.tzinfo is None or \
-                self.start_date.tzinfo.utcoffset(self.start_date):
-            self.start_date = self.start_date.tz_localize(tz='UTC')
-        else:
-            self.start_date = self.start_date.tz_convert(tz='UTC')
-
-        if self.end_date.tzinfo is None or \
-                self.end_date.tzinfo.utcoffset(self.end_date):
-            self.end_date = self.end_date.tz_localize(tz='UTC')
-        else:
-            self.end_date = self.end_date.tz_convert(tz='UTC')
+        self.check_dates()
 
         diff = pd.Timestamp.utcnow() - self.start_date
 
@@ -90,41 +107,7 @@ class HttpRetrieval(ConfigFile):
             out_path = self.output_dir
         self.out_path = out_path
 
-        url_date = HttpRetrieval.URL.format(
-            self.start_date.strftime(FileHandler.SINGLE_DAY_FORMAT)
-        )
-
-        # get the html text
-        self.log.debug('Requesting html text from {}'.format(url_date))
-        page = requests.get(url_date).text
-
-        soup = BeautifulSoup(page, 'html.parser')
-
-        # parse
-        columns = ['modified', 'name', 'url', 'size']
-        df = pd.DataFrame(columns=columns)
-
-        for node in soup.find_all('a'):
-            if node.get('href').endswith('grib2'):
-                file_name = node.get('href')
-                result = HttpRetrieval.FILE_PATTERN.match(file_name)
-
-                if result:
-                    # matched a file name so get more information about it
-                    file_url = url_date + file_name
-                    data = node.next_element.next_element.strip()
-                    el = data.split(' ')
-                    modified = pd.to_datetime(
-                        el[0] + ' ' + el[1]).tz_localize(tz='UTC')
-                    size = el[3]
-                    df = df.append({
-                        'modified': modified,
-                        'file_name': file_name,
-                        'url': file_url,
-                        'size': size
-                    }, ignore_index=True)
-
-        self.log.debug('Found {} matching files'.format(len(df)))
+        df = self.parse_html_for_files()
 
         # parse by the date
         idx = (df['modified'] >= self.start_date) & \
@@ -146,6 +129,49 @@ class HttpRetrieval(ConfigFile):
             '{} -- Done with downloads'.format(datetime.now().isoformat()))
 
         return res
+
+    def parse_html_for_files(self):
+        """Parse the url from NOMADS with BeautifulSoup and look for matching
+        filenames.
+
+        Returns:
+            pd.DataFrame: data frame of files that match the pattern
+        """
+
+        # get the html text
+        self.log.debug('Requesting html text from {}'.format(self.url_date))
+        page = requests.get(self.url_date).text
+
+        soup = BeautifulSoup(page, 'html.parser')
+
+        # parse
+        columns = ['modified', 'name', 'url', 'size']
+        df = pd.DataFrame(columns=columns)
+
+        regex = re.compile(self.regex_file_name)
+        for node in soup.find_all('a'):
+            if node.get('href').endswith('grib2'):
+                file_name = node.get('href')
+                result = regex.match(file_name)
+
+                if result:
+                    # matched a file name so get more information about it
+                    file_url = self.url_date + file_name
+                    data = node.next_element.next_element.strip()
+                    el = data.split(' ')
+                    modified = pd.to_datetime(
+                        el[0] + ' ' + el[1]).tz_localize(tz='UTC')
+                    size = el[3]
+                    df = df.append({
+                        'modified': modified,
+                        'file_name': file_name,
+                        'url': file_url,
+                        'size': size
+                    }, ignore_index=True)
+
+        self.log.debug('Found {} matching files'.format(len(df)))
+
+        return df
 
     def fetch_from_url(self, uri):
         """
@@ -176,3 +202,26 @@ class HttpRetrieval(ConfigFile):
             self.log.warning(e)
 
         return success
+
+    def check_dates(self):
+
+        # could be more robust
+        if self.start_date is not None:
+            start_date = pd.to_datetime(self.start_date)
+            self.start_date = start_date
+        if self.end_date is not None:
+            end_date = pd.to_datetime(self.end_date)
+            self.end_date = end_date
+
+        # check if dates are timezone aware, if not then assume UTC
+        if self.start_date.tzinfo is None or \
+                self.start_date.tzinfo.utcoffset(self.start_date):
+            self.start_date = self.start_date.tz_localize(tz='UTC')
+        else:
+            self.start_date = self.start_date.tz_convert(tz='UTC')
+
+        if self.end_date.tzinfo is None or \
+                self.end_date.tzinfo.utcoffset(self.end_date):
+            self.end_date = self.end_date.tz_localize(tz='UTC')
+        else:
+            self.end_date = self.end_date.tz_convert(tz='UTC')
