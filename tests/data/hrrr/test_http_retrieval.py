@@ -4,27 +4,9 @@ import mock
 
 import pandas as pd
 
-from tests.helpers import skip_external_http_request
+from tests.helpers import skip_external_http_request, mocked_requests_get
 from tests.RME import RMETestCase
 from weather_forecast_retrieval.data.hrrr import HttpRetrieval
-
-
-def mocked_requests_get(*args, **kwargs):
-
-    class MockResponse:
-        def __init__(self, text, status_code):
-            self.text = text
-            self.status_code = status_code
-
-        def text(self):
-            return self.text
-
-    if 'nomads' in args[0]:
-        with open('../data/hrrr/nomads_response.html') as f:
-            html_string = f.read()
-        return MockResponse(html_string, 200)
-
-    return MockResponse(None, 404)
 
 
 class TestHttpRetrieval(RMETestCase):

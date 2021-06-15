@@ -75,10 +75,17 @@ class HttpRetrieval(ConfigFile):
             self.start_date.strftime(FileHandler.SINGLE_DAY_FORMAT)
         )
 
-    def fetch_by_date(self, start_date=None, end_date=None, forecast_hour=None):
-        """
-        :params:  start_date - datetime object to override config
-                  end_date - datetime object to override config
+    def fetch_by_date(self, start_date, end_date, forecast_hour=None):
+        """Fetch data from NOMADS between a date range for a given forecast hour.
+        The default will download all forecast hours.
+
+        Args:
+            start_date (str): start date string
+            end_date (str): end date string
+            forecast_hour (list, optional): list of forecast hours. Defaults to None.
+
+        Returns:
+            list: list of responses for data downloads
         """
 
         self.log.info('Retrieving data from the http site')
@@ -88,13 +95,6 @@ class HttpRetrieval(ConfigFile):
         self.forecast_hour = forecast_hour
 
         self.check_dates()
-
-        diff = pd.Timestamp.utcnow() - self.start_date
-
-        if diff.days > 1:
-            # NOAA only keeps the last two days of data
-            self.log.info('Requested start date not within 2 days of now')
-            return True
 
         if self.date_folder:
             dir = FileHandler.folder_name(self.start_date)
@@ -205,10 +205,10 @@ class HttpRetrieval(ConfigFile):
 
     def check_dates(self):
 
-        # could be more robust
         if self.start_date is not None:
             start_date = pd.to_datetime(self.start_date)
             self.start_date = start_date
+
         if self.end_date is not None:
             end_date = pd.to_datetime(self.end_date)
             self.end_date = end_date
@@ -225,3 +225,13 @@ class HttpRetrieval(ConfigFile):
             self.end_date = self.end_date.tz_localize(tz='UTC')
         else:
             self.end_date = self.end_date.tz_convert(tz='UTC')
+
+        # The retrieval is only setup of a day at a time
+        diff = self.end_date - self.start_date
+        if diff.days > 0:
+            self.log.error('Can only download 1 day at a time')
+
+        # NOAA only keeps the last two days of data
+        diff = pd.Timestamp.utcnow() - self.start_date
+        if diff.days > 1:
+            self.log.warning('Requested start date not within 2 days of now')
