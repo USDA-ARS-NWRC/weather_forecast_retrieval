@@ -145,7 +145,7 @@ class HttpRetrieval(ConfigFile):
         soup = BeautifulSoup(page, 'html.parser')
 
         # parse
-        columns = ['modified', 'name', 'out_file', 'new_file', 'url', 'size']
+        columns = ['modified', 'file_date', 'file_name', 'out_file', 'new_file', 'url', 'size']
         df = pd.DataFrame(columns=columns)
 
         regex = re.compile(self.regex_file_name)
@@ -175,6 +175,9 @@ class HttpRetrieval(ConfigFile):
                     }, ignore_index=True)
 
         self.log.debug('Found {} matching files'.format(len(df)))
+
+        if len(df) == 0:
+            return df
 
         if not self.overwrite:
             df = df[df.new_file]

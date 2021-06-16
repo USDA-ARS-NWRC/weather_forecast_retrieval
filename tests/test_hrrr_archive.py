@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import os
-import unittest
+import mock
 
 import numpy as np
 import pandas as pd
 
-from tests.helpers import skip_external_http_request
+from tests.helpers import mocked_requests_get
 from tests.RME import RMETestCase
 from weather_forecast_retrieval import hrrr_archive
 
@@ -72,17 +72,13 @@ class TestHRRRArchive(RMETestCase):
             forecasts=0
         )
 
-    @unittest.skipIf(
-        skip_external_http_request(), 'Skipping HRRR external HTTP requests'
-    )
-    def test_download_archive(self):
-        """
-        Test downloading the archive data from UofU.
-        Can take around 8 minutes.
-        """
+    @mock.patch('requests.get', side_effect=mocked_requests_get)
+    def test_download_archive(self, mock_get):
+
         hrrr_archive.HRRR_from_UofU(
             self.start_date,
             self.end_date,
             self.output_path.as_posix(),
             forecasts=[1]
         )
+        self.assertTrue(mock_get.call_count == 1)

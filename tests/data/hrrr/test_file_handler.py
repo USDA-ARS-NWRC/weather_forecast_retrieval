@@ -59,4 +59,4 @@ class TestHRRRFileHandler(unittest.TestCase):
             'hrrr.20210615',
             'hrrr.t04z.wrfsfcf01.grib2'
         )
-        self.assertEqual(pd.to_datetime('2021-06-15 04:00'), file_date)
+        self.assertEqual(pd.to_datetime('2021-06-15 04:00').tz_localize(tz='UTC'), file_date)

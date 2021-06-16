@@ -23,7 +23,7 @@ class TestHttpRetrieval(RMETestCase):
         self.subject = HttpRetrieval(config=self.config_file)
 
     def create_test_files(self):
-        output_file = './output/hrrr.20190710/hrrr.t00z.wrfsfcf00.grib2'
+        output_file = './output/hrrr.20190710/hrrr.t10z.wrfsfcf00.grib2'
 
         with open(output_file, 'wb') as f:
             f.write(b'nothing here')
@@ -75,6 +75,7 @@ class TestHttpRetrieval(RMETestCase):
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     def test_parse_html_for_files(self, mock_get):
         self.subject.output_folder()
+        self.subject.check_dates()
 
         df = self.subject.parse_html_for_files()
         self.assertTrue(len(df) == 2)
@@ -83,7 +84,7 @@ class TestHttpRetrieval(RMETestCase):
         self.subject.forecast_hour = [0]
         df = self.subject.parse_html_for_files()
         self.assertTrue(len(df) == 1)
-        self.assertEqual('hrrr.t00z.wrfsfcf00.grib2', df.file_name[0])
+        self.assertEqual('hrrr.t10z.wrfsfcf00.grib2', df.file_name[0])
         self.assertTrue(mock_get.call_count == 2)
 
         self.subject.forecast_hour = [0, 1, 2]
@@ -99,6 +100,7 @@ class TestHttpRetrieval(RMETestCase):
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     def test_parse_html_no_overwrite(self, mock_get):
         self.subject.output_folder()
+        self.subject.check_dates()
         self.create_test_files()
 
         # will not overwrite (default)
@@ -109,6 +111,7 @@ class TestHttpRetrieval(RMETestCase):
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     def test_parse_html_overwrite(self, mock_get):
         self.subject.output_folder()
+        self.subject.check_dates()
         self.create_test_files()
 
         # will overwrite
@@ -121,5 +124,5 @@ class TestHttpRetrieval(RMETestCase):
     def test_download_dates(self, mock_get):
 
         res = self.subject.fetch_by_date(self.START_DATE, self.END_DATE)
-        self.assertTrue(len(res) == 0)
+        self.assertIsNone(res)
         self.assertTrue(mock_get.call_count == 1)

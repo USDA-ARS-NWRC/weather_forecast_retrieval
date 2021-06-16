@@ -5,8 +5,8 @@ from weather_forecast_retrieval.hrrr_nomads import HRRRNOMADS, main, parse_args
 from tests.RME import RMETestCase
 from tests.helpers import mocked_requests_get
 
-START_DATE = '14-Jun-2021 00:00'
-END_DATE = '14-Jun-2021 02:00'
+START_DATE = '2019-07-10 09:00:00'
+END_DATE = '2019-07-10 10:00:00'
 BBOX = [-116.9, 42.9, -116.5, 43.2]
 
 
@@ -14,7 +14,7 @@ class TestHRRRNOMADS(RMETestCase):
 
     def setUp(self):
         super().setUp()
-        self.subject = HRRRNOMADS(output_dir=self.output_path, verbose=True)
+        self.subject = HRRRNOMADS(output_dir=self.output_path)
 
     def test_init(self):
         self.assertTrue(self.subject.num_requests == 2)
@@ -41,7 +41,7 @@ class TestHRRRNOMADS(RMETestCase):
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     def test_latest_no_files(self, mock_get):
         res = self.subject.latest()
-        self.assertTrue(len(res) == 0)
+        self.assertIsNone(res)
         self.assertTrue(mock_get.call_count == 1)
 
     def test_preprocessing(self):
@@ -143,13 +143,15 @@ class TestCli(RMETestCase):
             'verbose': False,
             'overwrite': False,
             'latest': 3,
+            'start_date': None,
+            'end_date': None,
             'forecast_hrs': [0, 1],
             'bbox': None,
             'output_path': None
         }
         res = main(**args)
 
-        self.assertTrue(len(res) == 0)
+        self.assertIsNone(res)
         self.assertTrue(mock_get.call_count == 1)
 
     @mock.patch('requests.get', side_effect=mocked_requests_get)
