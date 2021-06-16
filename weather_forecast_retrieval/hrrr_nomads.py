@@ -59,8 +59,8 @@ class HRRRNOMADS():
             list: List of response objects
         """
 
-        start_date = datetime.utcnow().replace(microsecond=0)
-        end_date = start_date + timedelta(hours=latest)
+        end_date = datetime.utcnow().replace(microsecond=0)
+        start_date = end_date - timedelta(hours=latest)
         self.set_dates(start_date, end_date, forecast_hrs)
 
         return self.http_retrieval.fetch_by_date(start_date, end_date, forecast_hrs)
@@ -102,7 +102,7 @@ def main(**kwargs):
         kwargs['verbose']
     )
 
-    if 'start_date' in kwargs.keys() and 'end_date' in kwargs.keys():
+    if kwargs['start_date'] and kwargs['end_date']:
         results = hn.date_range(kwargs['start_date'],
                                 kwargs['end_date'],
                                 kwargs['forecast_hrs'])
@@ -118,13 +118,12 @@ def main(**kwargs):
 
 def parse_args(args):
     parser = argparse.ArgumentParser(
-        description="Crop HRRR files by a bounding box and "
+        description="Download from NOMADS and/or crop HRRR files by a bounding box and "
                     "extract only the necessary surface variables "
-                    "for running with AWSM. \n\nExample command:\n"
-                    "$ hrrr_preprocessor -s '2019-10-01 00:00' "
-                    "-e '2019-10-01 02:00' -f 0 --bbox=\"-119,-118,37,38\" "
-                    "-o /path/to/output --verbose "
-                    "/path/to/hrrr"
+                    "for running with AWSM. \n\nExample command to download"
+                    " the latest 3 hours and crop to a bounding box:\n"
+                    "$ hrrr_nomads -f 0 --bbox=\"-119,-118,37,38\" "
+                    "-o /path/to/output -p /path/to/crop/output--verbose "
     )
 
     parser.add_argument('-o', '--output_dir',
@@ -159,10 +158,6 @@ def parse_args(args):
                         type=lambda s: [int(i) for i in s.split(',')],
                         default=None,
                         help='Forecast hours, comma seperated list')
-
-    # parser.add_argument('-n', '--ncpu', dest='ncpu', type=int, default=0,
-    #                     help='Number of CPUs for wgrib2, 0 (default) will use '
-    #                          'all available')
 
     parser.add_argument('--bbox',
                         dest='bbox',

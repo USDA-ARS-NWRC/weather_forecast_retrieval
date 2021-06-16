@@ -14,7 +14,7 @@ class TestHRRRNOMADS(RMETestCase):
 
     def setUp(self):
         super().setUp()
-        self.subject = HRRRNOMADS(output_dir=self.output_path)
+        self.subject = HRRRNOMADS(output_dir=self.output_path, verbose=True)
 
     def test_init(self):
         self.assertTrue(self.subject.num_requests == 2)

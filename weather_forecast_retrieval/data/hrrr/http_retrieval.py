@@ -116,13 +116,6 @@ class HttpRetrieval(ConfigFile):
             self.log.warning('No files found that match request')
             return None
 
-        # parse by the date
-        idx = (df['file_date'] >= self.start_date) & \
-              (df['file_date'] <= self.end_date)
-        df = df.loc[idx]
-        self.log.debug(
-            'Found {} files between start and end date'.format(len(df)))
-
         self.log.debug('Generating requests')
         pool = ThreadPool(processes=self.number_requests)
 
@@ -188,6 +181,13 @@ class HttpRetrieval(ConfigFile):
             self.log.debug(
                 '{} files do not exist in output directory'.format(len(df)))
 
+        # parse by the date
+        idx = (df['file_date'] >= self.start_date) & \
+              (df['file_date'] <= self.end_date)
+        df = df.loc[idx]
+        self.log.debug(
+            'Found {} files between start and end date'.format(len(df)))
+
         return df
 
     def fetch_from_url(self, uri):
@@ -222,13 +222,13 @@ class HttpRetrieval(ConfigFile):
 
     def check_dates(self):
 
-        if self.start_date is not None:
-            start_date = pd.to_datetime(self.start_date)
-            self.start_date = start_date
+        # if self.start_date is not None:
+        self.start_date = pd.to_datetime(self.start_date)
+        # self.start_date = start_date
 
-        if self.end_date is not None:
-            end_date = pd.to_datetime(self.end_date)
-            self.end_date = end_date
+        # if self.end_date is not None:
+        self.end_date = pd.to_datetime(self.end_date)
+        # self.end_date = end_date
 
         # check if dates are timezone aware, if not then assume UTC
         if self.start_date.tzinfo is None or \
