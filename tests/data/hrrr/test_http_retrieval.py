@@ -4,7 +4,7 @@ import mock
 
 import pandas as pd
 
-from tests.helpers import skip_external_http_request, mocked_requests_get
+from tests.helpers import mocked_requests_get
 from tests.RME import RMETestCase
 from weather_forecast_retrieval.data.hrrr import HttpRetrieval
 
@@ -21,6 +21,12 @@ class TestHttpRetrieval(RMETestCase):
             'hrrr_dates_test.ini'
         ).as_posix()
         self.subject = HttpRetrieval(config=self.config_file)
+
+    def create_test_files(self):
+        output_file = './output/hrrr.20190710/hrrr.t00z.wrfsfcf00.grib2'
+
+        with open(output_file, 'wb') as f:
+            f.write(b'nothing here')
 
     def test_start_date(self):
         self.assertEqual(
@@ -68,6 +74,8 @@ class TestHttpRetrieval(RMETestCase):
 
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     def test_parse_html_for_files(self, mock_get):
+        self.subject.output_folder()
+
         df = self.subject.parse_html_for_files()
         self.assertTrue(len(df) == 2)
         self.assertTrue(mock_get.call_count == 1)
@@ -88,13 +96,30 @@ class TestHttpRetrieval(RMETestCase):
         self.assertTrue(len(df) == 0)
         self.assertTrue(mock_get.call_count == 4)
 
-    @unittest.skipIf(
-        skip_external_http_request(), 'Skipping HRRR external HTTP requests'
-    )
-    def test_download_dates(self):
-        """ Test loading the data from an OpenDAP THREDDS server """
+    @mock.patch('requests.get', side_effect=mocked_requests_get)
+    def test_parse_html_no_overwrite(self, mock_get):
+        self.subject.output_folder()
+        self.create_test_files()
 
-        try:
-            self.subject.fetch_by_date(self.START_DATE, self.END_DATE)
-        except Exception as e:
-            self.fail('Download failed: {}'.format(e))
+        # will not overwrite (default)
+        df = self.subject.parse_html_for_files()
+        self.assertTrue(len(df) == 1)
+        self.assertTrue(mock_get.call_count == 1)
+
+    @mock.patch('requests.get', side_effect=mocked_requests_get)
+    def test_parse_html_overwrite(self, mock_get):
+        self.subject.output_folder()
+        self.create_test_files()
+
+        # will overwrite
+        self.subject.overwrite = True
+        df = self.subject.parse_html_for_files()
+        self.assertTrue(len(df) == 2)
+        self.assertTrue(mock_get.call_count == 1)
+
+    @mock.patch('requests.get', side_effect=mocked_requests_get)
+    def test_download_dates(self, mock_get):
+
+        res = self.subject.fetch_by_date(self.START_DATE, self.END_DATE)
+        self.assertTrue(len(res) == 0)
+        self.assertTrue(mock_get.call_count == 1)

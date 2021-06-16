@@ -37,11 +37,3 @@ def mocked_requests_get(*args, **kwargs):
         return MockResponse(args[0], html_string, 200)
 
     return MockResponse(args[0], None, 404)
-
-
-def mocked_requests_get_nomads_grib(*args, **kwargs):
-
-    if 'grib2' in args[0]:
-        return MockResponse(args[0], 'mock response text', 200)
-
-    return MockResponse(args[0], None, 404)

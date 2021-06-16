@@ -21,7 +21,8 @@ setup(
         'console_scripts': [
             'grib2nc=weather_forecast_retrieval.grib2nc:main',
             'get_hrrr_archive=weather_forecast_retrieval.hrrr_archive:cli',
-            'hrrr_preprocessor=weather_forecast_retrieval.hrrr_preprocessor:cli'
+            'hrrr_preprocessor=weather_forecast_retrieval.hrrr_preprocessor:cli',
+            'hrrr_nomads=weather_forecast_retrieval.hrrr_nomads:cli'
         ]},
     include_package_data=True,
     install_requires=requirements,

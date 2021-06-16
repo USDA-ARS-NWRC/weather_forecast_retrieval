@@ -19,7 +19,7 @@ class HttpRetrieval(ConfigFile):
     NUMBER_REQUESTS = 2
     REQUEST_TIMEOUT = 600
 
-    def __init__(self, config=None, external_logger=None):
+    def __init__(self, overwrite=False, config=None, external_logger=None):
         super().__init__(
             __name__, config=config, external_logger=external_logger
         )
@@ -33,6 +33,7 @@ class HttpRetrieval(ConfigFile):
                 self._request_timeout = int(
                     self._config['output']['request_timeout'])
 
+        self.overwrite = overwrite
         self.date_folder = True
         self.forecast_hour = None
 
@@ -75,6 +76,18 @@ class HttpRetrieval(ConfigFile):
             self.start_date.strftime(FileHandler.SINGLE_DAY_FORMAT)
         )
 
+    def output_folder(self):
+        if self.date_folder:
+            dir = FileHandler.folder_name(self.start_date)
+            out_path = os.path.join(self.output_dir, dir)
+
+            if not os.path.isdir(out_path):
+                os.mkdir(out_path)
+                self.log.info('mkdir {}'.format(out_path))
+        else:
+            out_path = self.output_dir
+        self.out_path = out_path
+
     def fetch_by_date(self, start_date, end_date, forecast_hour=None):
         """Fetch data from NOMADS between a date range for a given forecast hour.
         The default will download all forecast hours.
@@ -95,17 +108,7 @@ class HttpRetrieval(ConfigFile):
         self.forecast_hour = forecast_hour
 
         self.check_dates()
-
-        if self.date_folder:
-            dir = FileHandler.folder_name(self.start_date)
-            out_path = os.path.join(self.output_dir, dir)
-
-            if not os.path.isdir(out_path):
-                os.mkdir(out_path)
-                self.log.info('mkdir {}'.format(out_path))
-        else:
-            out_path = self.output_dir
-        self.out_path = out_path
+        self.output_folder()
 
         df = self.parse_html_for_files()
 
@@ -145,7 +148,7 @@ class HttpRetrieval(ConfigFile):
         soup = BeautifulSoup(page, 'html.parser')
 
         # parse
-        columns = ['modified', 'name', 'url', 'size']
+        columns = ['modified', 'name', 'out_file', 'new_file', 'url', 'size']
         df = pd.DataFrame(columns=columns)
 
         regex = re.compile(self.regex_file_name)
@@ -162,14 +165,22 @@ class HttpRetrieval(ConfigFile):
                     modified = pd.to_datetime(
                         el[0] + ' ' + el[1]).tz_localize(tz='UTC')
                     size = el[3]
+                    out_file = os.path.join(self.out_path, file_name)
                     df = df.append({
                         'modified': modified,
                         'file_name': file_name,
+                        'out_file': out_file,
+                        'new_file': not os.path.exists(out_file),
                         'url': file_url,
                         'size': size
                     }, ignore_index=True)
 
         self.log.debug('Found {} matching files'.format(len(df)))
+
+        if not self.overwrite:
+            df = df[df.new_file]
+            self.log.debug(
+                'Only {} files does not exist in output directory'.format(len(df)))
 
         return df
 
