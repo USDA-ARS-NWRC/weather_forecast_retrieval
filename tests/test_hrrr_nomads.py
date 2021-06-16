@@ -1,6 +1,7 @@
 import mock
+import unittest
 
-from tests.helpers import mocked_requests_get
+from tests.helpers import mocked_requests_get, skip_on_github_actions
 from tests.RME import RMETestCase
 from weather_forecast_retrieval.hrrr_nomads import HRRRNOMADS, main, parse_args
 
@@ -43,6 +44,9 @@ class TestHRRRNOMADS(RMETestCase):
         self.assertIsNone(res)
         self.assertTrue(mock_get.call_count == 1)
 
+    @unittest.skipIf(
+        skip_on_github_actions(), 'On Github Actions, skipping'
+    )
     def test_preprocessing(self):
 
         # override the dates and output dir
@@ -171,6 +175,9 @@ class TestCli(RMETestCase):
         self.assertTrue(len(res) == 2)
         self.assertTrue(mock_get.call_count == 3)
 
+    @unittest.skipIf(
+        skip_on_github_actions(), 'On Github Actions, skipping'
+    )
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     def test_start_end_date_preprocess(self, mock_get):
         args = {
