@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 from .grib_file import GribFile
 from .netcdf_file import NetCdfFile
@@ -13,6 +14,7 @@ class FileHandler:
 
     FOLDER_NAME_BASE = 'hrrr.{}'
     FILE_NAME_BASE = 'hrrr.t{:02d}z.wrfsfcf{:02d}.{}'
+    FILE_PATTERN = r'hrrr.t(\d\d)z.wrfsfcf(\d\d).grib2'
 
     @staticmethod
     def file_date(date, forecast_hour):
@@ -87,3 +89,28 @@ class FileHandler:
 
         return FileHandler.folder_name(day), \
             FileHandler.file_name(file_hour, forecast_hour, file_extension)
+
+    @staticmethod
+    def folder_to_date(folder_date, file_name):
+        """Given a folder and file name, get the date.
+
+        NOTE: this will return the date for the initialize hour and
+        not account for the forecast hour.
+
+        Args:
+            folder_date (str): HRRR folder name
+            file_name (str): HRRR file name
+
+        Returns:
+            pd.Timestamp: Timestamp for the file
+        """
+
+        # parse the folder date
+        date = pd.to_datetime(folder_date.split('.')[-1])
+
+        # parse the file name
+        res = re.search(FileHandler.FILE_PATTERN, file_name)
+        hour = int(res.group(1))
+
+        date = date.replace(hour=hour)
+        return date.tz_localize(tz='UTC')

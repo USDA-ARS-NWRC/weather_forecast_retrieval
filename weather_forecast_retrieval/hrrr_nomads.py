@@ -1,25 +1,28 @@
 from datetime import datetime, timedelta
 import argparse
+import sys
 
 from weather_forecast_retrieval.data.hrrr import HttpRetrieval
 from weather_forecast_retrieval.hrrr_preprocessor import HRRRPreprocessor
+from weather_forecast_retrieval import utils
 
 
 class HRRRNOMADS():
     """Helper class to aid in the interaction with downloading HRRR
     data from NOMADS.
-
-    TODO: Check if file is already downloaded
     """
 
     def __init__(self, output_dir, num_requests=2, overwrite=False, verbose=False) -> None:
+
+        logLevel = 'DEBUG' if verbose else 'INFO'
+        self._logger = utils.setup_local_logger(__name__, loglevel=logLevel)
 
         self.output_dir = output_dir
         self.num_requests = num_requests
         self.overwrite = overwrite
         self.verbose = verbose
 
-        self.http_retrieval = HttpRetrieval(overwrite=overwrite)
+        self.http_retrieval = HttpRetrieval(overwrite=overwrite, external_logger=self._logger)
         self.http_retrieval.output_dir = output_dir
 
     def set_dates(self, start_date, end_date, forecast_hrs):
@@ -91,7 +94,13 @@ class HRRRNOMADS():
 
 
 def main(**kwargs):
-    hn = HRRRNOMADS(kwargs['output_dir'], kwargs['num_requests'], kwargs['verbose'])
+
+    hn = HRRRNOMADS(
+        kwargs['output_dir'],
+        kwargs['num_requests'],
+        kwargs['overwrite'],
+        kwargs['verbose']
+    )
 
     if 'start_date' in kwargs.keys() and 'end_date' in kwargs.keys():
         results = hn.date_range(kwargs['start_date'],
@@ -107,11 +116,7 @@ def main(**kwargs):
     return results
 
 
-def cli():
-    """
-    Command line tool to download files from NOMADS and preprocess those files
-    """
-
+def parse_args(args):
     parser = argparse.ArgumentParser(
         description="Crop HRRR files by a bounding box and "
                     "extract only the necessary surface variables "
@@ -151,7 +156,7 @@ def cli():
 
     parser.add_argument('-f', '--forecast_hrs',
                         dest='forecast_hrs',
-                        type=lambda s: [i for i in s.split(',')],
+                        type=lambda s: [int(i) for i in s.split(',')],
                         default=None,
                         help='Forecast hours, comma seperated list')
 
@@ -161,7 +166,7 @@ def cli():
 
     parser.add_argument('--bbox',
                         dest='bbox',
-                        type=lambda s: [i for i in s.split(',')],
+                        type=lambda s: [i.strip() for i in s.split(',')],
                         required=False,
                         help="Bounding box as delimited string "
                         "--bbox='longitude left, longitude right, "
@@ -177,5 +182,17 @@ def cli():
                         help="increase logging verbosity",
                         action="store_true")
 
-    args = parser.parse_args()
+    parser.add_argument("--overwrite",
+                        help="Download and overwrite existing HRRR files",
+                        action="store_true")
+
+    return parser.parse_args(args)
+
+
+def cli():
+    """
+    Command line tool to download files from NOMADS and preprocess those files
+    """
+
+    args = parse_args(sys.argv[1:])
     main(**vars(args))

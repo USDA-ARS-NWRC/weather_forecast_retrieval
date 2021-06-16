@@ -53,3 +53,10 @@ class TestHRRRFileHandler(unittest.TestCase):
 
         self.assertEqual('hrrr.20180208', folder_name)
         self.assertEqual('hrrr.t04z.wrfsfcf01.grib2', file_name)
+
+    def test_folder_to_date(self):
+        file_date = FileHandler.folder_to_date(
+            'hrrr.20210615',
+            'hrrr.t04z.wrfsfcf01.grib2'
+        )
+        self.assertEqual(pd.to_datetime('2021-06-15 04:00'), file_date)

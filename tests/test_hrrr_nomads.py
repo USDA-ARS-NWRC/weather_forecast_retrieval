@@ -1,6 +1,6 @@
 import mock
 
-from weather_forecast_retrieval.hrrr_nomads import HRRRNOMADS, main
+from weather_forecast_retrieval.hrrr_nomads import HRRRNOMADS, main, parse_args
 
 from tests.RME import RMETestCase
 from tests.helpers import mocked_requests_get
@@ -68,6 +68,71 @@ class TestHRRRNOMADS(RMETestCase):
             )
 
 
+class TestParseArgs(RMETestCase):
+
+    def test_no_args(self):
+        with self.assertRaises(SystemExit) as cm:
+            parse_args([])
+        self.assertEqual(cm.exception.code, 2)
+
+    def test_output_dir(self):
+        args = parse_args([
+            '-o',
+            self.output_path.as_posix()
+        ])
+        self.assertEqual(args.latest, 3)
+        self.assertEqual(args.num_requests, 2)
+        self.assertFalse(args.overwrite)
+        self.assertFalse(args.verbose)
+        self.assertIsNone(args.forecast_hrs)
+
+    def test_forecast_hrs(self):
+        args = parse_args([
+            '-o',
+            self.output_path.as_posix(),
+            '-f',
+            '0'
+        ])
+        self.assertIsInstance(args.forecast_hrs, list)
+        self.assertIsInstance(args.forecast_hrs[0], int)
+
+    def test_forecast_hrs_list(self):
+        args = parse_args([
+            '-o',
+            self.output_path.as_posix(),
+            '-f',
+            '0,1,2'
+        ])
+        self.assertIsInstance(args.forecast_hrs, list)
+        self.assertIsInstance(args.forecast_hrs[0], int)
+
+    def test_overwrite(self):
+        args = parse_args([
+            '-o',
+            self.output_path.as_posix(),
+            '--overwrite',
+        ])
+        self.assertTrue(args.overwrite)
+
+    def test_verbose(self):
+        args = parse_args([
+            '-o',
+            self.output_path.as_posix(),
+            '--verbose',
+        ])
+        self.assertTrue(args.verbose)
+
+    def test_bbox(self):
+        args = parse_args([
+            '-o',
+            self.output_path.as_posix(),
+            '--bbox',
+            '-116.9, 42.9, -116.5, 43.2'
+        ])
+        for i, coord in enumerate(args.bbox):
+            self.assertEqual(BBOX[i], float(coord))
+
+
 class TestCli(RMETestCase):
 
     @mock.patch('requests.get', side_effect=mocked_requests_get)
@@ -76,8 +141,11 @@ class TestCli(RMETestCase):
             'output_dir': self.output_path,
             'num_requests': 2,
             'verbose': False,
+            'overwrite': False,
             'latest': 3,
-            'forecast_hrs': [0, 1]
+            'forecast_hrs': [0, 1],
+            'bbox': None,
+            'output_path': None
         }
         res = main(**args)
 
@@ -90,9 +158,12 @@ class TestCli(RMETestCase):
             'output_dir': self.output_path,
             'num_requests': 2,
             'verbose': False,
+            'overwrite': False,
             'start_date': START_DATE,
             'end_date': END_DATE,
-            'forecast_hrs': [0, 1]
+            'forecast_hrs': [0, 1],
+            'bbox': None,
+            'output_path': None
         }
         res = main(**args)
 
@@ -105,6 +176,7 @@ class TestCli(RMETestCase):
             'output_dir': self.output_path,
             'num_requests': 2,
             'verbose': False,
+            'overwrite': False,
             'start_date': START_DATE,
             'end_date': END_DATE,
             'forecast_hrs': [0, 1],

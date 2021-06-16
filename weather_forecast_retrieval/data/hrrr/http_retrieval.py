@@ -78,8 +78,8 @@ class HttpRetrieval(ConfigFile):
 
     def output_folder(self):
         if self.date_folder:
-            dir = FileHandler.folder_name(self.start_date)
-            out_path = os.path.join(self.output_dir, dir)
+            self.folder_date = FileHandler.folder_name(self.start_date)
+            out_path = os.path.join(self.output_dir, self.folder_date)
 
             if not os.path.isdir(out_path):
                 os.mkdir(out_path)
@@ -112,9 +112,13 @@ class HttpRetrieval(ConfigFile):
 
         df = self.parse_html_for_files()
 
+        if len(df) == 0:
+            self.log.warning('No files found that match request')
+            return None
+
         # parse by the date
-        idx = (df['modified'] >= self.start_date) & \
-              (df['modified'] <= self.end_date)
+        idx = (df['file_date'] >= self.start_date) & \
+              (df['file_date'] <= self.end_date)
         df = df.loc[idx]
         self.log.debug(
             'Found {} files between start and end date'.format(len(df)))
@@ -122,7 +126,7 @@ class HttpRetrieval(ConfigFile):
         self.log.debug('Generating requests')
         pool = ThreadPool(processes=self.number_requests)
 
-        self.log.debug('Sendings {} requests'.format(len(df)))
+        self.log.info('Sendings {} requests'.format(len(df)))
 
         # map_async will convert the iterable to a list right away and wait
         # for the requests to finish before continuing
@@ -166,8 +170,10 @@ class HttpRetrieval(ConfigFile):
                         el[0] + ' ' + el[1]).tz_localize(tz='UTC')
                     size = el[3]
                     out_file = os.path.join(self.out_path, file_name)
+
                     df = df.append({
                         'modified': modified,
+                        'file_date': FileHandler.folder_to_date(self.folder_date, file_name),
                         'file_name': file_name,
                         'out_file': out_file,
                         'new_file': not os.path.exists(out_file),
@@ -180,7 +186,7 @@ class HttpRetrieval(ConfigFile):
         if not self.overwrite:
             df = df[df.new_file]
             self.log.debug(
-                'Only {} files does not exist in output directory'.format(len(df)))
+                '{} files do not exist in output directory'.format(len(df)))
 
         return df
 
