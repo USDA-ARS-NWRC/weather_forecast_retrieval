@@ -1,7 +1,6 @@
-import unittest
 from datetime import datetime, timedelta
-import mock
 
+import mock
 import pandas as pd
 
 from tests.helpers import mocked_requests_get

@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-import mock
 
+import mock
 import numpy as np
 import pandas as pd
 

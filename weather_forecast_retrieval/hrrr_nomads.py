@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta
 import argparse
 import sys
+from datetime import datetime, timedelta
 
+from weather_forecast_retrieval import utils
 from weather_forecast_retrieval.data.hrrr import HttpRetrieval
 from weather_forecast_retrieval.hrrr_preprocessor import HRRRPreprocessor
-from weather_forecast_retrieval import utils
 
 
 class HRRRNOMADS():

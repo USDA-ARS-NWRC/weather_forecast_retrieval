@@ -1,9 +1,8 @@
 import mock
 
-from weather_forecast_retrieval.hrrr_nomads import HRRRNOMADS, main, parse_args
-
-from tests.RME import RMETestCase
 from tests.helpers import mocked_requests_get
+from tests.RME import RMETestCase
+from weather_forecast_retrieval.hrrr_nomads import HRRRNOMADS, main, parse_args
 
 START_DATE = '2019-07-10 09:00:00'
 END_DATE = '2019-07-10 10:00:00'

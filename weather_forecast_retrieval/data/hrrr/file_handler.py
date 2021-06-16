@@ -1,5 +1,6 @@
-import pandas as pd
 import re
+
+import pandas as pd
 
 from .grib_file import GribFile
 from .netcdf_file import NetCdfFile
