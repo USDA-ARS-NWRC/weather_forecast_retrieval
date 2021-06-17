@@ -137,9 +137,12 @@ class TestParseArgs(RMETestCase):
 
 
 class TestCli(RMETestCase):
+    PROCESS_RESULT = mock.Mock('Processor')
 
-    @mock.patch('requests.get', side_effect=mocked_requests_get)
-    def test_latest(self, mock_get):
+    @mock.patch(
+        'weather_forecast_retrieval.hrrr_nomads.HRRRNOMADS', autospec=True
+    )
+    def test_arguments(self, hr_patch):
         args = {
             'output_dir': self.output_path,
             'num_requests': 2,
@@ -152,13 +155,34 @@ class TestCli(RMETestCase):
             'bbox': None,
             'output_path': None
         }
-        res = main(**args)
 
-        self.assertIsNone(res)
-        self.assertTrue(mock_get.call_count == 1)
+        main(**args)
 
-    @mock.patch('requests.get', side_effect=mocked_requests_get)
-    def test_start_end_date(self, mock_get):
+        hr_patch.assert_called_once_with(
+            self.output_path, 2, False, False
+        )
+
+    @mock.patch.object(HRRRNOMADS, 'latest', return_value=PROCESS_RESULT)
+    def test_latest(self, latest_patch):
+        args = {
+            'output_dir': self.output_path,
+            'num_requests': 2,
+            'verbose': False,
+            'overwrite': False,
+            'latest': 3,
+            'start_date': None,
+            'end_date': None,
+            'forecast_hrs': [0, 1],
+            'bbox': None,
+            'output_path': None
+        }
+        result = main(**args)
+
+        self.assertEqual(result, self.PROCESS_RESULT)
+        latest_patch.assert_called_once_with(3, [0, 1])
+
+    @mock.patch.object(HRRRNOMADS, 'date_range', return_value=PROCESS_RESULT)
+    def test_start_end_date(self, date_range_patch):
         args = {
             'output_dir': self.output_path,
             'num_requests': 2,
@@ -170,16 +194,18 @@ class TestCli(RMETestCase):
             'bbox': None,
             'output_path': None
         }
-        res = main(**args)
+        result = main(**args)
 
-        self.assertTrue(len(res) == 2)
-        self.assertTrue(mock_get.call_count == 3)
+        self.assertEqual(result, self.PROCESS_RESULT)
+        date_range_patch.assert_called_once_with(
+            START_DATE, END_DATE, [0, 1]
+        )
 
-    @unittest.skipIf(
-        skip_on_github_actions(), 'On Github Actions, skipping'
-    )
-    @mock.patch('requests.get', side_effect=mocked_requests_get)
-    def test_start_end_date_preprocess(self, mock_get):
+    @mock.patch.object(HRRRNOMADS, 'preprocessing')
+    @mock.patch.object(HRRRNOMADS, 'date_range', return_value=PROCESS_RESULT)
+    def test_start_end_date_preprocess(
+        self, date_range_patch, preprocessing_patch
+    ):
         args = {
             'output_dir': self.output_path,
             'num_requests': 2,
@@ -191,10 +217,13 @@ class TestCli(RMETestCase):
             'bbox': BBOX,
             'output_path': self.output_path.as_posix()
         }
-        res = main(**args)
 
-        # Because this is mocked, the grib files don't have anything
-        # in them so nothing will really happen, just making sure
-        # that the processor is called
-        self.assertTrue(len(res) == 2)
-        self.assertTrue(mock_get.call_count == 3)
+        result = main(**args)
+
+        self.assertEqual(result, self.PROCESS_RESULT)
+        date_range_patch.assert_called_once_with(
+            START_DATE, END_DATE, [0, 1]
+        )
+        preprocessing_patch.assert_called_once_with(
+            BBOX, self.output_path.as_posix()
+        )
