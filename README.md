@@ -119,6 +119,56 @@ optional arguments:
   --verbose             increase logging verbosity
 ```
 
+## hrrr_nomads
+
+The `hrrr_nomads` command line will download HRRR grib2 files from NOMADS. `hrrr_nomads`
+will fetch either the latest 3 hours of files or files between a start and end date. Optionally
+specify the forecast hours to limit how many files are downloaded. If a bounding box and
+additional preprocess path is specified, `hrrr_nomads` will crop the files to the variables
+needed for running AWSM.
+
+Example to download the latest 3 hours of data for files not found in the output directory,
+with the `00`, `01` and `02` forecast hours, crop to a bounding box:
+
+```
+hrrr_nomads -l 3 -f 0,1,2 --bbox="-119,-118,37,38" -o /path/to/output -p /path/to/crop/output
+```
+
+Usage
+
+```
+usage: hrrr_nomads [-h] -o OUTPUT_DIR [-n NUM_REQUESTS] [-s START_DATE]
+                   [-e END_DATE] [-l LATEST] [-f FORECAST_HRS] [--bbox BBOX]
+                   [-p OUTPUT_PATH] [--verbose] [--overwrite]
+
+Download from NOMADS and/or crop HRRR files by a bounding box and extract only
+the necessary surface variables for running with AWSM.
+
+Example command to download the latest 3 hours and crop to a bounding box:
+$ hrrr_nomads -f 0 --bbox="-119,-118,37,38" -o /path/to/output -p /path/to/crop/output --verbose
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        Directory to download HRRR files to
+  -n NUM_REQUESTS, --num_requests NUM_REQUESTS
+                        Number of concurrent requests, default 2
+  -s START_DATE, --start START_DATE
+                        Start date
+  -e END_DATE, --end END_DATE
+                        End date
+  -l LATEST, --latest LATEST
+                        Latest number of hours to download, defaults 3 hours
+  -f FORECAST_HRS, --forecast_hrs FORECAST_HRS
+                        Forecast hours, comma seperated list
+  --bbox BBOX           Bounding box as delimited string --bbox='longitude
+                        left, longitude right, latitude bottom, latitude top'
+  -p OUTPUT_PATH, --preprocess_path OUTPUT_PATH
+                        Directory to write preprocessed HRRR files
+  --verbose             increase logging verbosity
+  --overwrite           Download and overwrite existing HRRR files
+```
+
 ## convert_grib2nc
 
 ## run_hrrr_retrieval
