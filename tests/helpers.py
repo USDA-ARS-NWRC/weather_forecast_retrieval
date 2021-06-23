@@ -28,7 +28,7 @@ def mocked_requests_get(*args, **kwargs):
         return MockResponse(args[0], b'mock response text', 200)
 
     if 'nomads' in args[0]:
-        with open('../data/hrrr/nomads_response.html') as f:
+        with open('../nomads/nomads_response.html') as f:
             html_string = f.read()
         return MockResponse(args[0], html_string, 200)
 
