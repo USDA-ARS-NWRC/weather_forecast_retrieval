@@ -122,7 +122,7 @@ optional arguments:
 ## hrrr_nomads
 
 The `hrrr_nomads` command line will download HRRR grib2 files from NOMADS. `hrrr_nomads`
-will fetch either the latest 3 hours of files or files between a start and end date. Optionally
+will fetch either the latest 3 hours of files or files between a start and end date. Optionally,
 specify the forecast hours to limit how many files are downloaded. If a bounding box and
 additional preprocess path is specified, `hrrr_nomads` will crop the files to the variables
 needed for running AWSM.
@@ -134,7 +134,9 @@ with the `00`, `01` and `02` forecast hours, crop to a bounding box:
 hrrr_nomads -l 3 -f 0,1,2 --bbox="-119,-118,37,38" -o /path/to/output -p /path/to/crop/output
 ```
 
-Usage
+> **_NOTE:_** Requires `wgrib2` to be installed if cropping to a bounding box.
+
+Usage:
 
 ```
 usage: hrrr_nomads [-h] -o OUTPUT_DIR [-n NUM_REQUESTS] [-s START_DATE]
