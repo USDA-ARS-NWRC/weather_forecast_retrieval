@@ -19,10 +19,9 @@ except ImportError:  # pragma: no cover
         from ordereddict import OrderedDict
 
 
-def setup_local_logger(name, config=None):
+def setup_local_logger(name, config=None, loglevel='INFO'):
     # Defaults
     logfile = None
-    loglevel = 'DEBUG'
     message_format = '%(levelname)s:%(name)s: %(message)s'
     log = logging.getLogger(name)
 

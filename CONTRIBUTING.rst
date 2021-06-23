@@ -119,15 +119,3 @@ To run a subset of tests::
 
 
     $ python -m unittest tests.test_weather_forecast_retrieval
-
-
-Skip running tests with external HTTP requests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To speed up development using local data, all tests that require an external
-HTTP request can be skipped via environment variable. To use this option, set
-
-::
-
-    WFR_SKIP_EXTERNAL_REQUEST_TEST=1
-
-as global variable in the environment that executes the tests.
