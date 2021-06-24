@@ -30,7 +30,7 @@ COPY --from=builder /usr/local/bin/wgrib2 /usr/local/bin/wgrib2
 
 # Add and build weather forecast retrival
 RUN apt-get update \
-    && apt-get install -y git \
+    && apt-get install -y git libeccodes-tools libgfortan5 libgomp1 \
     && python3 -m pip install --no-cache-dir -r requirements.txt \
     && python3 setup.py install
 
