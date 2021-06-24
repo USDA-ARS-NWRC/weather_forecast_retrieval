@@ -127,14 +127,14 @@ specify the forecast hours to limit how many files are downloaded. If a bounding
 additional preprocess path is specified, `hrrr_nomads` will crop the files to the variables
 needed for running AWSM.
 
+> **_NOTE:_** Requires `wgrib2` to be installed if cropping to a bounding box.
+
 Example to download the latest 3 hours of data for files not found in the output directory,
 with the `00`, `01` and `02` forecast hours, crop to a bounding box:
 
 ```
 hrrr_nomads -l 3 -f 0,1,2 --bbox="-119,-118,37,38" -o /path/to/output -p /path/to/crop/output
 ```
-
-> **_NOTE:_** Requires `wgrib2` to be installed if cropping to a bounding box.
 
 Usage:
 
