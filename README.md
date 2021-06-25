@@ -35,17 +35,16 @@ ln wgrib2/wgrib2 ~/bin/wgrib2
 
 ## Docker
 
-The retrieval aspect of `weather_forecast_retieval` has been built into a Docker image based on the Python 3 Alpine linux image. This allows for a docker deployment to run and retrieve HRRR data and convert to netcdf if needed. To use, first build the image
+The retrieval aspect of `weather_forecast_retieval` has been built into a Docker image based Python 3.8. This allows for a docker deployment to run and retrieve HRRR data. The docker image can call any of the command line programs in `weather_forecast_retrieval`.
+
+For example, to run `hrrr_nomads` with docker:
 
 ```
-docker build -t usdaarsnwrc/weather_forecast_retieval .
+docker run --rm usdaarsnwrs/weather_forecast_retrieval hrrr_nomads -l 3 -f 0,1,2 --bbox="-119,-118,37,38" -o /path/to/output -p /path/to/crop/output
 ```
 
-Grab a coffee as this has to compile `pandas` from source (10+ minutes of compile time). Once completed, modify or create a new `docker-compose.yml` and modify the volume attachments as necessary. There are 2 volumes to attach, a `data` drive mounted to `/data` and the config file folders at `/code/config`. To setup the download, the config file is passed to `docker-compose`:
+The paths to the output directories are internal to the docker image and the necessary volume mounts are needed.
 
-```
-docker-compose run weather_forecast_retrieval /code/config/hrrr.ini
-```
 
 # Command line usage
 
@@ -170,7 +169,3 @@ optional arguments:
   --verbose             increase logging verbosity
   --overwrite           Download and overwrite existing HRRR files
 ```
-
-## convert_grib2nc
-
-## run_hrrr_retrieval
